@@ -244,6 +244,9 @@
       <div class="btn-row" style="align-items:center;">
         <span id="modified-badge">● 未儲存修改</span>
         <button class="btn btn-success btn-sm" onclick="exportMarkdown()">⬇ 匯出 Markdown</button>
+        <button class="btn btn-success btn-sm" onclick="exportPlainText()">⬇ 匯出純文字</button>
+        <button class="btn btn-success btn-sm" onclick="exportServerFile('docx')">⬇ 匯出 Word</button>
+        <button class="btn btn-success btn-sm" onclick="exportServerFile('pdf')">⬇ 匯出 PDF</button>
         <button class="btn btn-outline btn-sm" onclick="cleanupAndReset()">🗑 清除暫存</button>
         <button class="btn btn-outline btn-sm" onclick="showView('view-upload')">+ 新錄音</button>
       </div>
@@ -625,6 +628,69 @@ function exportMarkdown() {
   state.modified = false;
   document.getElementById('modified-badge').style.display = 'none';
   toast('已匯出 Markdown 檔案');
+}
+
+// ─── EXPORT PLAIN TEXT（前端直接產生）─────────────────────
+function exportPlainText() {
+  const m = state.minutes || {};
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const summary = document.getElementById('summary-text').textContent;
+
+  let txt = `會議紀錄\n日期：${new Date().toLocaleDateString('zh-TW')}\n\n`;
+  txt += `【摘要】\n${summary}\n\n`;
+
+  txt += `【待辦事項】\n`;
+  document.querySelectorAll('#action-tbody tr').forEach(tr => {
+    const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    txt += `- [${cells[0] || '-'}] ${cells[1] || ''}（期限：${cells[2] || '-'}）\n`;
+  });
+  txt += '\n';
+
+  txt += `【決定事項】\n`;
+  document.querySelectorAll('#decision-list li').forEach(li => {
+    txt += `- ${li.textContent.trim()}\n`;
+  });
+  txt += '\n';
+
+  txt += `【討論重點】\n`;
+  (m.topics || []).forEach(t => {
+    txt += `${t.title}\n${t.content}\n\n`;
+  });
+
+  txt += `【逐字稿】\n`;
+  state.segments.forEach(seg => {
+    const name = state.speakers[seg.speaker] || seg.speaker || '—';
+    txt += `[${fmtTime(seg.start)}] ${name}：${seg.text}\n`;
+  });
+
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${today}-meeting-notes.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('已匯出純文字檔案');
+}
+
+// ─── EXPORT WORD/PDF（後端產生）──────────────────────────
+async function exportServerFile(format) {
+  if (!state.jobId) return;
+  try {
+    const res = await fetch(`${API}/api/export/${state.jobId}?format=${format}`);
+    if (!res.ok) throw new Error('匯出失敗');
+    const blob = await res.blob();
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${today}-meeting-notes.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(format === 'docx' ? '已匯出 Word 檔案' : '已匯出 PDF 檔案');
+  } catch (e) {
+    toast('匯出失敗，請稍後再試');
+  }
 }
 
 // ─── CLEANUP ─────────────────────────────────────────────

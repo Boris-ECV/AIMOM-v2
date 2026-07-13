@@ -9,7 +9,6 @@ from diarize import router as diarize_router
 from summarize import router as summarize_router
 from progress import router as progress_router
 from history import router as history_router
-from export import router as export_router
 from auth import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -54,7 +53,6 @@ app.include_router(diarize_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(summarize_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(progress_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(history_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(export_router, prefix="/api", dependencies=_auth_dep)
 
 if __name__ == "__main__":
     import uvicorn

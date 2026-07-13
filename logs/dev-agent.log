@@ -19,3 +19,4 @@
 [2026-07-13T18:40:00] [dev-agent] [TASK-008] MOVE    board/development/ -> board/review/
 [2026-07-13T18:40:00] [dev-agent] [TASK-008] DONE    開發完成，20/20 測試通過
 [2026-07-13 18:43:38] [dev-agent] [TASK-009] IMPLEMENT 新增 src/db.py (DynamoDB 存取層) 與 src/history.py (keep/discard/list/get/delete 端點)，掛載至 app.py
+[2026-07-13 18:47:22] [dev-agent] [TASK-010] IMPLEMENT 新增 src/export.py（docx/pdf 產生），前端新增純文字/Word/PDF 匯出按鈕
