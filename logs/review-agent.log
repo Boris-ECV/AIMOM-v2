@@ -12,3 +12,4 @@
 [2026-07-13 18:43:38] [review-agent] [TASK-009] REVIEW 確認使用者隔離邏輯（user_id 過濾）、TTL 計算、404 不洩漏資料存在與否，通過
 [2026-07-13 18:47:22] [review-agent] [TASK-010] REVIEW 確認中文字型正確顯示（MSung-Light CID font）、404/400 錯誤處理，通過
 [2026-07-13 18:52:42] [review-agent] [TASK-011] REVIEW 確認 DynamoDB Decimal 轉換、require_admin 403 保護、用量記錄失敗不影響主流程，通過
+[2026-07-13 18:54:51] [review-agent] [TASK-012] REVIEW 確認 Mangum 包裝正確、健康檢查端點無需登入、部署筆記涵蓋必要環境變數與 IAM 權限，通過

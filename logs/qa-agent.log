@@ -12,3 +12,4 @@
 [2026-07-13 18:43:38] [qa-agent] [TASK-009] TEST 新增 tests/test_history.py 7 項測試（含跨使用者隔離），使用 moto 模擬 DynamoDB，全數通過，套件測試 27/27 pass
 [2026-07-13 18:47:22] [qa-agent] [TASK-010] TEST 新增 tests/test_export.py 4 項測試，全數通過，套件測試 31/31 pass
 [2026-07-13 18:52:42] [qa-agent] [TASK-011] TEST 新增 tests/test_usage_admin.py 6 項測試，全數通過，套件測試 36/36 pass
+[2026-07-13 18:54:51] [qa-agent] [TASK-012] TEST 新增 tests/test_lambda_handler.py 2 項測試（模擬 API Gateway v2 event），全數通過，套件測試 38/38 pass
