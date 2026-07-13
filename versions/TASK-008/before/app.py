@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from upload import router as upload_router
@@ -8,8 +8,6 @@ from transcribe import router as transcribe_router
 from diarize import router as diarize_router
 from summarize import router as summarize_router
 from progress import router as progress_router
-from history import router as history_router
-from auth import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +37,11 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.get("/api/me")
-async def get_me(user: CurrentUser = Depends(get_current_user)):
-    """回傳目前登入使用者資訊（TASK-008）。"""
-    return {"email": user.email, "role": user.role}
-
-
-_auth_dep = [Depends(get_current_user)]
-
-app.include_router(upload_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(transcribe_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(diarize_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(summarize_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(progress_router, prefix="/api", dependencies=_auth_dep)
-app.include_router(history_router, prefix="/api", dependencies=_auth_dep)
+app.include_router(upload_router, prefix="/api")
+app.include_router(transcribe_router, prefix="/api")
+app.include_router(diarize_router, prefix="/api")
+app.include_router(summarize_router, prefix="/api")
+app.include_router(progress_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn

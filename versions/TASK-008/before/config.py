@@ -36,17 +36,6 @@ _DEFAULT_MODELS = {
 MAX_DURATION_HOURS = float(os.getenv("MAX_DURATION_HOURS", "2"))
 TMP_DIR = os.getenv("TMP_DIR", "tmp")
 
-# 登入與角色（TASK-008 — Cognito + Google 聯合登入）
-COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-northeast-1")
-COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
-COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID", "")
-ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "")  # 逗號分隔白名單，判定管理者角色
-
-# DynamoDB（TASK-009/011）
-DYNAMODB_MEETINGS_TABLE = os.getenv("DYNAMODB_MEETINGS_TABLE", "aimom-meetings")
-DYNAMODB_LLM_USAGE_TABLE = os.getenv("DYNAMODB_LLM_USAGE_TABLE", "aimom-llm-usage")
-MEETING_RETENTION_DAYS = int(os.getenv("MEETING_RETENTION_DAYS", "14"))
-
 
 def get_llm_client():
     import openai

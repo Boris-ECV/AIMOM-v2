@@ -7,3 +7,7 @@
 [2026-07-13T12:01:00] [sa-agent] [TASK-006] WRITE   docs/design/TASK-006-design.md
 [2026-07-13T12:01:00] [sa-agent] [TASK-006] MOVE    board/design/ -> board/development/
 [2026-07-13T12:01:00] [sa-agent] [TASK-006] DONE    設計確認完成
+[2026-07-13T18:32:00] [sa-agent] [TASK-008] WRITE   docs/design/TASK-008-design.md, docs/api/TASK-008-api.md
+[2026-07-13T18:32:00] [sa-agent] [TASK-008] MOVE    board/design/ -> board/development/
+[2026-07-13T18:32:00] [sa-agent] [TASK-008] DONE    設計完成
+[2026-07-13 18:43:38] [sa-agent] [TASK-009] DESIGN 完成歷史紀錄設計文件與 API 規格 (docs/design/TASK-009-design.md, docs/api/TASK-009-api.md)

@@ -7,3 +7,6 @@
 [2026-07-13T12:04:00] [qa-agent] [TASK-006] NOTE    QA PASS - 4/4 通過（既有測試邏輯驗證）
 [2026-07-13T12:04:00] [qa-agent] [TASK-006] MOVE    board/testing/ -> board/done/
 [2026-07-13T12:04:00] [qa-agent] [TASK-006] DONE    測試完成
+[2026-07-13T18:50:00] [qa-agent] [TASK-008] NOTE    QA PASS - 20/20 測試通過
+[2026-07-13T18:50:00] [qa-agent] [TASK-008] MOVE    board/testing/ -> board/done/
+[2026-07-13 18:43:38] [qa-agent] [TASK-009] TEST 新增 tests/test_history.py 7 項測試（含跨使用者隔離），使用 moto 模擬 DynamoDB，全數通過，套件測試 27/27 pass

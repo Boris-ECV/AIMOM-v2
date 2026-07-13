@@ -4,9 +4,9 @@ title: 需求訪談與 PRD 定義 — v2 雲端化擴充（歷史紀錄／多格
 type: Story
 priority: High
 assignee: unassigned
-status: design
+status: done
 created: 2026-07-13
-updated: 2026-07-13T18:30:00
+updated: 2026-07-13T18:31:00
 epic: EPIC-002
 ---
 
@@ -43,3 +43,4 @@ epic: EPIC-002
 | 2026-07-13T18:15:00 | orchestrator | 建立工單，放入 backlog |
 | 2026-07-13T18:15:30 | ba-agent | 接單，開始需求訪談 |
 | 2026-07-13T18:30:00 | ba-agent | 訪談完成，PRD 產出，工單移至 design |
+| 2026-07-13T18:31:00 | orchestrator | PRD 定義型工單（比照 TASK-001），拆解為 TASK-008~012 實作工單後移至 done |
