@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會議錄音轉紀錄系統</title>
+<style>
+  :root {
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--primary); color: #fff; padding: 16px 32px;
+           display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header span { font-size: .85rem; opacity: .75; }
+
+  /* LAYOUT */
+  main { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* CARD */
+  .card { background: var(--card); border: 1px solid var(--border);
+          border-radius: var(--radius); padding: 32px; margin-bottom: 24px;
+          box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+  /* UPLOAD VIEW */
+  #drop-zone { border: 2px dashed var(--border); border-radius: var(--radius);
+               padding: 56px 32px; text-align: center; cursor: pointer;
+               transition: border-color .2s, background .2s; }
+  #drop-zone:hover, #drop-zone.dragover { border-color: var(--primary); background: #EFF6FF; }
+  #drop-zone svg { width: 48px; height: 48px; color: var(--muted); margin-bottom: 12px; }
+  #drop-zone p { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+  #drop-zone strong { font-size: 1.1rem; color: var(--text); }
+  #file-input { display: none; }
+  #file-info { margin-top: 16px; padding: 12px 16px; background: #EFF6FF;
+               border-radius: 6px; display: none; font-size: .875rem; }
+  #file-info .fname { font-weight: 600; color: var(--primary); }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 8px;
+         padding: 10px 22px; border-radius: 7px; border: none;
+         cursor: pointer; font-size: .9rem; font-weight: 500;
+         transition: background .15s, transform .1s; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-primary:disabled { background: #93C5FD; cursor: not-allowed; transform: none; }
+  .btn-outline { background: #fff; color: var(--primary);
+                 border: 1px solid var(--primary); }
+  .btn-outline:hover { background: #EFF6FF; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-sm { padding: 6px 14px; font-size: .8rem; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* PROGRESS VIEW */
+  .stage-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+  .stage-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+                border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+  .stage-icon { width: 32px; height: 32px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1rem; flex-shrink: 0; }
+  .stage-icon.done { background: #DCFCE7; color: var(--success); }
+  .stage-icon.active { background: #DBEAFE; color: var(--primary); }
+  .stage-icon.waiting { background: var(--bg); color: var(--muted); }
+  .stage-label { flex: 1; font-weight: 500; }
+  .stage-msg { font-size: .8rem; color: var(--muted); }
+  .progress-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--primary);
+                  border-radius: 4px; transition: width .4s ease; }
+  .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right; }
+  #progress-message { font-size: .9rem; color: var(--muted); margin-top: 12px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; cursor: pointer; font-size: .9rem; font-weight: 500;
+         border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+         margin-bottom: -2px; transition: color .15s, border-color .15s; }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* RESULT: MINUTES */
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
+                   margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title .badge { font-size: .7rem; padding: 2px 8px; border-radius: 999px;
+                           background: #DBEAFE; color: var(--primary); font-weight: 500; }
+
+  #summary-text { line-height: 1.7; color: var(--text); min-height: 48px; }
+  #summary-text[contenteditable="true"] { outline: 2px solid var(--primary);
+    border-radius: 4px; padding: 4px 8px; background: #EFF6FF; }
+
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
+                     font-weight: 600; font-size: .8rem; color: var(--muted);
+                     border-bottom: 1px solid var(--border); }
+  .action-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .action-table tr:last-child td { border-bottom: none; }
+  .action-table td[contenteditable="true"] { background: #FEFCE8; outline: 1px solid var(--warning); }
+
+  .decision-list { list-style: none; }
+  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--border);
+                      display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; }
+  .decision-list li:last-child { border-bottom: none; }
+  .decision-list li::before { content: "✓"; color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+  .topic-item { border: 1px solid var(--border); border-radius: 8px;
+                margin-bottom: 10px; overflow: hidden; }
+  .topic-header { padding: 12px 16px; cursor: pointer; font-weight: 500;
+                  display: flex; justify-content: space-between; background: var(--bg); }
+  .topic-header:hover { background: #F1F5F9; }
+  .topic-body { padding: 12px 16px; font-size: .875rem; color: var(--muted);
+                line-height: 1.6; display: none; }
+  .topic-body.open { display: block; }
+
+  /* TRANSCRIPT */
+  #transcript-container { max-height: 500px; overflow-y: auto; }
+  .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border);
+             align-items: flex-start; font-size: .875rem; }
+  .seg-row:last-child { border-bottom: none; }
+  .seg-time { min-width: 80px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .seg-speaker { min-width: 100px; }
+  .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+                  font-size: .75rem; font-weight: 600; cursor: pointer; }
+  .seg-text { flex: 1; line-height: 1.5; }
+
+  /* SPEAKER RENAME */
+  #speaker-rename-area { background: #F0FDF4; border: 1px solid #BBF7D0;
+                         border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
+  #speaker-rename-area h4 { font-size: .85rem; color: var(--success); margin-bottom: 10px; font-weight: 600; }
+  .rename-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rename-row label { min-width: 100px; font-size: .85rem; font-weight: 500; }
+  .rename-row input { border: 1px solid var(--border); border-radius: 5px;
+                      padding: 5px 10px; font-size: .85rem; flex: 1; max-width: 200px; }
+
+  /* MODIFIED BADGE */
+  #modified-badge { display: none; padding: 4px 12px; border-radius: 999px;
+                    background: #FEF3C7; color: var(--warning); font-size: .78rem; font-weight: 600; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 32px; right: 32px; background: #1E293B; color: #fff;
+           padding: 12px 20px; border-radius: 8px; font-size: .875rem; opacity: 0;
+           transition: opacity .3s; pointer-events: none; z-index: 999; }
+  #toast.show { opacity: 1; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-state p { margin-top: 8px; font-size: .9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+  <h1>會議錄音轉紀錄系統</h1>
+  <span>Meeting Minutes AI</span>
+</header>
+
+<main>
+  <!-- ============ UPLOAD VIEW ============ -->
+  <div id="view-upload" class="view active">
+    <div class="card">
+      <h2 style="font-size:1.2rem;margin-bottom:24px;">📤 上傳錄音檔</h2>
+      <div id="drop-zone">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+        <strong>拖拽錄音檔至此，或點擊選取</strong>
+        <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+      </div>
+      <input type="file" id="file-input" accept=".mp3,.wav,.m4a">
+      <div id="file-info">
+        <div class="fname" id="file-name"></div>
+        <div id="file-meta" style="color:var(--muted);margin-top:4px;"></div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" id="upload-btn" disabled onclick="doUpload()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M2 20h20"/></svg>
+          開始處理
+        </button>
+        <span id="upload-error" style="color:var(--danger);font-size:.85rem;margin-left:14px;"></span>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:.8rem;text-align:center;">
+      本系統不會長期儲存您的錄音檔，處理完成後可手動清除暫存資料。
+    </p>
+  </div>
+
+  <!-- ============ PROGRESS VIEW ============ -->
+  <div id="view-progress" class="view">
+    <div class="card">
+      <h2 style="font-size:1.2rem;margin-bottom:8px;">⚙️ 處理中...</h2>
+      <p id="progress-message" style="color:var(--muted);font-size:.875rem;margin-bottom:20px;"></p>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+      <div class="stage-list" id="stage-list">
+        <div class="stage-item" id="stage-uploaded">
+          <div class="stage-icon waiting" id="icon-uploaded">📤</div>
+          <div>
+            <div class="stage-label">上傳完成</div>
+            <div class="stage-msg">驗證格式與時長</div>
+          </div>
+        </div>
+        <div class="stage-item" id="stage-transcribed">
+          <div class="stage-icon waiting" id="icon-transcribed">🎙️</div>
+          <div>
+            <div class="stage-label">語音轉文字 + 說話者識別</div>
+            <div class="stage-msg">AssemblyAI 處理中（轉錄 + 發言人同步完成）</div>
+          </div>
+        </div>
+        <div class="stage-item" id="stage-done">
+          <div class="stage-icon waiting" id="icon-done">✨</div>
+          <div>
+            <div class="stage-label">AI 整理會議紀錄</div>
+            <div class="stage-msg">GPT-4o 摘要與整理</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="cancelJob()" style="margin-top:8px;">取消</button>
+    </div>
+  </div>
+
+  <!-- ============ RESULT VIEW ============ -->
+  <div id="view-result" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:1.2rem;">📋 會議紀錄</h2>
+        <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-top:4px;"></p>
+      </div>
+      <div class="btn-row" style="align-items:center;">
+        <span id="modified-badge">● 未儲存修改</span>
+        <button class="btn btn-success btn-sm" onclick="exportMarkdown()">⬇ 匯出 Markdown</button>
+        <button class="btn btn-outline btn-sm" onclick="cleanupAndReset()">🗑 清除暫存</button>
+        <button class="btn btn-outline btn-sm" onclick="showView('view-upload')">+ 新錄音</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-btn-minutes" onclick="switchTab('minutes')">📝 會議紀錄</button>
+      <button class="tab" id="tab-btn-transcript" onclick="switchTab('transcript')">🎙 逐字稿</button>
+    </div>
+
+    <!-- MINUTES TAB -->
+    <div id="tab-minutes">
+      <div class="card">
+        <div class="section-title">摘要 <span class="badge">雙擊編輯</span></div>
+        <p id="summary-text" ondblclick="enableEdit(this)" onblur="disableEdit(this)"></p>
+      </div>
+      <div class="card">
+        <div class="section-title">待辦事項</div>
+        <table class="action-table">
+          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+          <tbody id="action-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-title">決定事項</div>
+        <ul class="decision-list" id="decision-list"></ul>
+      </div>
+      <div class="card">
+        <div class="section-title">討論重點</div>
+        <div id="topics-container"></div>
+      </div>
+    </div>
+
+    <!-- TRANSCRIPT TAB -->
+    <div id="tab-transcript" style="display:none;">
+      <div id="speaker-rename-area" style="display:none;">
+        <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
+        <div id="rename-rows"></div>
+      </div>
+      <div class="card">
+        <div id="transcript-container"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000';
+
+const state = {
+  jobId: null,
+  speakers: {},
+  minutes: null,
+  segments: [],
+  modified: false,
+  pollTimer: null,
+  file: null,
+};
+
+// ─── INIT ────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('meetingJobId');
+  if (saved) state.jobId = saved;
+  setupDropZone();
+});
+
+// ─── DROP ZONE ───────────────────────────────────────────
+function setupDropZone() {
+  const dz = document.getElementById('drop-zone');
+  const fi = document.getElementById('file-input');
+
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fi.addEventListener('change', () => { if (fi.files[0]) setFile(fi.files[0]); });
+}
+
+function setFile(file) {
+  const allowed = ['.mp3', '.wav', '.m4a'];
+  const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  if (!allowed.includes(ext)) {
+    showError('upload-error', '不支援的格式，請上傳 MP3/WAV/M4A');
+    return;
+  }
+  showError('upload-error', '');
+  state.file = file;
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-meta').textContent =
+    `大小：${(file.size / 1024 / 1024).toFixed(2)} MB`;
+  document.getElementById('file-info').style.display = 'block';
+  document.getElementById('upload-btn').disabled = false;
+}
+
+// ─── UPLOAD ──────────────────────────────────────────────
+async function doUpload() {
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.textContent = '上傳中...';
+
+  const form = new FormData();
+  form.append('file', state.file);
+
+  try {
+    const res = await fetch(`${API}/api/upload`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '上傳失敗');
+
+    state.jobId = data.job_id;
+    localStorage.setItem('meetingJobId', state.jobId);
+    showView('view-progress');
+    startPoll();
+
+    // 依序觸發各步驟（v2.0: transcribe 已含說話者識別，移除獨立 diarize 呼叫）
+    await callStep('/api/transcribe');
+    await callStep('/api/summarize');
+  } catch (err) {
+    showError('upload-error', err.message);
+    btn.disabled = false;
+    btn.textContent = '開始處理';
+  }
+}
+
+async function callStep(endpoint) {
+  const res = await fetch(`${API}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_id: state.jobId }),
+  });
+  if (!res.ok) {
+    const d = await res.json();
+    throw new Error(d.detail || `${endpoint} 失敗`);
+  }
+  return res.json();
+}
+
+// ─── PROGRESS POLL ───────────────────────────────────────
+function startPoll() {
+  if (state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(pollStatus, 2000);
+}
+
+async function pollStatus() {
+  if (!state.jobId) return;
+  try {
+    const res = await fetch(`${API}/api/status/${state.jobId}`);
+    const s = await res.json();
+    updateProgressUI(s);
+    if (s.stage === 'done') {
+      clearInterval(state.pollTimer);
+      await loadResults();
+    }
+    if (s.stage === 'error') {
+      clearInterval(state.pollTimer);
+      toast('處理失敗：' + s.message);
+    }
+  } catch (_) {}
+}
+
+// v2.0: 3 stages (uploaded → transcribed → done); diarized merged into transcribed
+const STAGE_ORDER = ['uploaded', 'transcribed', 'done'];
+
+function updateProgressUI(s) {
+  document.getElementById('progress-bar').style.width = s.progress + '%';
+  document.getElementById('progress-pct').textContent = s.progress + '%';
+  document.getElementById('progress-message').textContent = s.message || '';
+
+  STAGE_ORDER.forEach(stage => {
+    const icon = document.getElementById('icon-' + stage);
+    if (!icon) return;
+    const idx = STAGE_ORDER.indexOf(stage);
+    const activeStage = s.stage.replace('ing', 'ed').replace('diarized', 'transcribed');
+    const curIdx = STAGE_ORDER.indexOf(activeStage);
+    if (idx < curIdx) { icon.className = 'stage-icon done'; }
+    else if (stage === activeStage || s.stage.startsWith(stage.replace('ed', ''))) {
+      icon.className = 'stage-icon active';
+    } else { icon.className = 'stage-icon waiting'; }
+  });
+}
+
+// ─── LOAD RESULTS ────────────────────────────────────────
+async function loadResults() {
+  try {
+    // 逐字稿 (已含 speaker)
+    const tRes = await fetch(`${API}/api/status/${state.jobId}`);
+    // summarize 結果透過 /api/summarize 回傳（已儲存）
+    // 直接讀取 minutes.json 無直接 API，用 summarize endpoint 重複呼叫會重算
+    // 改用一個假設的 GET /api/result/{job_id}，或在 summarize 時暫存在 state
+    // => 由 callStep('/api/summarize') 回傳值填入
+    // 這裡重新呼叫以取得最終結果（幂等）
+    const sumRes = await callStep('/api/summarize');
+    state.minutes = sumRes;
+
+    const diarRes = await callStep('/api/diarize');
+    state.segments = diarRes.segments || [];
+
+    // 建立 speakers map
+    const uniqueSpeakers = [...new Set(state.segments.map(s => s.speaker).filter(Boolean))];
+    uniqueSpeakers.forEach(sp => { if (!state.speakers[sp]) state.speakers[sp] = sp; });
+
+    showView('view-result');
+    renderMinutes();
+    renderTranscript();
+    document.getElementById('result-meta').textContent =
+      `Job ID: ${state.jobId} | ${state.segments.length} 段逐字稿`;
+  } catch (err) {
+    toast('載入結果失敗：' + err.message);
+  }
+}
+
+// ─── RENDER MINUTES ──────────────────────────────────────
+function renderMinutes() {
+  const m = state.minutes;
+  if (!m) return;
+
+  document.getElementById('summary-text').textContent = m.summary || '';
+
+  const tbody = document.getElementById('action-tbody');
+  tbody.innerHTML = '';
+  (m.action_items || []).forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td contenteditable="false" ondblclick="enableEdit(this)" onblur="disableEdit(this)">${esc(a.owner)}</td>
+                    <td contenteditable="false" ondblclick="enableEdit(this)" onblur="disableEdit(this)">${esc(a.task)}</td>
+                    <td contenteditable="false" ondblclick="enableEdit(this)" onblur="disableEdit(this)">${esc(a.due)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const dl = document.getElementById('decision-list');
+  dl.innerHTML = '';
+  (m.decisions || []).forEach(d => {
+    const li = document.createElement('li');
+    li.textContent = d;
+    dl.appendChild(li);
+  });
+
+  const tc = document.getElementById('topics-container');
+  tc.innerHTML = '';
+  if (!(m.topics || []).length) {
+    tc.innerHTML = '<div class="empty-state"><p>無討論重點</p></div>';
+    return;
+  }
+  m.topics.forEach((t, i) => {
+    tc.innerHTML += `
+      <div class="topic-item">
+        <div class="topic-header" onclick="toggleTopic(${i})">
+          ${esc(t.title)} <span id="topic-arrow-${i}">▼</span>
+        </div>
+        <div class="topic-body" id="topic-body-${i}">${esc(t.content)}</div>
+      </div>`;
+  });
+}
+
+function toggleTopic(i) {
+  const body = document.getElementById(`topic-body-${i}`);
+  const arrow = document.getElementById(`topic-arrow-${i}`);
+  const isOpen = body.classList.toggle('open');
+  arrow.textContent = isOpen ? '▲' : '▼';
+}
+
+// ─── RENDER TRANSCRIPT ───────────────────────────────────
+function renderTranscript() {
+  // Speaker rename area
+  const uniqueSpeakers = [...new Set(state.segments.map(s => s.speaker).filter(Boolean))];
+  const renameArea = document.getElementById('speaker-rename-area');
+  if (uniqueSpeakers.length) {
+    renameArea.style.display = 'block';
+    const rows = document.getElementById('rename-rows');
+    rows.innerHTML = '';
+    uniqueSpeakers.forEach(sp => {
+      rows.innerHTML += `
+        <div class="rename-row">
+          <label>${sp}</label>
+          <input type="text" value="${state.speakers[sp] || sp}"
+            onchange="renameSpeaker('${sp}', this.value)" placeholder="輸入真實姓名">
+        </div>`;
+    });
+  }
+
+  const container = document.getElementById('transcript-container');
+  container.innerHTML = '';
+  if (!state.segments.length) {
+    container.innerHTML = '<div class="empty-state"><p>無逐字稿資料</p></div>';
+    return;
+  }
+
+  const colors = ['#DBEAFE','#FCE7F3','#D1FAE5','#FEF3C7','#EDE9FE','#FFE4E6'];
+  const spColorMap = {};
+  uniqueSpeakers.forEach((sp, i) => { spColorMap[sp] = colors[i % colors.length]; });
+
+  state.segments.forEach(seg => {
+    const displayName = state.speakers[seg.speaker] || seg.speaker || '—';
+    const color = spColorMap[seg.speaker] || '#F1F5F9';
+    const row = document.createElement('div');
+    row.className = 'seg-row';
+    row.innerHTML = `
+      <span class="seg-time">${fmtTime(seg.start)}</span>
+      <span class="seg-speaker">
+        <span class="speaker-chip" style="background:${color}">${esc(displayName)}</span>
+      </span>
+      <span class="seg-text">${esc(seg.text)}</span>`;
+    container.appendChild(row);
+  });
+}
+
+function renameSpeaker(original, newName) {
+  state.speakers[original] = newName.trim() || original;
+  markModified();
+  renderTranscript();
+}
+
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ─── INLINE EDIT ─────────────────────────────────────────
+function enableEdit(el) {
+  el.contentEditable = 'true';
+  el.focus();
+  markModified();
+}
+function disableEdit(el) {
+  el.contentEditable = 'false';
+}
+function markModified() {
+  state.modified = true;
+  document.getElementById('modified-badge').style.display = 'inline-block';
+}
+
+// ─── EXPORT MARKDOWN ─────────────────────────────────────
+function exportMarkdown() {
+  const m = state.minutes || {};
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const summary = document.getElementById('summary-text').textContent;
+
+  let md = `# 會議紀錄\n\n**日期：** ${new Date().toLocaleDateString('zh-TW')}\n\n`;
+  md += `## 摘要\n\n${summary}\n\n`;
+
+  md += `## 待辦事項\n\n| 負責人 | 工作事項 | 截止時間 |\n|--------|---------|----------|\n`;
+  document.querySelectorAll('#action-tbody tr').forEach(tr => {
+    const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    md += `| ${cells.join(' | ')} |\n`;
+  });
+  md += '\n';
+
+  md += `## 決定事項\n\n`;
+  document.querySelectorAll('#decision-list li').forEach(li => {
+    md += `- ${li.textContent.trim()}\n`;
+  });
+  md += '\n';
+
+  md += `## 討論重點\n\n`;
+  (m.topics || []).forEach(t => {
+    md += `### ${t.title}\n\n${t.content}\n\n`;
+  });
+
+  md += `## 逐字稿\n\n`;
+  state.segments.forEach(seg => {
+    const name = state.speakers[seg.speaker] || seg.speaker || '—';
+    md += `**[${fmtTime(seg.start)}] ${name}：** ${seg.text}\n\n`;
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${today}-meeting-notes.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  state.modified = false;
+  document.getElementById('modified-badge').style.display = 'none';
+  toast('已匯出 Markdown 檔案');
+}
+
+// ─── CLEANUP ─────────────────────────────────────────────
+async function cleanupAndReset() {
+  if (!state.jobId) return;
+  if (!confirm('確定要清除暫存資料嗎？')) return;
+  try {
+    await fetch(`${API}/api/cleanup/${state.jobId}`, { method: 'DELETE' });
+    toast('暫存已清除');
+  } catch (_) {}
+  resetState();
+  showView('view-upload');
+}
+
+async function cancelJob() {
+  if (state.pollTimer) clearInterval(state.pollTimer);
+  resetState();
+  showView('view-upload');
+}
+
+function resetState() {
+  state.jobId = null;
+  state.speakers = {};
+  state.minutes = null;
+  state.segments = [];
+  state.modified = false;
+  state.file = null;
+  localStorage.removeItem('meetingJobId');
+  document.getElementById('file-info').style.display = 'none';
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('upload-btn').textContent = '開始處理';
+  document.getElementById('progress-bar').style.width = '0%';
+}
+
+// ─── TABS ────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-minutes').style.display = tab === 'minutes' ? 'block' : 'none';
+  document.getElementById('tab-transcript').style.display = tab === 'transcript' ? 'block' : 'none';
+  document.getElementById('tab-btn-minutes').classList.toggle('active', tab === 'minutes');
+  document.getElementById('tab-btn-transcript').classList.toggle('active', tab === 'transcript');
+}
+
+// ─── VIEW SWITCH ─────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── HELPERS ─────────────────────────────────────────────
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showError(id, msg) {
+  document.getElementById(id).textContent = msg;
+}
+function toast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+</script>
+</body>
+</html>
