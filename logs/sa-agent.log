@@ -12,3 +12,4 @@
 [2026-07-13T18:32:00] [sa-agent] [TASK-008] DONE    設計完成
 [2026-07-13 18:43:38] [sa-agent] [TASK-009] DESIGN 完成歷史紀錄設計文件與 API 規格 (docs/design/TASK-009-design.md, docs/api/TASK-009-api.md)
 [2026-07-13 18:47:22] [sa-agent] [TASK-010] DESIGN 完成匯出功能設計文件（docs/design/TASK-010-design.md, docs/api 沿用既有規格說明於 delivery）
+[2026-07-13 18:52:42] [sa-agent] [TASK-011] DESIGN 完成成本儀表板設計文件與定價表 (docs/design/TASK-011-design.md)

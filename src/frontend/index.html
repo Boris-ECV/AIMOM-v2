@@ -168,9 +168,28 @@
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
   <h1>會議錄音轉紀錄系統</h1>
   <span>Meeting Minutes AI</span>
+  <button id="admin-dashboard-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:auto;" onclick="openAdminDashboard()">📊 管理者儀表板</button>
 </header>
 
 <main>
+  <!-- ============ ADMIN DASHBOARD VIEW ============ -->
+  <div id="view-admin" class="view">
+    <div class="card">
+      <div class="section-title">LLM 用量與成本彙總 <button class="btn btn-outline btn-sm" onclick="showView('view-upload')">← 返回</button></div>
+      <h4>依日期</h4>
+      <table class="action-table">
+        <thead><tr><th>日期</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+        <tbody id="admin-by-date-tbody"></tbody>
+      </table>
+      <h4>依使用者</h4>
+      <table class="action-table">
+        <thead><tr><th>使用者</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+        <tbody id="admin-by-user-tbody"></tbody>
+      </table>
+      <p id="admin-total" style="margin-top:12px;font-weight:600;"></p>
+    </div>
+  </div>
+
   <!-- ============ UPLOAD VIEW ============ -->
   <div id="view-upload" class="view active">
     <div class="card">
@@ -313,7 +332,51 @@ window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('meetingJobId');
   if (saved) state.jobId = saved;
   setupDropZone();
+  checkAdminAccess();
 });
+
+// ─── ADMIN DASHBOARD（TASK-011，僅管理者可見）─────────────
+async function checkAdminAccess() {
+  try {
+    const res = await fetch(`${API}/api/me`);
+    if (!res.ok) return;
+    const me = await res.json();
+    if (me.role === 'admin') {
+      document.getElementById('admin-dashboard-btn').style.display = 'inline-block';
+    }
+  } catch (e) {
+    // 未登入或無法取得使用者資訊時，不顯示管理者按鈕
+  }
+}
+
+async function openAdminDashboard() {
+  try {
+    const res = await fetch(`${API}/api/admin/usage`);
+    if (res.status === 403) {
+      toast('僅限管理者存取');
+      return;
+    }
+    if (!res.ok) throw new Error('讀取失敗');
+    const data = await res.json();
+
+    const dateTbody = document.getElementById('admin-by-date-tbody');
+    dateTbody.innerHTML = data.by_date.map(row => `
+      <tr><td>${row.date}</td><td>${row.calls}</td><td>${row.input_tokens}</td><td>${row.output_tokens}</td><td>$${row.estimated_cost.toFixed(4)}</td></tr>
+    `).join('');
+
+    const userTbody = document.getElementById('admin-by-user-tbody');
+    userTbody.innerHTML = data.by_user.map(row => `
+      <tr><td>${row.user_id}</td><td>${row.calls}</td><td>${row.input_tokens}</td><td>${row.output_tokens}</td><td>$${row.estimated_cost.toFixed(4)}</td></tr>
+    `).join('');
+
+    document.getElementById('admin-total').textContent =
+      `總呼叫次數：${data.total_calls} ｜ 總估算成本：$${data.total_estimated_cost.toFixed(4)}`;
+
+    showView('view-admin');
+  } catch (e) {
+    toast('讀取管理者儀表板失敗');
+  }
+}
 
 // ─── DROP ZONE ───────────────────────────────────────────
 function setupDropZone() {

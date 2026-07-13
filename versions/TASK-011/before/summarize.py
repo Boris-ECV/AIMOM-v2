@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from models import SummarizeRequest, SummarizeResponse, ActionItem, Topic
 import config
 from progress import update_progress
-from auth import CurrentUser, get_current_user
-from usage import record_llm_usage
 
 router = APIRouter()
 
@@ -46,7 +44,7 @@ def _parse_llm_response(content: str) -> dict:
 
 
 @router.post("/summarize", response_model=SummarizeResponse)
-async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_current_user)):
+async def summarize(req: SummarizeRequest):
     job_id = req.job_id
     job_dir = Path(config.TMP_DIR) / job_id
     transcript_path = job_dir / "transcript.json"
@@ -71,19 +69,6 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
 
     raw = response.choices[0].message.content
     data = _parse_llm_response(raw)
-
-    try:
-        usage_info = response.usage
-        record_llm_usage(
-            engine=config.LLM_ENGINE,
-            model=config.get_llm_model(),
-            input_tokens=getattr(usage_info, "prompt_tokens", 0) or 0,
-            output_tokens=getattr(usage_info, "completion_tokens", 0) or 0,
-            user_id=user.email,
-            meeting_id=job_id,
-        )
-    except Exception:  # noqa: BLE001 — 用量記錄失敗不應阻擋摘要功能
-        pass
 
     minutes = {**data, "job_id": job_id}
     (job_dir / "minutes.json").write_text(
