@@ -22,3 +22,4 @@
 [2026-07-13 18:47:22] [dev-agent] [TASK-010] IMPLEMENT 新增 src/export.py（docx/pdf 產生），前端新增純文字/Word/PDF 匯出按鈕
 [2026-07-13 18:52:42] [dev-agent] [TASK-011] IMPLEMENT 新增 src/usage.py, src/admin.py，summarize.py 掛入用量記錄，前端新增管理者儀表板
 [2026-07-13 18:54:51] [dev-agent] [TASK-012] IMPLEMENT 新增 src/lambda_handler.py (Mangum wrapper)，app.py 新增 /api/health
+[2026-07-14 15:22:48] [dev-agent] [TASK-013] IMPLEMENT 撰寫 docs/deploy/manual-setup-guide.md 與 infra/ Terraform IaC（DynamoDB/S3/CloudFront/Cognito/Lambda/API Gateway/IAM）
