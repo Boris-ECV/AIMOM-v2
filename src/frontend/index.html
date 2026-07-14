@@ -160,15 +160,33 @@
   /* EMPTY STATE */
   .empty-state { text-align: center; padding: 40px; color: var(--muted); }
   .empty-state p { margin-top: 8px; font-size: .9rem; }
+
+  /* AUTH GATE */
+  #auth-gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  #auth-gate .card { max-width: 360px; text-align: center; }
+  #auth-gate p { color: var(--muted); font-size: .875rem; margin: 12px 0 20px; }
 </style>
 </head>
 <body>
 
+<!-- ============ AUTH GATE（TASK-014，未登入時顯示） ============ -->
+<div id="auth-gate">
+  <div class="card">
+    <h2 style="font-size:1.2rem;margin-bottom:8px;">🔐 會議錄音轉紀錄系統</h2>
+    <p>請先登入才能使用</p>
+    <button class="btn btn-primary" onclick="login()">使用 Google 帳號登入</button>
+    <p id="auth-error" style="color:var(--danger);"></p>
+  </div>
+</div>
+
+<div id="app-shell" style="display:none;">
 <header>
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
   <h1>會議錄音轉紀錄系統</h1>
   <span>Meeting Minutes AI</span>
   <button id="admin-dashboard-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:auto;" onclick="openAdminDashboard()">📊 管理者儀表板</button>
+  <span id="current-user-email" style="font-size:.8rem;opacity:.85;margin-left:12px;"></span>
+  <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="logout()">登出</button>
 </header>
 
 <main>
@@ -311,11 +329,13 @@
     </div>
   </div>
 </main>
+</div><!-- /#app-shell -->
 
 <div id="toast"></div>
 
+<script src="config.js"></script>
 <script>
-const API = 'http://localhost:8000';
+const API = window.APP_CONFIG.apiBaseUrl;
 
 const state = {
   jobId: null,
@@ -327,8 +347,127 @@ const state = {
   file: null,
 };
 
+// ─── AUTH（TASK-014：Cognito Hosted UI, Authorization Code + PKCE）────────
+const AUTH = {
+  idToken: null,
+  email: null,
+};
+
+function base64UrlEncode(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  return crypto.subtle.digest('SHA-256', data);
+}
+
+function randomString(len = 64) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return base64UrlEncode(arr.buffer);
+}
+
+async function login() {
+  const verifier = randomString(64);
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const challenge = base64UrlEncode(await sha256(verifier));
+  const cfg = window.APP_CONFIG;
+  const url = `https://${cfg.cognitoDomain}/oauth2/authorize`
+    + `?response_type=code&client_id=${encodeURIComponent(cfg.cognitoClientId)}`
+    + `&redirect_uri=${encodeURIComponent(cfg.redirectUri)}`
+    + `&scope=${encodeURIComponent('openid email profile')}`
+    + `&code_challenge_method=S256&code_challenge=${challenge}`;
+  window.location.href = url;
+}
+
+function logout() {
+  sessionStorage.clear();
+  const cfg = window.APP_CONFIG;
+  const url = `https://${cfg.cognitoDomain}/logout`
+    + `?client_id=${encodeURIComponent(cfg.cognitoClientId)}`
+    + `&logout_uri=${encodeURIComponent(cfg.logoutUri)}`;
+  window.location.href = url;
+}
+
+async function exchangeCodeForToken(code) {
+  const cfg = window.APP_CONFIG;
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: cfg.cognitoClientId,
+    code,
+    redirect_uri: cfg.redirectUri,
+    code_verifier: verifier || '',
+  });
+  const res = await fetch(`https://${cfg.cognitoDomain}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!res.ok) throw new Error('登入失敗，請重新嘗試');
+  const data = await res.json();
+  sessionStorage.setItem('id_token', data.id_token);
+  sessionStorage.removeItem('pkce_verifier');
+}
+
+function parseJwtEmail(idToken) {
+  try {
+    const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.email || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// 統一的 API 呼叫封裝：自動帶 Authorization header，401 時導回登入畫面
+async function apiFetch(path, options = {}) {
+  const authHeader = ["Bearer", AUTH.idToken].join(" ");
+  const headers = Object.assign({}, options.headers, { Authorization: authHeader });
+  const res = await fetch(`${API}${path}`, Object.assign({}, options, { headers }));
+  if (res.status === 401) {
+    sessionStorage.removeItem('id_token');
+    showAuthGate();
+    throw new Error('登入已逾期，請重新登入');
+  }
+  return res;
+}
+
+function showAuthGate() {
+  document.getElementById('auth-gate').style.display = 'flex';
+  document.getElementById('app-shell').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'block';
+  document.getElementById('current-user-email').textContent = AUTH.email || '';
+}
+
 // ─── INIT ────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    try {
+      await exchangeCodeForToken(code);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e) {
+      document.getElementById('auth-error').textContent = e.message;
+    }
+  }
+
+  const token = sessionStorage.getItem('id_token');
+  if (token) {
+    AUTH.idToken = token;
+    AUTH.email = parseJwtEmail(token);
+    showApp();
+  } else {
+    showAuthGate();
+    return; // 未登入不初始化其餘應用邏輯
+  }
+
   const saved = localStorage.getItem('meetingJobId');
   if (saved) state.jobId = saved;
   setupDropZone();
@@ -338,7 +477,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // ─── ADMIN DASHBOARD（TASK-011，僅管理者可見）─────────────
 async function checkAdminAccess() {
   try {
-    const res = await fetch(`${API}/api/me`);
+    const res = await apiFetch('/api/me');
     if (!res.ok) return;
     const me = await res.json();
     if (me.role === 'admin') {
@@ -351,7 +490,7 @@ async function checkAdminAccess() {
 
 async function openAdminDashboard() {
   try {
-    const res = await fetch(`${API}/api/admin/usage`);
+    const res = await apiFetch('/api/admin/usage');
     if (res.status === 403) {
       toast('僅限管理者存取');
       return;
@@ -420,7 +559,7 @@ async function doUpload() {
   form.append('file', state.file);
 
   try {
-    const res = await fetch(`${API}/api/upload`, { method: 'POST', body: form });
+    const res = await apiFetch('/api/upload', { method: 'POST', body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || '上傳失敗');
 
@@ -443,7 +582,7 @@ async function doUpload() {
 }
 
 async function callStep(endpoint) {
-  const res = await fetch(`${API}${endpoint}`, {
+  const res = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ job_id: state.jobId }),
@@ -464,7 +603,7 @@ function startPoll() {
 async function pollStatus() {
   if (!state.jobId) return;
   try {
-    const res = await fetch(`${API}/api/status/${state.jobId}`);
+    const res = await apiFetch(`/api/status/${state.jobId}`);
     const s = await res.json();
     updateProgressUI(s);
     if (s.stage === 'done') {
@@ -740,7 +879,7 @@ function exportPlainText() {
 async function exportServerFile(format) {
   if (!state.jobId) return;
   try {
-    const res = await fetch(`${API}/api/export/${state.jobId}?format=${format}`);
+    const res = await apiFetch(`/api/export/${state.jobId}?format=${format}`);
     if (!res.ok) throw new Error('匯出失敗');
     const blob = await res.blob();
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -761,7 +900,7 @@ async function cleanupAndReset() {
   if (!state.jobId) return;
   if (!confirm('確定要清除暫存資料嗎？')) return;
   try {
-    await fetch(`${API}/api/cleanup/${state.jobId}`, { method: 'DELETE' });
+    await apiFetch(`/api/cleanup/${state.jobId}`, { method: 'DELETE' });
     toast('暫存已清除');
   } catch (_) {}
   resetState();

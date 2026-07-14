@@ -14,3 +14,4 @@
 [2026-07-13 18:52:42] [review-agent] [TASK-011] REVIEW 確認 DynamoDB Decimal 轉換、require_admin 403 保護、用量記錄失敗不影響主流程，通過
 [2026-07-13 18:54:51] [review-agent] [TASK-012] REVIEW 確認 Mangum 包裝正確、健康檢查端點無需登入、部署筆記涵蓋必要環境變數與 IAM 權限，通過
 [2026-07-14 15:22:48] [review-agent] [TASK-013] REVIEW 確認 IAM 最小權限、S3 lifecycle、Cognito PKCE flow 設定正確，通過
+[2026-07-14 18:42:24] [review-agent] [TASK-014] REVIEW 確認 PKCE code_challenge/verifier 產生正確、apiFetch 已套用至全部 8 處既有 API 呼叫、401 導回登入邏輯、config.js 環境值與已部署 Cognito/API Gateway 輸出一致；inline script 大括號/括號計數平衡（191/191, 398/398），通過
