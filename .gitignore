@@ -16,3 +16,4 @@ infra/bootstrap/.terraform/
 infra/bootstrap/terraform.tfstate
 infra/bootstrap/terraform.tfstate.backup
 infra-package.zip
+frontend-package.zip
