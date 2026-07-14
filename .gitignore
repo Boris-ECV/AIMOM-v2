@@ -10,5 +10,9 @@ infra/.terraform/
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 infra/terraform.tfvars
+infra/backend.hcl
 infra/build/
+infra/bootstrap/.terraform/
+infra/bootstrap/terraform.tfstate
+infra/bootstrap/terraform.tfstate.backup
 infra-package.zip

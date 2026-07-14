@@ -30,9 +30,21 @@ terraform -version
    ls
    ```
 
-### 4. 執行 Terraform
+### 4. 先建立 remote state bucket（bootstrap，僅需執行一次）
 ```bash
+cd bootstrap
 terraform init
+terraform apply
+terraform output state_bucket_name   # 記下這個值，下一步要用
+cd ..
+```
+
+### 5. 設定 backend 並執行主要 Terraform
+```bash
+cp backend.hcl.example backend.hcl
+nano backend.hcl   # 把 bucket 改成上一步的 state_bucket_name
+
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
@@ -42,22 +54,27 @@ terraform output
 ```
 記錄 `api_invoke_url`、`cognito_hosted_ui_domain`、`frontend_cloudfront_domain` 等輸出值。
 
-### 5. 回頭補上 Google OAuth Redirect URI
+### 6. 回頭補上 Google OAuth Redirect URI
 1. 用 `terraform output cognito_hosted_ui_domain` 取得實際網域
 2. 回 Google Cloud Console → Credentials → 編輯 OAuth Client
 3. Authorized redirect URIs 補上：`https://<實際網域>/oauth2/idpresponse`
 
-### 6. 清理（重要）
+### 7. 清理（重要）
 CloudShell 的家目錄有 1GB 持久化儲存空間，操作完成後：
 ```bash
 rm -f ~/infra-package.zip
 ```
 避免機密的 `terraform.tfvars` 長期留在 CloudShell 儲存空間中。
-`terraform.tfstate` 也會留在 CloudShell 裡（含資源 ID 等資訊，非機密但建議之後改用 S3 backend 集中管理狀態檔，見下方備註）。
+由於已改用 **S3 remote backend**，`terraform.tfstate` 實際存放在 S3（有版本控制、加密），
+CloudShell 本機只留一份工作副本（`.terraform/` 快取），不是唯一副本，可放心之後在其他環境
+用同一組 `backend.hcl` 重新 `terraform init` 接續操作，不會遺失狀態。
 
 ## 備註：state 檔案管理
 
-目前 `infra/` 未設定 remote backend，`terraform.tfstate` 只會留在執行 `apply` 的那個環境（此例為 CloudShell 家目錄）。
+`infra/` 已設定 **S3 remote backend**（見 `infra/bootstrap/` 與 `backend.hcl`），
+`terraform.tfstate` 集中存放在 S3，具備版本控制與加密，可從任何已設定好 `backend.hcl` 的環境
+（本機、CloudShell、CI/CD）接續 `terraform plan`/`apply`，不再綁定單一 session。
+State locking 使用 Terraform 1.10+ 原生的 S3 lockfile 機制，避免多人同時 apply 造成衝突。
 若之後需要多人協作或重新從別的環境 `apply`／`destroy`，建議加上 S3 backend（見 `providers.tf` 可擴充 `backend "s3" {}` 區塊）。
 小團隊 POC 階段可先接受單一 CloudShell session 管理 state 的作法，但**切勿刪除 CloudShell 家目錄裡的 `terraform.tfstate`**，
 否則 Terraform 會失去對已建立資源的追蹤紀錄。

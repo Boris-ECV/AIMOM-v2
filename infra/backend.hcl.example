@@ -1,0 +1,9 @@
+# 複製此檔為 backend.hcl（同目錄），填入 infra/bootstrap 建立完成後的實際值
+# 使用方式：terraform init -backend-config=backend.hcl
+# backend.hcl 本身不含機密資訊，但仍建議不提交到版控（已列於 .gitignore），避免 bucket 名稱外流
+
+bucket = "aimom-tf-state-xxxxxxxx"   # 填入 infra/bootstrap 的 output: state_bucket_name
+key    = "aimom/dev/terraform.tfstate"
+region = "ap-northeast-1"
+encrypt = true
+use_lockfile = true                  # Terraform 1.10+ 原生 S3 state locking，不需要額外的 DynamoDB lock table
