@@ -72,7 +72,12 @@ def verify_token(token: str, jwks_provider: Callable[[], dict] = _default_jwks_p
             algorithms=[key.get("alg", "RS256")],
             audience=config.COGNITO_APP_CLIENT_ID,
             issuer=_cognito_issuer(),
-            options={"verify_aud": bool(config.COGNITO_APP_CLIENT_ID)},
+            # 這裡只驗證前端傳來的 ID Token，沒有對應的 access_token 可比對，
+            # 需關閉 at_hash 驗證，否則 python-jose 會因缺少 access_token 而拋錯。
+            options={
+                "verify_aud": bool(config.COGNITO_APP_CLIENT_ID),
+                "verify_at_hash": False,
+            },
         )
     except Exception as exc:  # noqa: BLE001
         raise ValueError(f"token 驗證失敗: {exc}") from exc

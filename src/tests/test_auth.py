@@ -59,6 +59,29 @@ def test_verify_token_success_regular_user(rsa_key, monkeypatch):
     assert user.role == "user"
 
 
+def test_verify_token_with_at_hash_claim_accepted(rsa_key, monkeypatch):
+    """真實 Cognito ID Token（透過 authorization_code + PKCE 換發）一定會帶 at_hash claim，
+    因為它是跟 access_token 同時核發的。若後端沒有正確關閉 at_hash 驗證（沒有
+    access_token 可比對），python-jose 會誤判為驗證失敗，導致合法使用者一律收到 401。
+    """
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    now = int(time.time())
+    payload = {
+        "email": "user@example.com",
+        "iss": f"https://cognito-idp.{config.COGNITO_REGION}.amazonaws.com/{config.COGNITO_USER_POOL_ID}",
+        "aud": "client-abc",
+        "exp": now + 3600,
+        "iat": now - 20,
+        "at_hash": "does-not-matter-without-access-token",
+    }
+    token = jwt.encode(payload, pem, algorithm="RS256", headers={"kid": "test-key-1"})
+
+    user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+    assert user.email == "user@example.com"
+
+
 def test_verify_token_admin_whitelist(rsa_key, monkeypatch):
     pem, jwk = rsa_key
     monkeypatch.setattr(config, "ADMIN_EMAILS", "admin@example.com, boss@example.com")

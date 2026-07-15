@@ -15,3 +15,4 @@
 [2026-07-13 18:54:51] [qa-agent] [TASK-012] TEST 新增 tests/test_lambda_handler.py 2 項測試（模擬 API Gateway v2 event），全數通過，套件測試 38/38 pass
 [2026-07-14 15:22:48] [qa-agent] [TASK-013] TEST terraform init/validate 成功；terraform plan 以假變數值測試，archive_file 打包成功，因無真實 AWS 憑證中止於 API 呼叫前（預期行為）
 [2026-07-14 18:42:24] [qa-agent] [TASK-014] TEST 無自動化前端測試框架，改以 inline JS 語法結構檢查（括號平衡）驗證；實際瀏覽器登入/上傳/匯出流程需部署後由使用者於 CloudFront 網域上手動驗證，列為交付後續步驟
+[2026-07-15T17:40:34] [qa-agent] [TASK-014] TEST    使用者實際手動驗證登入流程時發現 /api/me 401 bug，透過解析瀏覽器實際 ID Token + 本機模擬 jwt.decode 定位為 at_hash 驗證邏輯錯誤，修正後套件測試 40/40 pass，等待重新部署後續驗證
