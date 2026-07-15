@@ -34,6 +34,16 @@ resource "aws_cognito_identity_provider" "google" {
     client_id        = var.google_client_id
     client_secret     = var.google_client_secret
     authorize_scopes = "openid email profile"
+
+    # 這幾項是 AWS 針對 Google IdP 的內部預設值。terraform 只宣告了上面 3 項時，
+    # AWS API 會自動補上這些值，但 Terraform state 認為是 out-of-band 變更，
+    # 每次 plan 都會顯示要 null 掉。明確宣告成與 AWS 相同的值，避免 diff 一直出現。
+    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
+    attributes_url_add_attributes = "true"
+    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
+    oidc_issuer                   = "https://accounts.google.com"
+    token_request_method          = "POST"
+    token_url                     = "https://www.googleapis.com/oauth2/v4/token"
   }
 
   attribute_mapping = {
