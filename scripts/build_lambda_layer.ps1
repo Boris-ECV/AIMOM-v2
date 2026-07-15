@@ -38,5 +38,13 @@ Get-ChildItem $layerDir -Directory -Recurse -Filter "tests" -ErrorAction Silentl
   Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
 $sizeMb = (Get-ChildItem $layerDir -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
-Write-Host ("完成。infra/layer/python 未壓縮大小：{0:N1} MB" -f $sizeMb)
-Write-Host "接下來執行 terraform plan/apply 即可（archive_file 會自動打包 infra/layer/）"
+Write-Host ("Done. infra/layer/python raw size: {0:N1} MB" -f $sizeMb)
+
+Write-Host "Zipping into infra/build/aimom-lambda-layer.zip (terraform reads this zip directly, no longer via archive_file, to avoid disk space issues on constrained environments like CloudShell)..."
+$buildDir = Join-Path $root "infra\build"
+New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+$zipPath = Join-Path $buildDir "aimom-lambda-layer.zip"
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+Compress-Archive -Path $layerDir -DestinationPath $zipPath -Force
+Write-Host "Done: infra/build/aimom-lambda-layer.zip"
+Write-Host "Next: terraform plan/apply"

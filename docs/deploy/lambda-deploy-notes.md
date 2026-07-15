@@ -62,15 +62,20 @@ powershell -File scripts/build_lambda_layer.ps1
 bash scripts/build_lambda_layer.sh
 ```
 
-會產生 `infra/layer/python/`（不進版控，屬建置產物），內容依
-`src/requirements-lambda.txt`（正式環境實際需要的套件，排除 `uvicorn`
+會產生 `infra/layer/python/`（不進版控，屬建置產物）與 `infra/build/aimom-lambda-layer.zip`，
+內容依 `src/requirements-lambda.txt`（正式環境實際需要的套件，排除 `uvicorn`
 本機開發用 server、`pytest`/`moto`/`httpx` 測試用套件、`boto3`——後者由
 Lambda Python runtime 內建提供不需重複打包）安裝，並指定
 `--platform manylinux2014_x86_64 --python-version 3.12` 確保跟 Lambda
 runtime 相容（即使建置環境不是 Linux/3.12 也能正確下載對應的 wheel）。
 
-之後執行 `terraform plan`/`apply` 時，`archive_file` 會自動把
-`infra/layer/` 打包成 layer zip 一併上傳，不需額外手動步驟。
+`infra/lambda.tf` 的 `aws_lambda_layer_version.deps` 直接讀取建置好的
+`infra/build/aimom-lambda-layer.zip`（用 `filebase64sha256` 算 hash），
+**不再**用 `archive_file` 動態壓縮 `infra/layer/`。這是因為在磁碟空間有限的
+環境（例如 AWS CloudShell 僅 1GB 家目錄配額，`aws` provider 本身解壓縮就要
+600MB+），同時存放未壓縮原始檔（~80MB）與 `archive_file` 另外產生的 zip
+會直接把空間塞爆。改為在本機（或 CI）先跑建置腳本產生好 zip，只上傳這個
+zip 檔到部署環境即可，`infra/layer/python/` 原始目錄不需要一併上傳。
 
 
 

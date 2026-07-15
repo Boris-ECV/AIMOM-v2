@@ -31,4 +31,12 @@ find "$LAYER_DIR" -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
 
 SIZE_MB=$(du -sm "$LAYER_DIR" | cut -f1)
 echo "完成。infra/layer/python 未壓縮大小：約 ${SIZE_MB} MB"
-echo "接下來執行 terraform plan/apply 即可（archive_file 會自動打包 infra/layer/）"
+
+echo "打包成 infra/build/aimom-lambda-layer.zip（terraform 直接讀取此 zip，不再用
+archive_file 動態壓縮，避免磁碟空間有限的環境如 CloudShell 同時存放原始檔+zip 爆容量）..."
+BUILD_DIR="$ROOT_DIR/infra/build"
+mkdir -p "$BUILD_DIR"
+rm -f "$BUILD_DIR/aimom-lambda-layer.zip"
+(cd "$ROOT_DIR/infra/layer" && zip -q -r "$BUILD_DIR/aimom-lambda-layer.zip" python)
+echo "完成：infra/build/aimom-lambda-layer.zip"
+echo "接下來執行 terraform plan/apply 即可"

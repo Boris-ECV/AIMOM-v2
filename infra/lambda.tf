@@ -20,16 +20,19 @@ data "archive_file" "lambda_package" {
   ]
 }
 
-data "archive_file" "lambda_layer" {
-  type        = "zip"
-  source_dir  = "${path.module}/layer"
-  output_path = "${path.module}/build/aimom-lambda-layer.zip"
+# Layer zip 由 scripts/build_lambda_layer.ps1/.sh 直接產生在 infra/build/，
+# 不透過 archive_file 動態壓縮 infra/layer/python。原因：在磁碟空間有限的環境
+# （例如 AWS CloudShell 僅 1GB 配額）同時存放未壓縮原始檔（~80MB）與
+# archive_file 另外產生的 zip 會爆掉空間；改為本機/CI 先建置好 zip 再上傳，
+# CloudShell 端只需要這一個壓縮檔即可執行 terraform apply。
+locals {
+  lambda_layer_zip_path = "${path.module}/build/aimom-lambda-layer.zip"
 }
 
 resource "aws_lambda_layer_version" "deps" {
   layer_name          = "${local.name_prefix}-deps"
-  filename            = data.archive_file.lambda_layer.output_path
-  source_code_hash    = data.archive_file.lambda_layer.output_base64sha256
+  filename            = local.lambda_layer_zip_path
+  source_code_hash    = filebase64sha256(local.lambda_layer_zip_path)
   compatible_runtimes = ["python3.12"]
   compatible_architectures = ["x86_64"]
 }
