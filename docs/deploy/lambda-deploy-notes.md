@@ -43,7 +43,36 @@
   - S3：音檔 bucket 的 `GetObject`/`PutObject`/`DeleteObject`（若採用 presigned URL 上傳）
   - Cognito：僅需公開 JWKS 端點驗證簽章，不需額外 IAM 權限（JWKS 透過 HTTPS 快取取得）
 
-## 本機/CI 測試
+## Lambda 相依套件打包（TASK-014 修正）
+
+**重要修正**：先前版本的 Lambda 只打包 `src/` 原始碼本身，完全沒有包含
+`fastapi`/`mangum`/`boto3` 等第三方套件，導致部署後每次呼叫（包含 CORS 的
+OPTIONS 預檢請求）都會因為 `ImportModuleError` 回傳 500。
+
+現在改用 **Lambda Layer** 管理相依套件（`infra/lambda.tf` 的
+`aws_lambda_layer_version.deps`），與應用程式碼（`data.archive_file.lambda_package`）
+分開打包：
+
+```powershell
+# Windows（會優先使用 src/venv 內的 Python）
+powershell -File scripts/build_lambda_layer.ps1
+```
+```bash
+# CloudShell / Linux / macOS
+bash scripts/build_lambda_layer.sh
+```
+
+會產生 `infra/layer/python/`（不進版控，屬建置產物），內容依
+`src/requirements-lambda.txt`（正式環境實際需要的套件，排除 `uvicorn`
+本機開發用 server、`pytest`/`moto`/`httpx` 測試用套件、`boto3`——後者由
+Lambda Python runtime 內建提供不需重複打包）安裝，並指定
+`--platform manylinux2014_x86_64 --python-version 3.12` 確保跟 Lambda
+runtime 相容（即使建置環境不是 Linux/3.12 也能正確下載對應的 wheel）。
+
+之後執行 `terraform plan`/`apply` 時，`archive_file` 會自動把
+`infra/layer/` 打包成 layer zip 一併上傳，不需額外手動步驟。
+
+
 
 - `tests/test_lambda_handler.py` 使用 `mangum` 直接以模擬的 API Gateway HTTP API v2 event 呼叫 `/api/health`，
   驗證 handler 可正確路由並回傳 200，不需真實部署到 AWS 即可驗證整合正確性。

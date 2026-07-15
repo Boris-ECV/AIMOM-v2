@@ -56,6 +56,12 @@ DynamoDB、S3、CloudFront 皆已在 `ap-northeast-1` 建立完成）。但 `src
   `https://d11d8l4nxw1bow.cloudfront.net` 實際測試登入/上傳/匯出/登出全流程，
   詳見 `docs/deploy/frontend-deploy.md`。
 - ID Token 過期後不會自動 refresh，使用者需重新登入；已知限制，非本工單範圍。
+- **測試中發現並修正的重大問題**：實際部署後 CORS 預檢請求（OPTIONS）與所有 API 呼叫
+  皆回傳 500。追查後發現 `infra/lambda.tf` 先前只打包 `src/` 原始碼，完全沒有包含
+  `fastapi`/`mangum` 等相依套件，Lambda 執行時直接 `ImportModuleError`。改用獨立的
+  **Lambda Layer**（`infra/layer/`，由 `scripts/build_lambda_layer.ps1`/`.sh` 建置，
+  對應 `src/requirements-lambda.txt`）解決，`infra/lambda.tf` 新增
+  `aws_lambda_layer_version.deps` 並掛載至 function，需重新 `terraform apply` 才會生效。
 
 ## 歷程
 

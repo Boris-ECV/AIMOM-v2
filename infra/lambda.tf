@@ -1,9 +1,9 @@
-# Lambda 函式打包與部署（TASK-012 Mangum handler）
+# Lambda 函式打包與部署（TASK-012 Mangum handler，TASK-014 修正：加入 Lambda Layer 打包相依套件）
 #
-# 注意：正式建置前需先在 ../src 執行
-#   pip install -r requirements.txt -t vendor/
-# 並將 vendor/ 內容一併打包，此處為求簡化直接打包原始碼本身；
-# 相依套件建議改用 Lambda Layer 管理（見 docs/deploy/lambda-deploy-notes.md）。
+# 相依套件透過 Lambda Layer 管理（見 infra/layer/python，由
+# scripts/build_lambda_layer.ps1 產生，避免每次都重新 pip install 且與
+# Lambda python3.12 x86_64 runtime 相容）。src/ 本身只放應用程式碼，
+# 避免單一 function zip 過大且方便版本控管。
 data "archive_file" "lambda_package" {
   type        = "zip"
   source_dir  = "${path.module}/../src"
@@ -16,7 +16,22 @@ data "archive_file" "lambda_package" {
     "tests",
     "tmp",
     ".env",
+    "requirements-lambda.txt",
   ]
+}
+
+data "archive_file" "lambda_layer" {
+  type        = "zip"
+  source_dir  = "${path.module}/layer"
+  output_path = "${path.module}/build/aimom-lambda-layer.zip"
+}
+
+resource "aws_lambda_layer_version" "deps" {
+  layer_name          = "${local.name_prefix}-deps"
+  filename            = data.archive_file.lambda_layer.output_path
+  source_code_hash    = data.archive_file.lambda_layer.output_base64sha256
+  compatible_runtimes = ["python3.12"]
+  compatible_architectures = ["x86_64"]
 }
 
 resource "aws_lambda_function" "api" {
@@ -28,6 +43,7 @@ resource "aws_lambda_function" "api" {
   timeout          = var.lambda_timeout
   filename         = data.archive_file.lambda_package.output_path
   source_code_hash = data.archive_file.lambda_package.output_base64sha256
+  layers           = [aws_lambda_layer_version.deps.arn]
 
   environment {
     variables = {

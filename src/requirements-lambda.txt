@@ -1,0 +1,14 @@
+fastapi>=0.110.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+openai>=1.30.0
+assemblyai>=0.30.0
+mutagen>=1.47.0
+
+# v2 — AWS Lambda / Cognito / DynamoDB / 匯出 依賴（TASK-008~012）
+# 註：boto3/botocore 由 Lambda Python runtime 內建提供，不需重複打包進 layer，可大幅縮小 layer 體積
+mangum>=0.17.0
+python-docx>=1.1.0
+reportlab>=4.2.0
+python-jose[cryptography]>=3.3.0
+requests>=2.31.0
