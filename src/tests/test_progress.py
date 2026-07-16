@@ -43,10 +43,7 @@ def test_status_finalizes_transcription_when_assemblyai_done():
     import assemblyai as aai
     mock_transcript.status = aai.TranscriptStatus.completed
 
-    with patch("progress.aai") as mock_aai:
-        mock_aai.settings = MagicMock()
-        mock_aai.TranscriptStatus = aai.TranscriptStatus
-        mock_aai.Transcript.get_by_id.return_value = mock_transcript
+    with patch("progress._fetch_transcript_status_once", return_value=mock_transcript):
         response = client.get(f"/api/status/{job_id}")
 
     assert response.status_code == 200
@@ -67,10 +64,22 @@ def test_status_still_transcribing_when_assemblyai_not_done():
     import assemblyai as aai
     mock_transcript.status = aai.TranscriptStatus.processing
 
-    with patch("progress.aai") as mock_aai:
-        mock_aai.settings = MagicMock()
-        mock_aai.TranscriptStatus = aai.TranscriptStatus
-        mock_aai.Transcript.get_by_id.return_value = mock_transcript
+    with patch("progress._fetch_transcript_status_once", return_value=mock_transcript):
+        response = client.get(f"/api/status/{job_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stage"] == "transcribing"
+
+
+def test_status_survives_transient_assemblyai_query_error():
+    """TASK-016 回歸測試：查詢 AssemblyAI 狀態本身失敗（例如網路暫時性錯誤）
+    不應該讓整個 /api/status 500，應維持現有狀態讓前端下次輪詢重試。"""
+    job_id = "progress-job-004"
+    jobstore.create_job(job_id, stage="transcribing", progress=20,
+                         message="等待中", assemblyai_transcript_id="aai-def")
+
+    with patch("progress._fetch_transcript_status_once", side_effect=RuntimeError("boom")):
         response = client.get(f"/api/status/{job_id}")
 
     assert response.status_code == 200

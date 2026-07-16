@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from models import StatusResponse, CleanupResponse
 import assemblyai as aai
+from assemblyai.transcriber import api as aai_api
 import config
 import jobstore
 from transcript_utils import build_segments_from_transcript
@@ -21,6 +22,22 @@ def read_status(job_id: str) -> dict:
     return job
 
 
+def _fetch_transcript_status_once(transcript_id: str):
+    """單次、非阻塞地查詢 AssemblyAI 轉錄狀態。
+
+    注意：SDK 的 `Transcript.get_by_id()` 名稱看似「查一次」，實際上內部是
+    `while True: ... time.sleep(polling_interval)` 的阻塞輪詢迴圈，會一路等到
+    completed/error 才回傳（見 assemblyai/transcriber.py 的
+    `_TranscriptImpl.wait_for_completion`）。若在 `/api/status` 這裡誤用它，
+    當轉錄還沒完成時，這次 HTTP 請求本身就會被卡住繼續等，等於把 TASK-016
+    要修的「30 秒逾時」問題原封不動地搬到 /api/status 上，導致 503。
+    因此改用 SDK 底層真正單次查詢、不阻塞的 `api.get_transcript()`。
+    """
+    aai.settings.api_key = config.ASSEMBLYAI_API_KEY
+    client = aai.Client.get_default()
+    return aai_api.get_transcript(client.http_client, transcript_id)
+
+
 def _finalize_if_transcription_done(job: dict) -> dict:
     """輪詢 `/api/status` 時，若目前是 transcribing 階段，順便向 AssemblyAI
     查詢一次目前狀態（單次查詢，非阻塞）；完成的話在這裡才組出逐字稿、
@@ -34,8 +51,12 @@ def _finalize_if_transcription_done(job: dict) -> dict:
     if not transcript_id:
         return job
 
-    aai.settings.api_key = config.ASSEMBLYAI_API_KEY
-    transcript = aai.Transcript.get_by_id(transcript_id)
+    try:
+        transcript = _fetch_transcript_status_once(transcript_id)
+    except Exception:
+        # 查詢本身失敗（暫時性網路錯誤等）不應讓整個 /api/status 500，
+        # 維持現有狀態，前端 2 秒後會自動重試
+        return job
 
     if transcript.status == aai.TranscriptStatus.error:
         return jobstore.update_job(
