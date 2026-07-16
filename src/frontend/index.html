@@ -345,6 +345,7 @@ const state = {
   modified: false,
   pollTimer: null,
   file: null,
+  summarizeTriggered: false,
 };
 
 // ─── AUTH（TASK-014：Cognito Hosted UI, Authorization Code + PKCE）────────
@@ -592,12 +593,11 @@ async function doUpload() {
     showView('view-progress');
     startPoll();
 
-    // 依序觸發各步驟（v2.0: transcribe 已含說話者識別，移除獨立 diarize 呼叫）
-    // 將 transcribe 回傳的逐字稿分段直接保存於 state，供 loadResults() 使用，
-    // 避免 loadResults() 再重複呼叫 /api/diarize（TASK-005）
-    const transRes = await callStep('/api/transcribe');
-    state.segments = transRes.segments || [];
-    await callStep('/api/summarize');
+    // /api/transcribe 只負責把音檔送交 AssemblyAI 並立即回應（TASK-016：
+    // 改為非同步送出，避免卡在 API Gateway HTTP API 30 秒的硬性 timeout）。
+    // 實際轉錄何時完成、要不要接著擷取逐字稿並觸發摘要，交給下面
+    // pollStatus() 在偵測到 stage 變成 'transcribed' 時處理。
+    await callStep('/api/transcribe');
   } catch (err) {
     showError('upload-error', err.message);
     btn.disabled = false;
@@ -630,15 +630,38 @@ async function pollStatus() {
     const res = await apiFetch(`/api/status/${state.jobId}`);
     const s = await res.json();
     updateProgressUI(s);
-    if (s.stage === 'done') {
-      clearInterval(state.pollTimer);
-      await loadResults();
+
+    // TASK-016：轉錄改為非同步，/api/status 每次輪詢時後端會順便向
+    // AssemblyAI 查一次狀態；一旦第一次偵測到 stage 變成 'transcribed'，
+    // 就在前端接手擷取逐字稿並觸發摘要（避免同一階段重複觸發）
+    if (s.stage === 'transcribed' && !state.summarizeTriggered) {
+      state.summarizeTriggered = true;
+      await finalizeAfterTranscription();
     }
+
     if (s.stage === 'error') {
       clearInterval(state.pollTimer);
       toast('處理失敗：' + s.message);
     }
   } catch (_) {}
+}
+
+async function finalizeAfterTranscription() {
+  try {
+    const transRes = await apiFetch(`/api/transcript/${state.jobId}`);
+    const trans = await transRes.json();
+    if (!transRes.ok) throw new Error(trans.detail || '取得逐字稿失敗');
+    state.segments = trans.segments || [];
+
+    state.minutes = await callStep('/api/summarize');
+
+    clearInterval(state.pollTimer);
+    await loadResults();
+  } catch (err) {
+    // 容許下一次輪詢重試（例如暫時性網路錯誤）
+    state.summarizeTriggered = false;
+    toast('整理會議紀錄失敗：' + err.message);
+  }
 }
 
 // v2.0: 3 stages (uploaded → transcribed → done); diarized merged into transcribed
@@ -665,18 +688,14 @@ function updateProgressUI(s) {
 // ─── LOAD RESULTS ────────────────────────────────────────
 async function loadResults() {
   try {
-    // 逐字稿 (已含 speaker)
-    // TASK-005: segments 已於 doUpload() 呼叫 /api/transcribe 時存入 state.segments，
-    // 不再重複呼叫 /api/diarize（該端點僅保留供後端向下相容）
-    // summarize 結果透過 /api/summarize 回傳（已儲存）
-    // 直接讀取 minutes.json 無直接 API，用 summarize endpoint 重複呼叫會重算
-    // 改用一個假設的 GET /api/result/{job_id}，或在 summarize 時暫存在 state
-    // => 由 callStep('/api/summarize') 回傳值填入
-    // 這裡重新呼叫以取得最終結果（幂等）
-    const sumRes = await callStep('/api/summarize');
-    state.minutes = sumRes;
+    // segments 已於 finalizeAfterTranscription() 呼叫 /api/transcript 取得，
+    // minutes 已於同一流程呼叫 /api/summarize 取得並存入 state.minutes，
+    // 這裡只需要重新讀最新一次 summarize 結果並渲染畫面即可
+    if (!state.minutes) {
+      state.minutes = await callStep('/api/summarize');
+    }
 
-    // 建立 speakers map（segments 已於上傳流程存入 state，見 doUpload）
+    // 建立 speakers map（segments 已於轉錄完成後存入 state，見 finalizeAfterTranscription）
     const uniqueSpeakers = [...new Set(state.segments.map(s => s.speaker).filter(Boolean))];
     uniqueSpeakers.forEach(sp => { if (!state.speakers[sp]) state.speakers[sp] = sp; });
 
@@ -944,6 +963,7 @@ function resetState() {
   state.segments = [];
   state.modified = false;
   state.file = null;
+  state.summarizeTriggered = false;
   localStorage.removeItem('meetingJobId');
   document.getElementById('file-info').style.display = 'none';
   document.getElementById('upload-btn').disabled = true;

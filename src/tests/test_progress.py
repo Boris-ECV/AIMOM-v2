@@ -1,26 +1,25 @@
 import pytest
-import json
-from pathlib import Path
 from unittest.mock import patch, MagicMock
+from pathlib import Path
 from fastapi.testclient import TestClient
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app import app
 from progress import update_progress
+import jobstore
 
 client = TestClient(app)
 
 
-def test_status_not_found(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
+def test_status_not_found():
     response = client.get("/api/status/nonexistent-id")
     assert response.status_code == 404
 
 
-def test_status_returns_progress(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
+def test_status_returns_progress():
     job_id = "progress-job-001"
+    jobstore.create_job(job_id)
     update_progress(job_id, "transcribing", 30, "AssemblyAI 處理中...")
     response = client.get(f"/api/status/{job_id}")
     assert response.status_code == 200
@@ -29,27 +28,69 @@ def test_status_returns_progress(tmp_path, monkeypatch):
     assert data["progress"] == 30
 
 
-def test_cleanup_success(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
-    monkeypatch.setattr("config.ASSEMBLYAI_API_KEY", "test-key")
+def test_status_finalizes_transcription_when_assemblyai_done():
+    """TASK-016：輪詢 /api/status 時，若 AssemblyAI 已完成，應自動組出逐字稿並把
+    stage 更新為 transcribed，不需要另外呼叫 /api/transcribe 才能拿到結果。"""
+    job_id = "progress-job-002"
+    jobstore.create_job(job_id, stage="transcribing", progress=20,
+                         message="等待中", assemblyai_transcript_id="aai-xyz")
+
+    mock_transcript = MagicMock()
+    mock_transcript.utterances = None
+    mock_transcript.words = []
+    mock_transcript.text = "hello world"
+
+    import assemblyai as aai
+    mock_transcript.status = aai.TranscriptStatus.completed
+
+    with patch("progress.aai") as mock_aai:
+        mock_aai.settings = MagicMock()
+        mock_aai.TranscriptStatus = aai.TranscriptStatus
+        mock_aai.Transcript.get_by_id.return_value = mock_transcript
+        response = client.get(f"/api/status/{job_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stage"] == "transcribed"
+    assert data["progress"] == 75
+
+    job = jobstore.get_job(job_id)
+    assert job["full_text"] == "hello world"
+
+
+def test_status_still_transcribing_when_assemblyai_not_done():
+    job_id = "progress-job-003"
+    jobstore.create_job(job_id, stage="transcribing", progress=20,
+                         message="等待中", assemblyai_transcript_id="aai-abc")
+
+    mock_transcript = MagicMock()
+    import assemblyai as aai
+    mock_transcript.status = aai.TranscriptStatus.processing
+
+    with patch("progress.aai") as mock_aai:
+        mock_aai.settings = MagicMock()
+        mock_aai.TranscriptStatus = aai.TranscriptStatus
+        mock_aai.Transcript.get_by_id.return_value = mock_transcript
+        response = client.get(f"/api/status/{job_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stage"] == "transcribing"
+
+
+def test_cleanup_success():
     job_id = "cleanup-job-001"
-    job_dir = tmp_path / job_id
-    job_dir.mkdir()
-    (job_dir / "dummy.txt").write_text("hello")
+    jobstore.create_job(job_id)
     response = client.delete(f"/api/cleanup/{job_id}")
     assert response.status_code == 200
-    assert not job_dir.exists()
+    assert jobstore.get_job(job_id) is None
 
 
-def test_cleanup_calls_assemblyai_delete(tmp_path, monkeypatch):
+def test_cleanup_calls_assemblyai_delete(monkeypatch):
     """Verify AssemblyAI transcript is deleted on cleanup (NFR-01 privacy)."""
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
     monkeypatch.setattr("config.ASSEMBLYAI_API_KEY", "test-key")
     job_id = "cleanup-aai-job"
-    job_dir = tmp_path / job_id
-    job_dir.mkdir()
-    meta = {"assemblyai_transcript_id": "aai-transcript-abc"}
-    (job_dir / "meta.json").write_text(json.dumps(meta))
+    jobstore.create_job(job_id, assemblyai_transcript_id="aai-transcript-abc")
 
     with patch("progress.aai") as mock_aai:
         mock_aai.settings = MagicMock()
@@ -57,10 +98,9 @@ def test_cleanup_calls_assemblyai_delete(tmp_path, monkeypatch):
         response = client.delete(f"/api/cleanup/{job_id}")
 
     assert response.status_code == 200
-    mock_aai.Transcript.delete.assert_called_once_with("aai-transcript-abc")
+    mock_aai.Transcript.delete_by_id.assert_called_once_with("aai-transcript-abc")
 
 
-def test_cleanup_not_found(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
+def test_cleanup_not_found():
     response = client.delete("/api/cleanup/nonexistent-id")
     assert response.status_code == 404

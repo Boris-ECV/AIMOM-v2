@@ -1,8 +1,8 @@
 import json
-from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from models import SummarizeRequest, SummarizeResponse, ActionItem, Topic
 import config
+import jobstore
 from progress import update_progress
 from auth import CurrentUser, get_current_user
 from usage import record_llm_usage
@@ -48,13 +48,14 @@ def _parse_llm_response(content: str) -> dict:
 @router.post("/summarize", response_model=SummarizeResponse)
 async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_current_user)):
     job_id = req.job_id
-    job_dir = Path(config.TMP_DIR) / job_id
-    transcript_path = job_dir / "transcript.json"
+    job = jobstore.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job_id 不存在")
 
-    if not transcript_path.exists():
-        raise HTTPException(status_code=400, detail="請先執行 /transcribe")
+    segments = job.get("segments")
+    if segments is None:
+        raise HTTPException(status_code=400, detail="請先執行 /transcribe 並等待轉錄完成")
 
-    segments = json.loads(transcript_path.read_text(encoding="utf-8"))
     transcript_text = _build_transcript_text(segments)
 
     update_progress(job_id, "summarizing", 70, "正在 AI 整理會議紀錄...")
@@ -86,10 +87,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
         pass
 
     minutes = {**data, "job_id": job_id}
-    (job_dir / "minutes.json").write_text(
-        json.dumps(minutes, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    update_progress(job_id, "done", 100, "會議紀錄整理完成")
+    jobstore.update_job(job_id, stage="done", progress=100, message="會議紀錄整理完成", minutes=minutes)
 
     return SummarizeResponse(
         job_id=job_id,

@@ -46,9 +46,10 @@ COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
 COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID", "")
 ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "")  # 逗號分隔白名單，判定管理者角色
 
-# DynamoDB（TASK-009/011）
+# DynamoDB（TASK-009/011/016）
 DYNAMODB_MEETINGS_TABLE = os.getenv("DYNAMODB_MEETINGS_TABLE", "aimom-meetings")
 DYNAMODB_LLM_USAGE_TABLE = os.getenv("DYNAMODB_LLM_USAGE_TABLE", "aimom-llm-usage")
+DYNAMODB_JOBS_TABLE = os.getenv("DYNAMODB_JOBS_TABLE", "aimom-jobs")
 MEETING_RETENTION_DAYS = int(os.getenv("MEETING_RETENTION_DAYS", "14"))
 
 

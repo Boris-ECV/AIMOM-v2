@@ -42,3 +42,8 @@ output "dynamodb_llm_usage_table" {
   description = "LLMUsage DynamoDB 表名稱"
   value       = aws_dynamodb_table.llm_usage.name
 }
+
+output "dynamodb_jobs_table" {
+  description = "Jobs DynamoDB 表名稱（TASK-016 非同步轉錄作業狀態）"
+  value       = aws_dynamodb_table.jobs.name
+}

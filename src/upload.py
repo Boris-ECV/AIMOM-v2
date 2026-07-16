@@ -1,4 +1,3 @@
-import json
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +9,7 @@ from models import (
     UploadCompleteRequest,
 )
 import config
+import jobstore
 
 router = APIRouter()
 
@@ -40,8 +40,8 @@ def get_audio_duration(file_path: Path) -> float:
     return 0.0
 
 
-def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str, suffix: str) -> UploadResponse:
-    """驗證音檔長度、寫入 meta.json 並更新進度。供 legacy 直傳與 presign 流程共用。"""
+def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str, suffix: str, s3_key: str = None) -> UploadResponse:
+    """驗證音檔長度、寫入 job 狀態（DynamoDB，見 TASK-016）。供 legacy 直傳與 presign 流程共用。"""
     size_bytes = audio_path.stat().st_size
     duration = get_audio_duration(audio_path)
     if duration > MAX_DURATION_SEC:
@@ -49,18 +49,16 @@ def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str
         shutil.rmtree(job_dir)
         raise HTTPException(status_code=400, detail=f"錄音超過 {config.MAX_DURATION_HOURS} 小時上限")
 
-    meta = {
-        "filename": filename,
-        "duration_sec": duration,
-        "size_bytes": size_bytes,
-        "created_at": datetime.utcnow().isoformat(),
-        "audio_path": str(audio_path),
-        "suffix": suffix,
-    }
-    (job_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
-
-    from progress import update_progress
-    update_progress(job_id, "uploaded", 10, "上傳完成，等待轉錄")
+    jobstore.create_job(
+        job_id,
+        filename=filename,
+        duration_sec=duration,
+        size_bytes=size_bytes,
+        created_at=datetime.utcnow().isoformat(),
+        audio_path=str(audio_path),
+        suffix=suffix,
+        s3_key=s3_key,
+    )
 
     return UploadResponse(
         job_id=job_id,
@@ -157,12 +155,8 @@ async def complete_upload(req: UploadCompleteRequest):
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"找不到已上傳的音檔物件（{req.s3_key}）：{e}")
 
-    result = _finalize_upload(str(job_uuid), job_dir, audio_path, req.filename, suffix)
-
-    # 下載完成後即可從 S3 移除暫存物件（bucket 本身也有 1 天 lifecycle 保底清除）
-    try:
-        _s3_client().delete_object(Bucket=config.AUDIO_BUCKET_NAME, Key=req.s3_key)
-    except Exception:
-        pass
-
-    return result
+    # 注意：這裡故意不刪除 S3 物件 —— /transcribe 會用 presigned GET URL 讓
+    # AssemblyAI 非同步去抓取這個物件（TASK-016），過早刪除會有競態風險。
+    # 暫存物件的清除交給 bucket 既有的 1 天 lifecycle 規則，或使用者手動
+    # /api/cleanup/{job_id} 時一併清除。
+    return _finalize_upload(str(job_uuid), job_dir, audio_path, req.filename, suffix, s3_key=req.s3_key)

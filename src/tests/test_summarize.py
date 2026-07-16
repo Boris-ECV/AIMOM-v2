@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app import app
+import jobstore
 
 client = TestClient(app)
 
@@ -23,17 +24,14 @@ MOCK_LLM_RESPONSE = json.dumps({
 })
 
 
-def _setup_job(tmp_path):
+def _setup_job():
     job_id = "summarize-job-001"
-    job_dir = tmp_path / job_id
-    job_dir.mkdir(parents=True)
-    (job_dir / "transcript.json").write_text(json.dumps(SAMPLE_SEGMENTS))
+    jobstore.create_job(job_id, stage="transcribed", progress=75, message="ok", segments=SAMPLE_SEGMENTS)
     return job_id
 
 
-def test_summarize_success(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
-    job_id = _setup_job(tmp_path)
+def test_summarize_success():
+    job_id = _setup_job()
 
     mock_message = MagicMock()
     mock_message.content = MOCK_LLM_RESPONSE
@@ -54,9 +52,8 @@ def test_summarize_success(tmp_path, monkeypatch):
     assert data["decisions"] == ["使用 FastAPI 框架"]
 
 
-def test_summarize_no_transcript(tmp_path, monkeypatch):
-    monkeypatch.setattr("config.TMP_DIR", str(tmp_path))
+def test_summarize_no_transcript():
     job_id = "empty-job"
-    (tmp_path / job_id).mkdir()
+    jobstore.create_job(job_id)
     response = client.post("/api/summarize", json={"job_id": job_id})
     assert response.status_code == 400

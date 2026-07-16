@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app import app
+import jobstore
 
 client = TestClient(app)
 
@@ -102,7 +103,12 @@ def test_complete_upload_downloads_from_s3_and_creates_job(tmp_path, monkeypatch
     assert data["job_id"] == job_id
     assert data["duration_sec"] == 42.0
     fake_s3.download_file.assert_called_once_with("test-audio-bucket", f"{job_id}/audio.wav", str(tmp_path / job_id / "audio.wav"))
-    fake_s3.delete_object.assert_called_once_with(Bucket="test-audio-bucket", Key=f"{job_id}/audio.wav")
+    # TASK-016: S3 物件不再於此立即刪除（/transcribe 之後才由 AssemblyAI 非同步抓取），
+    # 只依賴 bucket 既有的 1 天 lifecycle 規則或 /api/cleanup 手動清除
+    fake_s3.delete_object.assert_not_called()
+
+    job = jobstore.get_job(job_id)
+    assert job["s3_key"] == f"{job_id}/audio.wav"
 
 
 def test_complete_upload_missing_s3_object_returns_404(tmp_path, monkeypatch):

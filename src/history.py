@@ -5,40 +5,28 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-import config
 import db
+import jobstore
 from auth import CurrentUser, get_current_user
 
 router = APIRouter()
 
 
-def _job_dir(job_id: str) -> Path:
-    return Path(config.TMP_DIR) / job_id
-
-
 def _load_job_result(job_id: str) -> tuple[str, str, str]:
     """讀取指定 job 的逐字稿、會議紀錄與標題，找不到則丟 404。"""
-    job_dir = _job_dir(job_id)
-    minutes_path = job_dir / "minutes.json"
-    transcript_path = job_dir / "transcript.json"
-    meta_path = job_dir / "meta.json"
-
-    if not minutes_path.exists() or not transcript_path.exists():
+    job = jobstore.get_job(job_id)
+    if job is None or job.get("segments") is None or job.get("minutes") is None:
         raise HTTPException(status_code=404, detail="找不到會議紀錄，請先完成 /summarize")
 
-    minutes_json = minutes_path.read_text(encoding="utf-8")
-    segments = json.loads(transcript_path.read_text(encoding="utf-8"))
+    segments = job["segments"]
+    minutes_json = json.dumps(job["minutes"], ensure_ascii=False)
     transcript_text = "\n".join(
         f"[{seg.get('speaker') or 'SPEAKER'}] {seg['text']}" for seg in segments
     )
-    title = job_id
-    if meta_path.exists():
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        title = meta.get("filename", job_id)
+    title = job.get("filename", job_id)
 
     return title, transcript_text, minutes_json
 

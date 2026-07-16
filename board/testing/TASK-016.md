@@ -1,0 +1,120 @@
+---
+id: TASK-016
+title: /api/transcribe 改為非同步，解決 Lambda/API Gateway 30 秒逾時限制
+type: Bug
+priority: High
+assignee: dev-agent
+claimed_by: qa-agent
+status: testing
+created: 2026-07-16
+updated: 2026-07-16T17:30:00
+epic: EPIC-003
+---
+
+## 描述
+
+TASK-015 部署後以 20MB+ 真實錄音檔手動驗證上傳流程時發現：上傳本身完全正常
+（無 413），但緊接著呼叫 `POST /api/transcribe` 卻回傳 `503 Service Unavailable`，
+之後 `GET /api/status/{job_id}` 回傳 `404`。
+
+追查 CloudWatch log（`/aws/lambda/aimom-dev-api`）確認：
+
+```
+REPORT RequestId: 9c96d8af-... Duration: 30000.00 ms Billed Duration: 30000 ms
+Memory Size: 1024 MB Max Memory Used: 237 MB Status: timeout
+```
+
+根本原因：`src/transcribe.py` 的 `/transcribe` 端點是**同步**呼叫，在同一次
+HTTP request/response 生命週期內，於 `run_in_executor` 中完整執行
+`transcriber.transcribe(audio_path, aai_config)`（把音檔上傳給 AssemblyAI 並
+輪詢等待轉錄完成）才回傳結果。這個做法受到兩層都是 30 秒的限制：
+
+- `infra/variables.tf` 的 `lambda_timeout` 預設 30 秒
+- API Gateway **HTTP API**（`aws_apigatewayv2_integration`）對 Lambda `AWS_PROXY`
+  整合的逾時上限**本身也是 30 秒**（AWS 平台硬性限制，即使把 `lambda_timeout`
+  調高到 Lambda 支援的 900 秒，客戶端仍然無法在原本那次 HTTP 請求內拿到結果，
+  Lambda 若沒有在 30 秒內回應，API Gateway 會直接對客戶端回應逾時/錯誤）
+
+真實會議錄音（幾十分鐘）送給 AssemblyAI 轉錄，就算 AssemblyAI 本身處理速度快，
+「上傳音檔給 AssemblyAI + 排隊等待 + 輪詢直到完成」整體耗時通常遠超過 30 秒，
+因此這個問題幾乎必定會在正式的長錄音上發生（TASK-014 驗證用的 3MB 短音檔之所以
+沒踩到，是因為那個測試音檔夠短，轉錄在 30 秒內就完成了）。
+
+`/api/summarize`（LLM 摘要）若呼叫大型 LLM 且逾時，理論上也可能有類似風險，
+需要一併檢視（雖然 LLM 摘要一般比語音轉錄快很多，優先度較低）。
+
+## 設計決策（development 階段補充）
+
+盤點後確認：光是把 `/api/transcribe` 改成非同步觸發（例如自呼叫 Lambda 或
+webhook）並不足夠 —— 因為 Lambda 執行環境（container）不保證同一個 job_id
+的後續請求（`/api/status` 輪詢）會落在同一個 container 上，而目前整個專案
+的 job 狀態（`meta.json`/`status.json`/`transcript.json`/`minutes.json`）
+都只存在本機 `/tmp`，換到不同 container 就讀不到。
+
+因此改採用以下方案（採用 AssemblyAI SDK 原生的「非阻塞送出 + 輪詢查狀態」
+API，不需要自行實作 Lambda 自呼叫或 webhook 接收端）：
+
+1. **`POST /api/transcribe`**：改用 `Transcriber.submit(audio_url, config)`
+   （AssemblyAI SDK 提供的非阻塞版本，內部 `poll=False`，送出後立即回傳，
+   不等待轉錄完成）取代原本會阻塞到轉錄完成的 `transcribe()`。
+   S3 直傳的音檔改用 **presigned GET URL** 直接讓 AssemblyAI 去 S3 抓取，
+   Lambda 不需要自己下載/上傳音檔位元組，送出速度極快（遠低於 30 秒）。
+   送出後立即把 `assemblyai_transcript_id` 存起來、`stage` 設為
+   `transcribing`，回應即完成
+2. **`GET /api/status/{job_id}`**：當 `stage == "transcribing"` 時，改為
+   呼叫 `Transcript.get_by_id(transcript_id)`（單次查詢、非阻塞）確認
+   AssemblyAI 是否已完成；完成的話才在這裡把逐字稿 segments 組好、寫回
+   job 狀態、把 `stage` 更新為 `transcribed`。每次輪詢都只做一次快速的
+   狀態查詢，不會再有任何一次 HTTP 請求需要等待整段轉錄跑完
+3. **Job 狀態儲存層改用 DynamoDB**（新增 `aimom-{env}-jobs` 表，
+   `job_id` 為 hash key，其餘欄位打包成一個 JSON 字串存放，並設定
+   TTL 自動過期，避免長期累積）取代本機 `/tmp` 的四個 JSON 檔案，
+   確保任何 Lambda container 都能讀到最新進度。新增 `src/jobstore.py`
+   作為統一的存取層；`progress.py` 的對外函式簽名保持不變
+   （`update_progress()`/`read_status()`），內部改呼叫 jobstore，
+   讓 `upload.py`/`transcribe.py`/`summarize.py` 既有呼叫端幾乎不用改
+4. S3 暫存音檔物件**不再於 `/upload/complete` 時就立刻刪除**
+   （AssemblyAI 送出後才會非同步去抓取，過早刪除有競態風險），
+   改為依賴既有的 1 天 lifecycle 規則自動清除，`/api/cleanup/{job_id}`
+   手動清除時也會一併嘗試刪除
+
+## Acceptance Criteria
+
+- [x] 盤點並確認確切的非同步架構做法：採用 AssemblyAI SDK 原生的
+      `Transcriber.submit()`（非阻塞送出）+ `Transcript.get_by_id()`
+      （單次查詢）搭配 DynamoDB 共用 job 狀態層，取代 Lambda 自呼叫/webhook
+      方案（不需要額外的 IAM 自呼叫權限或 webhook 接收端點，複雜度更低）
+- [x] 前端 `index.html` 的 `startPoll()`/`pollStatus()` 已調整：偵測到
+      `stage=='transcribed'` 時才呼叫新增的 `GET /api/transcript/{job_id}`
+      取得逐字稿、接著觸發 `/api/summarize`；`doUpload()` 不再等待轉錄完成，
+      只送出 `/api/transcribe` 後即進入輪詢畫面
+- [x] `src/summarize.py` 已檢視：目前 LLM 摘要呼叫本身耗時遠低於 30 秒
+      （單次 chat completion），暫不需要套用相同的非同步模式；已改為從
+      jobstore 讀取 segments、寫回 minutes（配合 job 狀態遷移）
+- [x] 本次方案不需要新增 `lambda:InvokeFunction` 自呼叫權限；改為在
+      `infra/iam.tf` 的 `DynamoDBAccess` 加入新的 `aimom-{env}-jobs` 表 ARN
+- [x] 新增/更新單元測試：`test_transcribe.py`（非阻塞送出、presigned URL、
+      新端點 `/api/transcript/{job_id}`）、`test_progress.py`（輪詢時自動
+      向 AssemblyAI 查詢並完成收尾）、`test_upload.py`（改用 jobstore、
+      不再提前刪除 S3 物件）、`test_summarize.py`/`test_diarize.py`/
+      `test_export.py`/`test_history.py`（皆改用 jobstore + moto 模擬
+      DynamoDB），全數 50 個測試通過
+- [ ] 手動驗證：用一個真實的 20-30 分鐘會議錄音（或至少轉錄耗時明顯超過 30 秒的
+      音檔），確認完整跑完 上傳 → 轉錄（非同步）→ 摘要 → 匯出流程，過程中
+      `/api/status` 輪詢能正確反映進度直到完成（待部署後由使用者於 CloudShell
+      執行 `terraform apply` 建立新的 jobs 表並更新 Lambda 後進行）
+
+## 備注
+
+- 此問題是在 TASK-015（S3 presigned URL 直傳）部署後、以 20MB+ 真實錄音檔手動
+  驗證時發現，與 TASK-015 的上傳修正本身無關（上傳階段已確認無 413），
+  屬於 TASK-012（Lambda 部署）遺留的另一個架構缺口，因此另開此工單追蹤。
+- 相關真實錯誤：`POST /api/transcribe` → `503 (Service Unavailable)`，
+  CloudWatch log 顯示 `Status: timeout`（30000ms）。
+
+## 歷程
+
+| 時間 | 代理 | 動作 |
+|------|------|------|
+| 2026-07-16T16:30:00 | orchestrator | 於 TASK-015 部署後手動驗證過程中發現 /api/transcribe 503（Lambda 30 秒逾時）問題，建立此工單追蹤，放入 backlog |
+| 2026-07-16T17:30:00 | dev-agent | 完成實作：新增 src/jobstore.py（DynamoDB 共用 job 狀態層）、src/transcript_utils.py；改寫 src/transcribe.py（非同步送出 + 新增 GET /api/transcript/{job_id}）、src/progress.py（輪詢時自動向 AssemblyAI 查詢並收尾）、src/upload.py（改用 jobstore、不再提前刪除 S3 物件）、src/summarize.py/src/diarize.py/src/export.py/src/history.py（改用 jobstore）；新增 infra/dynamodb.tf 的 aimom-{env}-jobs 表、infra/iam.tf 授權、infra/lambda.tf 環境變數；更新 src/frontend/index.html 前端輪詢邏輯；更新全部相關單元測試改用 jobstore + moto 模擬 DynamoDB，50 個測試全數通過；terraform validate 通過。待使用者於 CloudShell 部署後進行真實長錄音手動驗證 |

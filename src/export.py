@@ -5,8 +5,6 @@ Word (.docx) 與 PDF 由後端產生；純文字匯出由前端直接產生（�
 from __future__ import annotations
 
 import io
-import json
-from pathlib import Path
 
 from docx import Document
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +14,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfgen import canvas
 
-import config
+import jobstore
 from auth import CurrentUser, get_current_user
 
 router = APIRouter()
@@ -26,10 +24,10 @@ pdfmetrics.registerFont(UnicodeCIDFont(_CJK_FONT))
 
 
 def _load_minutes(job_id: str) -> dict:
-    minutes_path = Path(config.TMP_DIR) / job_id / "minutes.json"
-    if not minutes_path.exists():
+    job = jobstore.get_job(job_id)
+    if job is None or job.get("minutes") is None:
         raise HTTPException(status_code=404, detail="找不到會議紀錄，請先完成 /summarize")
-    return json.loads(minutes_path.read_text(encoding="utf-8"))
+    return job["minutes"]
 
 
 def _build_docx(minutes: dict, job_id: str) -> bytes:

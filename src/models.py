@@ -43,6 +43,14 @@ class TranscribeResponse(BaseModel):
     full_text: str
 
 
+class TranscriptResultResponse(BaseModel):
+    """TASK-016：/transcribe 改為非同步後，逐字稿結果改由此端點取得。"""
+    job_id: str
+    stage: str
+    segments: List[Segment]
+    full_text: str
+
+
 class DiarizeRequest(BaseModel):
     job_id: str
 
