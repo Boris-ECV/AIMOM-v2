@@ -5,9 +5,9 @@ type: Bug
 priority: High
 assignee: dev-agent
 claimed_by: qa-agent
-status: testing
+status: done
 created: 2026-07-16
-updated: 2026-07-16T17:30:00
+updated: 2026-07-16T18:30:00
 epic: EPIC-003
 ---
 
@@ -99,10 +99,10 @@ API，不需要自行實作 Lambda 自呼叫或 webhook 接收端）：
       不再提前刪除 S3 物件）、`test_summarize.py`/`test_diarize.py`/
       `test_export.py`/`test_history.py`（皆改用 jobstore + moto 模擬
       DynamoDB），全數 50 個測試通過
-- [ ] 手動驗證：用一個真實的 20-30 分鐘會議錄音（或至少轉錄耗時明顯超過 30 秒的
-      音檔），確認完整跑完 上傳 → 轉錄（非同步）→ 摘要 → 匯出流程，過程中
-      `/api/status` 輪詢能正確反映進度直到完成（待部署後由使用者於 CloudShell
-      執行 `terraform apply` 建立新的 jobs 表並更新 Lambda 後進行）
+- [x] 手動驗證：用一個真實轉錄耗時明顯超過 30 秒的錄音檔，確認完整跑完
+      上傳 → 轉錄（非同步）→ 摘要 → 匯出流程，過程中 `/api/status` 輪詢能
+      正確反映進度直到完成 —— 已於 2026-07-16 由使用者在正式環境（CloudShell
+      部署後）以較長音檔驗證通過，全流程無 503/逾時，處理成功並完成後續匯出
 
 ## 備注
 
@@ -111,6 +111,19 @@ API，不需要自行實作 Lambda 自呼叫或 webhook 接收端）：
   屬於 TASK-012（Lambda 部署）遺留的另一個架構缺口，因此另開此工單追蹤。
 - 相關真實錯誤：`POST /api/transcribe` → `503 (Service Unavailable)`，
   CloudWatch log 顯示 `Status: timeout`（30000ms）。
+- **部署過程中額外發現並修復兩個問題**（皆屬本工單範圍內的架構變更直接造成，
+  非既有缺陷）：
+  1. Lambda 執行角色僅授予 DynamoDB 資料層級權限（GetItem/PutItem/...），
+     但 `jobstore.py`/`db.py`/`usage.py` 的 `ensure_*_table_exists()` 一律
+     呼叫 `dynamodb:ListTables`，導致正式環境所有相關端點回傳
+     `AccessDeniedException` 500。修法：捕捉 AccessDeniedException 並視為
+     「已由 Terraform 建好」直接略過，只在本機/測試環境真正建表。
+  2. AssemblyAI Python SDK 的 `Transcript.get_by_id()` 名稱看似單次查詢，
+     實際內部是阻塞輪詢迴圈（`while True` + `time.sleep`），會等到轉錄
+     completed/error 才回傳 —— 在 `/api/status` 誤用它等於把 30 秒逾時
+     問題原封不動搬到這個端點，導致真實長錄音測試時 `/api/status` 503。
+     修法：改用 SDK 底層真正單次查詢、不阻塞的 `api.get_transcript()`，
+     並加上例外保護避免查詢失敗連帶讓整個請求 500。
 
 ## 歷程
 
@@ -118,3 +131,6 @@ API，不需要自行實作 Lambda 自呼叫或 webhook 接收端）：
 |------|------|------|
 | 2026-07-16T16:30:00 | orchestrator | 於 TASK-015 部署後手動驗證過程中發現 /api/transcribe 503（Lambda 30 秒逾時）問題，建立此工單追蹤，放入 backlog |
 | 2026-07-16T17:30:00 | dev-agent | 完成實作：新增 src/jobstore.py（DynamoDB 共用 job 狀態層）、src/transcript_utils.py；改寫 src/transcribe.py（非同步送出 + 新增 GET /api/transcript/{job_id}）、src/progress.py（輪詢時自動向 AssemblyAI 查詢並收尾）、src/upload.py（改用 jobstore、不再提前刪除 S3 物件）、src/summarize.py/src/diarize.py/src/export.py/src/history.py（改用 jobstore）；新增 infra/dynamodb.tf 的 aimom-{env}-jobs 表、infra/iam.tf 授權、infra/lambda.tf 環境變數；更新 src/frontend/index.html 前端輪詢邏輯；更新全部相關單元測試改用 jobstore + moto 模擬 DynamoDB，50 個測試全數通過；terraform validate 通過。待使用者於 CloudShell 部署後進行真實長錄音手動驗證 |
+| 2026-07-16T17:45:00 | dev-agent | 部署後第一次真實驗證發現 AccessDeniedException（Lambda 角色缺 dynamodb:ListTables），修正 jobstore.py/db.py/usage.py 的 ensure_*_table_exists() 遇權限不足即略過，新增 test_jobstore.py 迴歸測試（52 個測試通過），重新產生 task016-update.zip |
+| 2026-07-16T18:20:00 | dev-agent | 部署後第二次真實驗證發現長錄音時 /api/status 503，追查發現 AssemblyAI SDK 的 Transcript.get_by_id() 內部為阻塞輪詢，改用底層非阻塞的 api.get_transcript()，加上查詢失敗的例外保護，更新 test_progress.py（53 個測試通過），重新產生 task016-update.zip |
+| 2026-07-16T18:30:00 | qa-agent | 使用者於正式環境以真實長錄音完整驗證：上傳 → 轉錄（非同步）→ 摘要成功，無 503/逾時，全流程通過。移至 done |
