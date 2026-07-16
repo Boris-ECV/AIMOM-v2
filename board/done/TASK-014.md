@@ -4,9 +4,9 @@ title: 前端 Cognito OAuth 登入整合與部署
 type: Task
 priority: High
 assignee: unassigned
-status: testing
+status: done
 created: 2026-07-14
-updated: 2026-07-14T18:42:00
+updated: 2026-07-16T10:35:00
 epic: EPIC-003
 ---
 
@@ -44,8 +44,8 @@ DynamoDB、S3、CloudFront 皆已在 `ap-northeast-1` 建立完成）。但 `src
 - [x] 登出功能：呼叫 Cognito `/logout` endpoint 並清除本機 token
 - [x] 新增 `docs/deploy/frontend-deploy.md`，
       說明如何將 `src/frontend/` 上傳至 `frontend_bucket_name` 並執行 CloudFront invalidation
-- [ ] 本地或 CloudShell 手動驗證：完整跑過登入 → 上傳錄音 → 產出會議紀錄 → 匯出 → 登出流程
-      （需部署後於瀏覽器實際測試，見備注）
+- [x] 本地或 CloudShell 手動驗證：完整跑過登入 → 上傳錄音 → 產出會議紀錄 → 匯出 → 登出流程
+      （已於 2026-07-16 由使用者在 CloudFront 網域上用 3MB 以下短音檔實際驗證通過）
 
 ## 備注
 
@@ -77,6 +77,17 @@ DynamoDB、S3、CloudFront 皆已在 `ap-northeast-1` 建立完成）。但 `src
   `test_verify_token_with_at_hash_claim_accepted` 回歸測試，套件測試 40/40 pass。
   此 bug 未被先前 review/QA 的既有測試發現，因為假 token fixture 沒有帶 `at_hash`
   claim，只有真實 Cognito 核發的 token 才會踩到，屬於既有測試覆蓋不足，已補強。
+- ✅ **QA PASS - 2026-07-16**：使用者以 3MB 以下短音檔在
+  `https://d11d8l4nxw1bow.cloudfront.net` 實際完整跑過「Google 登入 → 上傳錄音 →
+  轉錄 → 摘要 → 匯出 → 登出」全流程，皆成功。
+- ⚠️ **驗證過程中另發現一個超出本工單範圍的架構限制（已另開 TASK-015 追蹤）**：
+  上傳 7.91MB 音檔時 `/api/upload` 回傳 `413 Content Too Large`。原因是目前上傳
+  流程把整份音檔內容當作 HTTP request body 直接送進 API Gateway → Lambda，撞到
+  AWS 平台硬性限制（API Gateway payload 上限 10MB；Lambda 同步呼叫 payload 上限
+  6MB；且 API Gateway 對二進位 body 會先 base64 編碼再轉給 Lambda，多出約 33%
+  大小，實際可上傳的音檔上限遠低於使用情境需求）。這是 TASK-012（Lambda 部署）
+  遺留的設計缺口，與本工單（前端登入整合）無關，不影響本工單驗收，另建
+  TASK-015 處理（建議改用 S3 Presigned URL 直傳）。
 
 ## 歷程
 
@@ -85,3 +96,5 @@ DynamoDB、S3、CloudFront 皆已在 `ap-northeast-1` 建立完成）。但 `src
 | 2026-07-14T18:30:00 | orchestrator | 依使用者需求建立工單，放入 backlog（TASK-013 部署後發現前端登入整合缺口） |
 | 2026-07-14T18:42:00 | dev-agent | 完成 config.js 外部化設定、Cognito PKCE 登入流程、apiFetch 封裝與 8 處呼叫套用、登出功能、frontend-deploy.md，移至 testing 等待使用者實際部署驗證 |
 | 2026-07-15 | orchestrator | 使用者於 CloudShell terraform apply Lambda Layer 修正後，手動驗證登入流程時發現 `/api/me` 等所有 API 呼叫皆回傳 401；追查為 `src/auth.py` 的 `verify_token()` 未處理 ID Token 的 `at_hash` claim 導致 python-jose 誤判驗證失敗，修正 `jwt.decode()` options 並補上回歸測試，套件測試 40/40 pass |
+| 2026-07-15 | orchestrator | CloudShell 1GB 磁碟配額不足以同時容納 aws provider（~675MB）與 archive_file 動態壓縮 layer 所需的暫存空間；改為本機預先建置 `infra/build/aimom-lambda-layer.zip`，`infra/lambda.tf` 改用 `filebase64sha256` 直接讀取該 zip，不再用 `archive_file` 對 `infra/layer/` 動態壓縮 |
+| 2026-07-16 | qa-agent | 使用者以 3MB 以下短音檔完整驗證登入→上傳→轉錄→摘要→匯出→登出全流程成功，✅ QA PASS，移動 board/testing/ → board/done/；驗證過程中另發現大檔案（7.91MB）上傳觸發 413（API Gateway/Lambda payload 上限），與本工單無關，另建 TASK-015 追蹤 |
