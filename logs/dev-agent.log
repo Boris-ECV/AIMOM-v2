@@ -25,3 +25,4 @@
 [2026-07-14 15:22:48] [dev-agent] [TASK-013] IMPLEMENT 撰寫 docs/deploy/manual-setup-guide.md 與 infra/ Terraform IaC（DynamoDB/S3/CloudFront/Cognito/Lambda/API Gateway/IAM）
 [2026-07-14 18:41:59] [dev-agent] [TASK-014] IMPLEMENT 新增 src/frontend/config.js（環境設定外部化），index.html 加入 Cognito Hosted UI Authorization Code + PKCE 登入流程、auth-gate 畫面、統一 apiFetch() 封裝並套用至全部既有 API 呼叫、登出功能；新增 docs/deploy/frontend-deploy.md
 [2026-07-15T17:40:34] [dev-agent] [TASK-014] FIX     修正 src/auth.py verify_token() 因 ID Token 含 at_hash claim 但未提供 access_token 導致 python-jose JWTClaimsError，所有合法登入一律 401；加上 options.verify_at_hash=False，新增回歸測試 test_verify_token_with_at_hash_claim_accepted
+[2026-07-16T11:35:00] [dev-agent] [TASK-015] DONE    新增 /api/upload/presign、/api/upload/complete 端點實作 S3 Presigned URL 直傳，前端/infra 同步更新，backlog -> development -> testing

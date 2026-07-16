@@ -550,18 +550,42 @@ function setFile(file) {
 }
 
 // ─── UPLOAD ──────────────────────────────────────────────
+// v2.1（TASK-015）：改為 presigned URL 直傳 S3，繞過 API Gateway/Lambda payload 上限
+const UPLOAD_CONTENT_TYPES = { '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4' };
+
 async function doUpload() {
   const btn = document.getElementById('upload-btn');
   btn.disabled = true;
   btn.textContent = '上傳中...';
 
-  const form = new FormData();
-  form.append('file', state.file);
-
   try {
-    const res = await apiFetch('/api/upload', { method: 'POST', body: form });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '上傳失敗');
+    // 1) 向後端要一個 S3 presigned PUT URL
+    const presignRes = await apiFetch('/api/upload/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: state.file.name }),
+    });
+    const presign = await presignRes.json();
+    if (!presignRes.ok) throw new Error(presign.detail || '取得上傳網址失敗');
+
+    // 2) 瀏覽器直接 PUT 檔案到 S3（不經過 API Gateway/Lambda，不能帶 Authorization header）
+    const ext = state.file.name.slice(state.file.name.lastIndexOf('.')).toLowerCase();
+    const contentType = presign.content_type || UPLOAD_CONTENT_TYPES[ext] || 'application/octet-stream';
+    const putRes = await fetch(presign.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: state.file,
+    });
+    if (!putRes.ok) throw new Error(`上傳音檔到 S3 失敗（${putRes.status}）`);
+
+    // 3) 通知後端上傳完成，後端會從 S3 下載音檔、驗證長度並建立 job
+    const completeRes = await apiFetch('/api/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: presign.job_id, s3_key: presign.s3_key, filename: state.file.name }),
+    });
+    const data = await completeRes.json();
+    if (!completeRes.ok) throw new Error(data.detail || '上傳失敗');
 
     state.jobId = data.job_id;
     localStorage.setItem('meetingJobId', state.jobId);

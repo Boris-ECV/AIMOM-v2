@@ -32,12 +32,17 @@
 | `DYNAMODB_LLM_USAGE_TABLE` | 預設 `aimom-llm-usage` |
 | `MEETING_RETENTION_DAYS` | 預設 `14` |
 | `TMP_DIR` | Lambda 上應設為 `/tmp`（唯一可寫入目錄，且有 512MB–10GB 限制） |
+| `AUDIO_BUCKET_NAME` | 音檔暫存 S3 bucket 名稱，由 `infra/lambda.tf` 自動帶入 `aws_s3_bucket.audio.bucket`（TASK-015 presigned URL 直傳用） |
 
 ## API Gateway 整合注意事項
 
 - 使用 **HTTP API**（非 REST API）搭配 Lambda Proxy 整合，`payloadFormatVersion` 建議設為 `2.0`
 - CORS 設定可直接在 API Gateway 層設定，或維持目前 FastAPI `CORSMiddleware`（擇一，避免重複设定造成表頭衝突）
-- 大型音檔上傳應改走 **S3 presigned URL** 直傳（詳見 PRD NFR-05），不應透過 API Gateway/Lambda 傳輸二進位音檔（payload 上限 10MB）
+- 音檔上傳採 **S3 presigned URL** 直傳（TASK-015，詳見 PRD NFR-05）：前端呼叫
+  `POST /api/upload/presign` 取得簽名 URL 後直接 PUT 到 S3，再呼叫
+  `POST /api/upload/complete` 觸發後端下載/驗證，不透過 API Gateway/Lambda 傳輸
+  二進位音檔本體（該路徑仍受 payload 上限 10MB / Lambda 同步呼叫 6MB 限制）。
+  舊版 `POST /api/upload`（multipart 直傳）仍保留供本機開發/小檔案測試使用
 - Lambda 執行角色（IAM Role）需授權：
   - DynamoDB：`Meetings`、`LLMUsage` 表的 `GetItem`/`PutItem`/`Query`/`DeleteItem`/`Scan`
   - S3：音檔 bucket 的 `GetObject`/`PutObject`/`DeleteObject`（若採用 presigned URL 上傳）

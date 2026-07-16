@@ -9,6 +9,23 @@ class UploadResponse(BaseModel):
     size_bytes: int
 
 
+class UploadPresignRequest(BaseModel):
+    filename: str
+
+
+class UploadPresignResponse(BaseModel):
+    job_id: str
+    upload_url: str
+    s3_key: str
+    content_type: str
+
+
+class UploadCompleteRequest(BaseModel):
+    job_id: str
+    s3_key: str
+    filename: str
+
+
 class Segment(BaseModel):
     start: float
     end: float

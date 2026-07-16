@@ -36,6 +36,10 @@ _DEFAULT_MODELS = {
 MAX_DURATION_HOURS = float(os.getenv("MAX_DURATION_HOURS", "2"))
 TMP_DIR = os.getenv("TMP_DIR", "tmp")
 
+# 音檔暫存 S3 bucket（TASK-015 — presigned URL 直傳，繞過 API Gateway/Lambda payload 上限）
+AUDIO_BUCKET_NAME = os.getenv("AUDIO_BUCKET_NAME", "")
+AUDIO_PRESIGN_EXPIRES_SEC = int(os.getenv("AUDIO_PRESIGN_EXPIRES_SEC", "600"))
+
 # 登入與角色（TASK-008 — Cognito + Google 聯合登入）
 COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-northeast-1")
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
