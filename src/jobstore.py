@@ -33,9 +33,21 @@ def _table():
 
 
 def ensure_jobs_table_exists() -> None:
-    """建立 Jobs 表（若不存在）。正式環境由 IaC 管理，這裡主要供本機/測試使用。"""
+    """建立 Jobs 表（若不存在）。正式環境由 Terraform 建立（見 infra/dynamodb.tf），
+    Lambda 執行角色刻意不授予 dynamodb:ListTables/CreateTable（最小權限原則），
+    因此這裡若遇到權限不足，視為「已由 IaC 建好」直接略過，只在本機/測試環境
+    （例如 moto 模擬、開發者自己的 AWS 帳號）真正發揮建表功能。
+    """
+    from botocore.exceptions import ClientError
+
     client = boto3.client("dynamodb", region_name=config.COGNITO_REGION)
-    existing = client.list_tables().get("TableNames", [])
+    try:
+        existing = client.list_tables().get("TableNames", [])
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "AccessDeniedException":
+            return
+        raise
+
     if config.DYNAMODB_JOBS_TABLE in existing:
         return
 
