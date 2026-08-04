@@ -76,8 +76,18 @@ class Topic(BaseModel):
     content: str
 
 
+class MeetingInfo(BaseModel):
+    """會議基本資訊。逐字稿未提及的欄位一律為空字串／空陣列，
+    由前端結果頁面提供手動填寫/修正欄位，AI 不得臆測。"""
+    date: str = ""
+    time: str = ""
+    location: str = ""
+    participants: List[str] = []
+
+
 class SummarizeResponse(BaseModel):
     job_id: str
+    meeting_info: MeetingInfo
     summary: str
     action_items: List[ActionItem]
     decisions: List[str]

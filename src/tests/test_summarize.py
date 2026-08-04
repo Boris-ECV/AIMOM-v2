@@ -17,6 +17,12 @@ SAMPLE_SEGMENTS = [
 ]
 
 MOCK_LLM_RESPONSE = json.dumps({
+    "meeting_info": {
+        "date": "2026-08-04",
+        "time": "14:00",
+        "location": "3樓會議室",
+        "participants": ["王小明", "李小華"],
+    },
     "summary": "本次會議討論了技術選型，決定使用 FastAPI 框架。",
     "action_items": [{"owner": "王小明", "task": "建立 FastAPI 專案", "due": "下週五"}],
     "decisions": ["使用 FastAPI 框架"],
@@ -50,6 +56,12 @@ def test_summarize_success():
     assert "summary" in data
     assert len(data["action_items"]) == 1
     assert data["decisions"] == ["使用 FastAPI 框架"]
+    assert data["meeting_info"] == {
+        "date": "2026-08-04",
+        "time": "14:00",
+        "location": "3樓會議室",
+        "participants": ["王小明", "李小華"],
+    }
 
 
 def test_summarize_no_transcript():
@@ -64,6 +76,7 @@ def test_summarize_normalizes_malformed_llm_payload():
 
     mock_message = MagicMock()
     mock_message.content = json.dumps({
+        "meeting_info": {"date": None, "time": "10:00", "location": None, "participants": ["王小明", None, "  "]},
         "summary": "  摘要內容  ",
         "action_items": ["建立 FastAPI 專案", {"owner": None, "task": "整理文件", "due": None}],
         "decisions": ["  採用 FastAPI  ", None],
@@ -85,6 +98,71 @@ def test_summarize_normalizes_malformed_llm_payload():
     assert data["action_items"][0] == {"owner": "", "task": "建立 FastAPI 專案", "due": ""}
     assert data["decisions"] == ["採用 FastAPI"]
     assert data["topics"][0] == {"title": "技術選型", "content": ""}
+    assert data["meeting_info"] == {
+        "date": "",
+        "time": "10:00",
+        "location": "",
+        "participants": ["王小明"],
+    }
+
+
+def test_summarize_meeting_info_missing_defaults_to_unmentioned():
+    """AI 未提供 meeting_info（例如逐字稿完全沒提到會議資訊）時，
+    不應臆測填入任何值，全部欄位維持空字串/空陣列。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = json.dumps({
+        "summary": "簡短摘要",
+        "action_items": [],
+        "decisions": [],
+        "topics": [],
+    })
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["meeting_info"] == {
+        "date": "",
+        "time": "",
+        "location": "",
+        "participants": [],
+    }
+
+
+def test_summarize_action_item_due_left_blank_when_unmentioned():
+    """action_items 的 owner/due 若逐字稿未明講，應維持空字串，不可被臆測填入日期或人名。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = json.dumps({
+        "meeting_info": {},
+        "summary": "簡短摘要",
+        "action_items": [{"owner": "", "task": "調查方案", "due": ""}],
+        "decisions": [],
+        "topics": [],
+    })
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["action_items"][0] == {"owner": "", "task": "調查方案", "due": ""}
 
 
 def test_summarize_llm_client_failure_sets_error_state():

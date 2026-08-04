@@ -104,6 +104,14 @@
   #summary-text[contenteditable="true"] { outline: 2px solid var(--primary);
     border-radius: 4px; padding: 4px 8px; background: #EFF6FF; }
 
+  .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 12px 16px; }
+  .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
+                              font-size: .8rem; color: var(--muted); }
+  .meeting-info-grid input { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
+                              border-radius: 6px; color: var(--text); font-family: inherit; }
+  .meeting-info-grid input::placeholder { color: #B8C1CC; }
+
   .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
   .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
                      font-weight: 600; font-size: .8rem; color: var(--muted);
@@ -296,6 +304,23 @@
 
     <!-- MINUTES TAB -->
     <div id="tab-minutes">
+      <div class="card">
+        <div class="section-title">會議資訊 <span class="badge">未提及可手動填寫</span></div>
+        <div class="meeting-info-grid">
+          <label>日期
+            <input type="text" id="meeting-date" placeholder="例如 2026-08-04" onchange="markModified()">
+          </label>
+          <label>時間
+            <input type="text" id="meeting-time" placeholder="例如 14:00" onchange="markModified()">
+          </label>
+          <label>地點
+            <input type="text" id="meeting-location" placeholder="例如 3樓會議室" onchange="markModified()">
+          </label>
+          <label>參與者（以逗號分隔）
+            <input type="text" id="meeting-participants" placeholder="例如 王小明, 李小華" onchange="markModified()">
+          </label>
+        </div>
+      </div>
       <div class="card">
         <div class="section-title">摘要 <span class="badge">雙擊編輯</span></div>
         <p id="summary-text" ondblclick="enableEdit(this)" onblur="disableEdit(this)"></p>
@@ -714,6 +739,12 @@ function renderMinutes() {
   const m = state.minutes;
   if (!m) return;
 
+  const info = m.meeting_info || {};
+  document.getElementById('meeting-date').value = info.date || '';
+  document.getElementById('meeting-time').value = info.time || '';
+  document.getElementById('meeting-location').value = info.location || '';
+  document.getElementById('meeting-participants').value = (info.participants || []).join(', ');
+
   document.getElementById('summary-text').textContent = m.summary || '';
 
   const tbody = document.getElementById('action-tbody');
@@ -830,12 +861,27 @@ function markModified() {
 }
 
 // ─── EXPORT MARKDOWN ─────────────────────────────────────
+function getMeetingInfoFromForm() {
+  return {
+    date: document.getElementById('meeting-date').value.trim(),
+    time: document.getElementById('meeting-time').value.trim(),
+    location: document.getElementById('meeting-location').value.trim(),
+    participants: document.getElementById('meeting-participants').value
+      .split(',').map(s => s.trim()).filter(Boolean),
+  };
+}
+
 function exportMarkdown() {
   const m = state.minutes || {};
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const summary = document.getElementById('summary-text').textContent;
+  const info = getMeetingInfoFromForm();
 
-  let md = `# 會議紀錄\n\n**日期：** ${new Date().toLocaleDateString('zh-TW')}\n\n`;
+  let md = `# 會議紀錄\n\n`;
+  md += `**日期：** ${info.date || '未提及'}\n\n`;
+  md += `**時間：** ${info.time || '未提及'}\n\n`;
+  md += `**地點：** ${info.location || '未提及'}\n\n`;
+  md += `**參與者：** ${info.participants.length ? info.participants.join('、') : '未提及'}\n\n`;
   md += `## 摘要\n\n${summary}\n\n`;
 
   md += `## 待辦事項\n\n| 負責人 | 工作事項 | 截止時間 |\n|--------|---------|----------|\n`;
@@ -880,8 +926,13 @@ function exportPlainText() {
   const m = state.minutes || {};
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const summary = document.getElementById('summary-text').textContent;
+  const info = getMeetingInfoFromForm();
 
-  let txt = `會議紀錄\n日期：${new Date().toLocaleDateString('zh-TW')}\n\n`;
+  let txt = `會議紀錄\n`;
+  txt += `日期：${info.date || '未提及'}\n`;
+  txt += `時間：${info.time || '未提及'}\n`;
+  txt += `地點：${info.location || '未提及'}\n`;
+  txt += `參與者：${info.participants.length ? info.participants.join('、') : '未提及'}\n\n`;
   txt += `【摘要】\n${summary}\n\n`;
 
   txt += `【待辦事項】\n`;

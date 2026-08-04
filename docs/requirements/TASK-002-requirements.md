@@ -34,12 +34,16 @@
 - Prompt 要求輸出 JSON 格式：
   ```json
   {
+    "meeting_info": { "date": "...", "time": "...", "location": "...", "participants": ["..."] },
     "summary": "...",
     "action_items": [{ "owner": "...", "task": "...", "due": "..." }],
     "decisions": ["..."],
     "topics": [{ "title": "...", "content": "..." }]
   }
   ```
+- `meeting_info` 各欄位、`action_items` 的 `owner`/`due`：逐字稿未明確提及一律留空
+  （participants 為空陣列），AI 不可自行臆測；結果頁面提供對應欄位供使用者手動填寫/修正
+- `summary` 長度依會議長短彈性調整，短會議約 100-200 字，長會議可放寬至 300-500 字
 - 結果儲存至 jobstore / minutes
 - 回傳結構化 JSON
 

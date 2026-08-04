@@ -1,8 +1,8 @@
 # PRD — 會議錄音自動轉會議紀錄系統
-**文件版本：** v2.1
+**文件版本：** v2.3
 **建立者：** ba-agent（需求訪談）
 **建立時間：** 2026-07-09T11:55:00
-**最後更新：** 2026-08-04T13:58:00（v2.2 — AI 摘要引擎新增 Bedrock proxy，並保留 GitHub Models / OpenAI / Groq / Gemini 切換）
+**最後更新：** 2026-08-04T14:30:00（v2.3 — AI 會議紀錄新增會議資訊（日期/時間/地點/參與者）欄位，未提及不臆測；action_items 的 owner/due 未提及不臆測；摘要長度依會議長度放寬至 300-500 字）
 **工單：** TASK-001
 **狀態：** ✅ Approved
 
@@ -16,6 +16,7 @@
 | v2.0 | 2026-07-09 | 語音轉錄 + 說話者識別改用 AssemblyAI，移除 pyannote 依賴 |
 | v2.1 | 2026-07-13 | AI 摘要整理預設引擎改為 **GitHub Models**（OpenAI 相容端點，搭配 GitHub Copilot Business/Enterprise 帳號），OpenAI GPT-4o 保留為可切換選項；修正 AssemblyAI 模型代號 `universal-3-pro` → `universal-3-5-pro`（對應 SDK API 變更，`speech_model` 單數參數已棄用，改用 `speech_models` 陣列）；AssemblyAI transcript 刪除（隱私需求）已於 TASK-006 完成實作 |
 | v2.2 | 2026-08-04 | AI 摘要引擎新增 **Bedrock proxy** 可切換選項，預設改為 `bedrock-proxy`；支援透過 OpenAI 相容端點呼叫 Bedrock proxy，並保留 GitHub Models / OpenAI GPT-4o / Groq / Gemini 切換；修正 Lambda 環境變數值前後空白會導致 LLM 端點驗證失敗的問題 |
+| v2.3 | 2026-08-04 | AI 會議紀錄新增 **會議資訊**（日期/時間/地點/參與者）欄位，逐字稿未提及一律不臆測，結果頁面提供可編輯欄位供使用者手動填寫/修正；`action_items` 的 owner/due 未明講時同樣不可臆測，維持空字串；摘要長度由固定 100-200 字改為依會議長度彈性調整（可放寬至 300-500 字） |
 
 ---
 
@@ -89,10 +90,12 @@
 - 根據逐字稿，由 LLM 自動整理出結構化會議紀錄
 - AI 引擎：可切換（v2.2 預設 **Bedrock proxy**（OpenAI 相容端點，預設模型 `mistral.mistral-large-3-675b-instruct`），可切回 GitHub Models / OpenAI GPT-4o / Groq / Gemini）
 - 輸出包含：
-  1. **📋 會議摘要**：2-5 句話，說明這場會議的主要討論方向與結論
-  2. **✅ 待辦事項（Action Items）**：`負責人 - 事項描述 - 預計完成日（若有提及）`
-  3. **⚖️ 決定事項（Decisions）**：本次會議確定拍板的決議
-  4. **📝 討論重點**：各主要議題的討論摘要（依話題分段）
+  1. **🗓 會議資訊**：日期、時間、地點、參與者。這些資訊**只能**依逐字稿中明確提及的內容填寫，
+     未提及一律留空（participants 為空陣列），AI 不可臆測；結果頁面提供對應欄位供使用者手動填寫/修正
+  2. **📋 會議摘要**：長度依會議長短彈性調整（短會議約 100-200 字，長會議可放寬至 300-500 字），說明這場會議的主要討論方向與結論
+  3. **✅ 待辦事項（Action Items）**：`負責人 - 事項描述 - 預計完成日（若有提及）`；owner/due 未明講則留空，AI 不可臆測填入人名或日期
+  4. **⚖️ 決定事項（Decisions）**：本次會議確定拍板的決議
+  5. **📝 討論重點**：各主要議題的討論摘要（依話題分段）
 
 ### FR-05：結果瀏覽與編輯
 

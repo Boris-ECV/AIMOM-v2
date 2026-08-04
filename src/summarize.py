@@ -1,6 +1,6 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from models import SummarizeRequest, SummarizeResponse, ActionItem, Topic
+from models import SummarizeRequest, SummarizeResponse, ActionItem, Topic, MeetingInfo
 import config
 import jobstore
 from progress import update_progress
@@ -11,8 +11,16 @@ router = APIRouter()
 
 SYSTEM_PROMPT = """你是專業的會議記錄助手。請根據以下逐字稿，輸出 JSON 格式的會議紀錄。
 JSON 必須包含以下欄位：
-- summary: 字串，100-200 字的摘要
-- action_items: 陣列，每項含 owner（負責人）、task（工作事項）、due（截止時間）
+- meeting_info: 物件，包含 date（會議日期）、time（會議時間）、location（會議地點）、
+  participants（參與者姓名陣列）。這些資訊「只能」根據逐字稿中明確提及的內容填寫，
+  逐字稿沒有明確提到的欄位，一律填空字串（participants 則為空陣列），
+  絕對不可以自行推測、臆測或編造日期、時間、地點或參與者姓名。
+- summary: 字串，摘要長度請依逐字稿長短彈性調整，短會議約 100-200 字，
+  內容較多的長會議可寫到 300-500 字，但不要為了湊字數而灌水。
+- action_items: 陣列，每項含 owner（負責人）、task（工作事項）、due（截止時間）。
+  owner 與 due 同樣只能根據逐字稿中明確提及的內容填寫；若逐字稿沒有明確講到
+  負責人是誰或截止日期/時間，該欄位請填空字串，絕對不可以自行推算或臆測
+  具體的人名或日期。
 - decisions: 字串陣列，列出本次會議做出的決定
 - topics: 陣列，每項含 title（議題標題）、content（議題重點）
 
@@ -38,6 +46,7 @@ def _parse_llm_response(content: str) -> dict:
         return json.loads(content.strip())
     except Exception:
         return {
+            "meeting_info": {},
             "summary": content[:500],
             "action_items": [],
             "decisions": [],
@@ -90,6 +99,23 @@ def _normalize_decisions(raw_decisions) -> list[str]:
     if not isinstance(raw_decisions, list):
         return []
     return [_text(item) for item in raw_decisions if _text(item)]
+
+
+def _normalize_participants(raw_participants) -> list[str]:
+    if not isinstance(raw_participants, list):
+        return []
+    return [_text(item) for item in raw_participants if _text(item)]
+
+
+def _normalize_meeting_info(raw_info) -> dict:
+    if not isinstance(raw_info, dict):
+        raw_info = {}
+    return {
+        "date": _text(raw_info.get("date")),
+        "time": _text(raw_info.get("time")),
+        "location": _text(raw_info.get("location")),
+        "participants": _normalize_participants(raw_info.get("participants")),
+    }
 
 
 def _format_llm_error(exc: Exception) -> str:
@@ -158,6 +184,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
 
     raw = response.choices[0].message.content
     data = _parse_llm_response(raw)
+    meeting_info = _normalize_meeting_info(data.get("meeting_info"))
     summary = _text(data.get("summary"))
     action_items = _normalize_action_items(data.get("action_items"))
     decisions = _normalize_decisions(data.get("decisions"))
@@ -178,6 +205,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
 
     minutes = {
         "job_id": job_id,
+        "meeting_info": meeting_info,
         "summary": summary,
         "action_items": action_items,
         "decisions": decisions,
@@ -187,6 +215,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
 
     return SummarizeResponse(
         job_id=job_id,
+        meeting_info=MeetingInfo(**meeting_info),
         summary=summary,
         action_items=[ActionItem(**a) for a in action_items],
         decisions=decisions,

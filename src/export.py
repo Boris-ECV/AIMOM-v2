@@ -30,9 +30,29 @@ def _load_minutes(job_id: str) -> dict:
     return job["minutes"]
 
 
+def _meeting_info_lines(minutes: dict) -> list[str]:
+    """把 meeting_info 轉成顯示用的一行行文字，未提及欄位顯示「未提及」。"""
+    info = minutes.get("meeting_info") or {}
+    date = info.get("date") or "未提及"
+    time = info.get("time") or "未提及"
+    location = info.get("location") or "未提及"
+    participants = info.get("participants") or []
+    participants_text = "、".join(participants) if participants else "未提及"
+    return [
+        f"日期：{date}",
+        f"時間：{time}",
+        f"地點：{location}",
+        f"參與者：{participants_text}",
+    ]
+
+
 def _build_docx(minutes: dict, job_id: str) -> bytes:
     doc = Document()
     doc.add_heading(f"會議紀錄 - {job_id}", level=1)
+
+    doc.add_heading("會議資訊", level=2)
+    for line in _meeting_info_lines(minutes):
+        doc.add_paragraph(line, style="List Bullet")
 
     doc.add_heading("摘要", level=2)
     doc.add_paragraph(minutes.get("summary", ""))
@@ -78,6 +98,10 @@ def _build_pdf(minutes: dict, job_id: str) -> bytes:
             y = height - 60
 
     _line(f"會議紀錄 - {job_id}", size=16, gap=30)
+
+    _line("會議資訊", size=14, gap=22)
+    for line in _meeting_info_lines(minutes):
+        _line(line)
 
     _line("摘要", size=14, gap=22)
     for chunk in _wrap(minutes.get("summary", ""), 40):

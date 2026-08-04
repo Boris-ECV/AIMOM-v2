@@ -73,11 +73,14 @@ from fastapi.middleware.cors import CORSMiddleware
 - System Prompt（繁體中文回應）：
   ```
   你是會議記錄助手。根據以下逐字稿，輸出 JSON 格式的會議紀錄，
-  包含：summary（摘要）、action_items（待辦，含 owner/task/due）、
+  包含：meeting_info（date/time/location/participants，逐字稿未明確提及
+  一律留空，不可臆測）、summary（摘要，依會議長度彈性調整 100-500 字）、
+  action_items（待辦，含 owner/task/due，owner/due 未明講一律留空，不可臆測）、
   decisions（決定事項陣列）、topics（討論議題，含 title/content）。
   使用繁體中文回應。
   ```
 - 呼叫 LLM（OpenAI 相容端點，可由 Bedrock proxy / Groq / GitHub Models / Gemini 切換），解析 JSON 回應
+- `_normalize_meeting_info()` 正規化 meeting_info（trim 字串、過濾空值，participants 過濾空字串）
 - 儲存至 jobstore minutes
 
 ### progress.py
