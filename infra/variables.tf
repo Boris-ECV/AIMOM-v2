@@ -54,9 +54,9 @@ variable "frontend_logout_urls" {
 }
 
 variable "llm_engine" {
-  description = "LLM_ENGINE 環境變數：github-models / openai-gpt4o / groq / gemini"
+  description = "LLM_ENGINE 環境變數：github-models / openai-gpt4o / groq / gemini / bedrock-proxy"
   type        = string
-  default     = "github-models"
+  default     = "bedrock-proxy"
 }
 
 variable "llm_model" {
@@ -88,6 +88,20 @@ variable "groq_api_key" {
 
 variable "gemini_api_key" {
   description = "Gemini API Key（LLM_ENGINE=gemini 時使用）"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "bedrock_proxy_base_url" {
+  description = "Bedrock proxy base URL（LLM_ENGINE=bedrock-proxy 時使用）"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "bedrock_proxy_api_key" {
+  description = "Bedrock proxy API key（LLM_ENGINE=bedrock-proxy 時使用）"
   type        = string
   default     = ""
   sensitive   = true

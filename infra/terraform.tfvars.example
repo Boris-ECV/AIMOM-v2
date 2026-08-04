@@ -13,9 +13,11 @@ google_client_secret = "your-google-oauth-client-secret"
 frontend_callback_urls = ["https://your-cloudfront-domain.cloudfront.net"]
 frontend_logout_urls   = ["https://your-cloudfront-domain.cloudfront.net"]
 
-llm_engine   = "github-models"
-llm_model    = ""
+llm_engine   = "bedrock-proxy"
+llm_model    = "mistral.mistral-large-3-675b-instruct"
 github_token = "your-github-pat-with-models-scope"
+bedrock_proxy_base_url = "https://your-bedrock-proxy.example/v1"
+bedrock_proxy_api_key   = "your-bedrock-proxy-api-key"
 
 assemblyai_api_key = "your-assemblyai-api-key"
 

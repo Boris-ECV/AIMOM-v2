@@ -134,3 +134,5 @@ API，不需要自行實作 Lambda 自呼叫或 webhook 接收端）：
 | 2026-07-16T17:45:00 | dev-agent | 部署後第一次真實驗證發現 AccessDeniedException（Lambda 角色缺 dynamodb:ListTables），修正 jobstore.py/db.py/usage.py 的 ensure_*_table_exists() 遇權限不足即略過，新增 test_jobstore.py 迴歸測試（52 個測試通過），重新產生 task016-update.zip |
 | 2026-07-16T18:20:00 | dev-agent | 部署後第二次真實驗證發現長錄音時 /api/status 503，追查發現 AssemblyAI SDK 的 Transcript.get_by_id() 內部為阻塞輪詢，改用底層非阻塞的 api.get_transcript()，加上查詢失敗的例外保護，更新 test_progress.py（53 個測試通過），重新產生 task016-update.zip |
 | 2026-07-16T18:30:00 | qa-agent | 使用者於正式環境以真實長錄音完整驗證：上傳 → 轉錄（非同步）→ 摘要成功，無 503/逾時，全流程通過。移至 done |
+| 2026-08-03T00:00:00 | dev-agent | LLM engine 由 Groq / GitHub Models 切換測試，實測 Groq `llama-3.3-70b-versatile` 因 TPM 12000 限制易在長逐字稿上失敗；改接 Bedrock proxy（OpenAI 相容端點）並以 `mistral.mistral-large-3-675b-instruct` 作為預設模型，同時修正 Lambda 環境變數前後空白造成的 404/401 問題 |
+| 2026-08-04T00:00:00 | dev-agent | 補強 `src/config.py` / `src/summarize.py` 的錯誤訊息與 env trim，讓 Bedrock proxy 404/401 可直接回傳詳細 response body，並完成 `lambda-code.zip` 重新打包與部署驗證，最終摘要流程恢復正常 |

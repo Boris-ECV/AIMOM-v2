@@ -16,10 +16,12 @@
 | groq | llama-3.3-70b-versatile | $0.59 | $0.79 |
 | groq | gpt-oss-120b | $0.15 | $0.60 |
 | groq | llama-3.1-8b-instant | $0.05 | $0.08 |
+| bedrock-proxy | mistral.mistral-large-3-675b-instruct | 依 proxy 計費方案 | 依 proxy 計費方案 |
 | gemini | gemini-2.0-flash | $0.25 | $1.50 |
 | gemini | gemini-1.5-pro | $1.50 | $9.00 |
 
 找不到對應價格時，估算成本回傳 `None`（前端顯示「未知」，不阻擋功能）。
+Bedrock proxy 的實際計費目前由外部 proxy 服務決定，`usage.py` 先以 `None` 處理，不影響摘要主流程。
 
 ## DB Schema
 

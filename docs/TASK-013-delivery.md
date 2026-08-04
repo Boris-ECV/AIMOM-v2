@@ -47,5 +47,5 @@
 
 - 尚未實際 `terraform apply` 到真實 AWS 帳號（需使用者提供 AWS 憑證與 Google OAuth 憑證後執行）
 - Lambda 打包目前直接壓縮原始碼，正式環境建議改用 Lambda Layer 管理相依套件（見 `infra/README.md`）
-- 未包含 S3 presigned URL 上傳邏輯、AssemblyAI webhook 端點（屬程式碼層級功能，非本工單範圍）
+- 當時未包含 S3 presigned URL 上傳邏輯與 AssemblyAI 非同步整合；後續已由程式碼工單補上並同步部署
 - 未設定自訂網域（Route53 + ACM 憑證），CloudFront 目前使用預設網域

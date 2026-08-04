@@ -56,6 +56,8 @@ resource "aws_lambda_function" "api" {
       OPENAI_API_KEY            = var.openai_api_key
       GROQ_API_KEY              = var.groq_api_key
       GEMINI_API_KEY            = var.gemini_api_key
+      BEDROCK_PROXY_BASE_URL    = var.bedrock_proxy_base_url
+      BEDROCK_PROXY_API_KEY     = var.bedrock_proxy_api_key
       ASSEMBLYAI_API_KEY        = var.assemblyai_api_key
       COGNITO_REGION            = var.aws_region
       COGNITO_USER_POOL_ID      = aws_cognito_user_pool.main.id

@@ -2,7 +2,7 @@
 **文件版本：** v2.1
 **建立者：** ba-agent（需求訪談）
 **建立時間：** 2026-07-09T11:55:00
-**最後更新：** 2026-07-13T16:54:00（v2.1 — AI 摘要引擎改為可切換 GitHub Models / OpenAI）
+**最後更新：** 2026-08-04T13:58:00（v2.2 — AI 摘要引擎新增 Bedrock proxy，並保留 GitHub Models / OpenAI / Groq / Gemini 切換）
 **工單：** TASK-001
 **狀態：** ✅ Approved
 
@@ -15,6 +15,7 @@
 | v1.0 | 2026-07-09 | 初版，使用 OpenAI Whisper + pyannote.audio |
 | v2.0 | 2026-07-09 | 語音轉錄 + 說話者識別改用 AssemblyAI，移除 pyannote 依賴 |
 | v2.1 | 2026-07-13 | AI 摘要整理預設引擎改為 **GitHub Models**（OpenAI 相容端點，搭配 GitHub Copilot Business/Enterprise 帳號），OpenAI GPT-4o 保留為可切換選項；修正 AssemblyAI 模型代號 `universal-3-pro` → `universal-3-5-pro`（對應 SDK API 變更，`speech_model` 單數參數已棄用，改用 `speech_models` 陣列）；AssemblyAI transcript 刪除（隱私需求）已於 TASK-006 完成實作 |
+| v2.2 | 2026-08-04 | AI 摘要引擎新增 **Bedrock proxy** 可切換選項，預設改為 `bedrock-proxy`；支援透過 OpenAI 相容端點呼叫 Bedrock proxy，並保留 GitHub Models / OpenAI GPT-4o / Groq / Gemini 切換；修正 Lambda 環境變數值前後空白會導致 LLM 端點驗證失敗的問題 |
 
 ---
 
@@ -86,7 +87,7 @@
 ### FR-04：AI 會議紀錄整理
 
 - 根據逐字稿，由 LLM 自動整理出結構化會議紀錄
-- AI 引擎：可切換（v2.1 預設 **GitHub Models**（`openai/gpt-4o`，透過 Copilot Business/Enterprise 帳號的 PAT 呼叫），可切回 OpenAI GPT-4o，未來規劃支援 Groq / Gemini）
+- AI 引擎：可切換（v2.2 預設 **Bedrock proxy**（OpenAI 相容端點，預設模型 `mistral.mistral-large-3-675b-instruct`），可切回 GitHub Models / OpenAI GPT-4o / Groq / Gemini）
 - 輸出包含：
   1. **📋 會議摘要**：2-5 句話，說明這場會議的主要討論方向與結論
   2. **✅ 待辦事項（Action Items）**：`負責人 - 事項描述 - 預計完成日（若有提及）`
@@ -109,16 +110,21 @@
 - 透過 `.env` 設定檔管理 API Key 與模型選擇
 - 支援切換：
   - 語音辨識 + 說話者識別：`assemblyai`（v2.0 預設）
-  - 文字整理：`github-models`（v2.1 預設，OpenAI 相容端點）/ `openai-gpt4o`（可切換） / 未來規劃 `groq` / `google-gemini`
+  - 文字整理：`bedrock-proxy`（v2.2 預設，OpenAI 相容 proxy 端點）/ `github-models` / `openai-gpt4o` / `groq` / `gemini`
 - ✅ v2.0：移除 `openai-whisper` / `google-speech` / `whisper-local` 選項
 - 必要設定：
   ```
   ASSEMBLYAI_API_KEY=...
   ASSEMBLYAI_MODEL=universal-2        # 或 universal-3-5-pro
   ASSEMBLYAI_SPEAKER_DIARIZATION=true
-  LLM_ENGINE=github-models            # 或 openai-gpt4o
+  LLM_ENGINE=bedrock-proxy            # 或 github-models / openai-gpt4o / groq / gemini
+  LLM_MODEL=mistral.mistral-large-3-675b-instruct
+  BEDROCK_PROXY_BASE_URL=...
+  BEDROCK_PROXY_API_KEY=...
   GITHUB_TOKEN=...                    # LLM_ENGINE=github-models 時使用（PAT 需 models scope）
   OPENAI_API_KEY=...                  # LLM_ENGINE=openai-gpt4o 時使用
+  GROQ_API_KEY=...                    # LLM_ENGINE=groq 時使用
+  GEMINI_API_KEY=...                  # LLM_ENGINE=gemini 時使用
   ```
 
 ---

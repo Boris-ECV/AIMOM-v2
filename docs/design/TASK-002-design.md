@@ -5,19 +5,20 @@
 
 ## 架構說明
 
-採用 **FastAPI** 非同步框架，各功能拆成獨立模組，透過 `job_id`（UUID）隔離每次處理。
-暫存資料存於 `tmp/{job_id}/`，處理完畢後由前端呼叫 `/api/cleanup` 刪除。
+採用 **FastAPI + AWS Lambda + API Gateway HTTP API**，各功能拆成獨立模組，透過
+`job_id`（UUID）隔離每次處理。音檔暫存於 S3，進度與中繼狀態改存 DynamoDB
+jobstore，避免 Lambda container 間狀態遺失。
 
 ```
 src/
 ├── app.py          ← FastAPI 主程式，掛載所有 router
 ├── config.py       ← .env 讀取、引擎工廠函式
-├── upload.py       ← 上傳驗證與暫存管理
-├── transcribe.py   ← Whisper 呼叫、分段合併
-├── diarize.py      ← pyannote 發言人識別
+├── upload.py       ← S3 presign / complete / 驗證
+├── transcribe.py   ← AssemblyAI 非同步送出與輪詢
+├── diarize.py      ← AssemblyAI speaker diarization 對齊
 ├── summarize.py    ← LLM Prompt 組合與呼叫
-├── progress.py     ← 進度狀態讀寫
-├── models.py       ← Pydantic request/response models
+├── progress.py     ← 進度狀態讀寫（jobstore）
+├── jobstore.py     ← DynamoDB job 狀態存取
 └── tests/
     ├── test_upload.py
     ├── test_transcribe.py
@@ -39,41 +40,36 @@ from fastapi.middleware.cors import CORSMiddleware
 
 ### config.py
 - 讀取 `.env`（python-dotenv）
-- `get_whisper_client()` → 依 `WHISPER_ENGINE` 回傳對應 client
+- `get_transcription_client()` → 依語音引擎設定回傳對應 client
 - `get_llm_client()` → 依 `LLM_ENGINE` 回傳對應 client
 - 支援引擎：
-  - Whisper：`openai-whisper`（預設）、`whisper-local`
-  - LLM：`openai-gpt4o`（預設）、`google-gemini`、`anthropic-claude`
+  - 語音：`assemblyai`
+  - LLM：`bedrock-proxy`（預設）、`github-models`、`openai-gpt4o`、`groq`、`gemini`
 
 ### upload.py
-- 驗證副檔名（.mp3 / .wav / .m4a）
-- 驗證時長（用 `mutagen` 或 `ffprobe` 讀取 metadata）
 - 產生 `job_id = uuid4()`
-- 建立 `tmp/{job_id}/` 目錄
-- 寫入 `tmp/{job_id}/meta.json`（filename, duration, size, created_at）
-- 儲存音訊至 `tmp/{job_id}/audio.{ext}`
+- 建立 S3 presigned URL，讓前端直接上傳音檔
+- 完成後寫入 jobstore 的 meta 資料（filename, duration, size, created_at）
+- 驗證副檔名（.mp3 / .wav / .m4a）與時長
 
 ### transcribe.py
-- 讀取 `tmp/{job_id}/audio.{ext}`
-- 若檔案 > 24MB → 用 `pydub` 切成 10 分鐘一段
-- 逐段呼叫 `openai.audio.transcriptions.create(model="whisper-1", language="zh")`
-- 合併所有 segment，修正時間偏移
+- 讀取 S3 音檔位址
+- 呼叫 AssemblyAI submit / get_by_id
 - 輸出格式：
   ```json
   [{ "start": 0.0, "end": 5.2, "text": "...", "speaker": null }]
   ```
-- 儲存至 `tmp/{job_id}/transcript.json`
+- 儲存至 jobstore transcript
 
 ### diarize.py
-- 讀取 `tmp/{job_id}/audio.{ext}`
-- 呼叫 `pyannote.audio` Pipeline（需 HuggingFace token）
-- 輸出說話人時間區間：`[(start, end, "SPEAKER_00"), ...]`
+- 讀取 jobstore transcript
+- 使用 AssemblyAI 的 speaker 標記
 - 將 transcript segments 與說話人時間對齊（最大重疊原則）
-- 更新 transcript.json 中每個 segment 的 `speaker` 欄位
-- 降級：`PYANNOTE_ENABLED=false` 時跳過，所有 speaker 設為 `"SPEAKER_00"`
+- 更新 transcript 中每個 segment 的 `speaker` 欄位
+- 降級：speaker 資訊不足時以單一 speaker 繼續主流程
 
 ### summarize.py
-- 讀取 transcript.json，組合成逐字稿文字
+- 讀取 jobstore transcript，組合成逐字稿文字
 - System Prompt（繁體中文回應）：
   ```
   你是會議記錄助手。根據以下逐字稿，輸出 JSON 格式的會議紀錄，
@@ -81,11 +77,11 @@ from fastapi.middleware.cors import CORSMiddleware
   decisions（決定事項陣列）、topics（討論議題，含 title/content）。
   使用繁體中文回應。
   ```
-- 呼叫 LLM，解析 JSON 回應
-- 儲存至 `tmp/{job_id}/minutes.json`
+- 呼叫 LLM（OpenAI 相容端點，可由 Bedrock proxy / Groq / GitHub Models / Gemini 切換），解析 JSON 回應
+- 儲存至 jobstore minutes
 
 ### progress.py
-- 讀/寫 `tmp/{job_id}/status.json`
+- 讀/寫 DynamoDB jobstore
 - 格式：`{ stage, progress, message, updated_at }`
 - `update_progress(job_id, stage, progress, message)` 工具函式
 
@@ -100,24 +96,24 @@ from fastapi.middleware.cors import CORSMiddleware
 ## 資料流
 
 ```
-POST /upload
-  → tmp/{job_id}/audio.mp3
-  → tmp/{job_id}/meta.json
+POST /upload/complete
+  → S3 音檔
+  → jobstore meta
   → status: { stage: "uploaded", progress: 10 }
 
 POST /transcribe
-  → [分段] → Whisper API × N
-  → tmp/{job_id}/transcript.json
+  → AssemblyAI submit / get_by_id
+  → jobstore transcript
   → status: { stage: "transcribed", progress: 40 }
 
 POST /diarize
-  → pyannote → 對齊
-  → transcript.json 更新 speaker 欄位
+  → AssemblyAI speaker 對齊
+  → transcript 更新 speaker 欄位
   → status: { stage: "diarized", progress: 65 }
 
 POST /summarize
-  → GPT-4o
-  → tmp/{job_id}/minutes.json
+  → Bedrock proxy / LLM provider
+  → jobstore minutes
   → status: { stage: "done", progress: 100 }
 ```
 
@@ -130,9 +126,7 @@ fastapi>=0.110
 uvicorn
 python-dotenv
 openai>=1.0
-pydub          ← 音訊分段
-mutagen        ← 讀取音訊 metadata
-pyannote.audio ← 發言人識別
+boto3
 pytest
 httpx          ← FastAPI 測試用
 ```
@@ -141,7 +135,7 @@ httpx          ← FastAPI 測試用
 
 ## 注意事項
 
-1. pyannote.audio 需 HuggingFace token，須接受 model 授權條款
-2. 長音訊分段後，時間戳偏移需累加，確保合併後連貫
-3. GPT-4o 可能無法嚴格回傳 JSON，需 try/except 解析並 fallback 純文字
-4. `tmp/` 目錄不進版控（加入 .gitignore）
+1. AssemblyAI 與 Bedrock proxy 都是外部服務，需保留可切換設定
+2. jobstore 必須能跨 Lambda container 讀寫
+3. LLM 回應可能無法嚴格回傳 JSON，需 try/except 解析並 fallback 純文字
+4. 暫存音檔透過 S3 lifecycle / cleanup 刪除，不依賴本機 `tmp/`

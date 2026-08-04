@@ -26,7 +26,7 @@
 ## 已知限制 / 後續事項
 
 - 尚未撰寫實際 IaC（Terraform/CDK/SAM）樣板，僅提供設定筆記，供後續基礎設施建置參考
-- 尚未實作 S3 presigned URL 直傳、AssemblyAI webhook 回呼、DynamoDB 正式建表（IaC 管理）——這些屬於實際上雲部署階段的工作，超出本次程式碼交付範圍，已於部署筆記中列出注意事項
+- 當時尚未實作 S3 presigned URL 直傳、AssemblyAI 非同步回呼/輪詢與 DynamoDB 正式建表（IaC 管理）——這些後續已於 TASK-013/TASK-015/TASK-016 與 2026-08-03 的部署更新中補齊
 - 前端目前仍以 `localhost:8000` 作為 API base URL，正式部署後需改為 API Gateway 端點（環境變數化）
 
 ## EPIC-002 總結

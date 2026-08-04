@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _env(name: str, default: str = "") -> str:
+    return os.getenv(name, default).strip()
+
 # AssemblyAI (v2.0 — replaces OpenAI Whisper + pyannote)
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY", "")
 ASSEMBLYAI_MODEL = os.getenv("ASSEMBLYAI_MODEL", "universal-2")
@@ -15,21 +19,25 @@ ASSEMBLYAI_SPEAKER_DIARIZATION = os.getenv("ASSEMBLYAI_SPEAKER_DIARIZATION", "tr
 #   - "openai-gpt4o"：原本的 OpenAI 官方 API 做法，保留可切換
 #   - "groq"：Groq（OpenAI 相容端點），成本低、速度快
 #   - "gemini"：Google Gemini（OpenAI 相容端點），有免費額度
-LLM_ENGINE = os.getenv("LLM_ENGINE", "github-models")
-LLM_MODEL = os.getenv("LLM_MODEL", "")  # 空字串則依 LLM_ENGINE 使用預設模型
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_MODELS_BASE_URL = os.getenv("GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+#   - "bedrock-proxy"：OpenAI 相容的 Bedrock proxy，使用 API key 與 base URL
+LLM_ENGINE = _env("LLM_ENGINE", "bedrock-proxy")
+LLM_MODEL = _env("LLM_MODEL")  # 空字串則依 LLM_ENGINE 使用預設模型
+OPENAI_API_KEY = _env("OPENAI_API_KEY")
+GITHUB_TOKEN = _env("GITHUB_TOKEN")
+GITHUB_MODELS_BASE_URL = _env("GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference")
+GROQ_API_KEY = _env("GROQ_API_KEY")
+GROQ_BASE_URL = _env("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+GEMINI_API_KEY = _env("GEMINI_API_KEY")
+GEMINI_BASE_URL = _env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+BEDROCK_PROXY_API_KEY = _env("BEDROCK_PROXY_API_KEY")
+BEDROCK_PROXY_BASE_URL = _env("BEDROCK_PROXY_BASE_URL")
 
 _DEFAULT_MODELS = {
     "github-models": "openai/gpt-4o",
     "openai-gpt4o": "gpt-4o",
     "groq": "llama-3.3-70b-versatile",
     "gemini": "gemini-2.0-flash",
+    "bedrock-proxy": "mistral.mistral-large-3-675b-instruct",
 }
 
 # App limits
@@ -70,6 +78,12 @@ def get_llm_client():
         if not GEMINI_API_KEY:
             raise ValueError("LLM_ENGINE=gemini 需要設定 GEMINI_API_KEY")
         return openai.OpenAI(base_url=GEMINI_BASE_URL, api_key=GEMINI_API_KEY)
+    if LLM_ENGINE == "bedrock-proxy":
+        if not BEDROCK_PROXY_BASE_URL:
+            raise ValueError("LLM_ENGINE=bedrock-proxy 需要設定 BEDROCK_PROXY_BASE_URL")
+        if not BEDROCK_PROXY_API_KEY:
+            raise ValueError("LLM_ENGINE=bedrock-proxy 需要設定 BEDROCK_PROXY_API_KEY")
+        return openai.OpenAI(base_url=BEDROCK_PROXY_BASE_URL, api_key=BEDROCK_PROXY_API_KEY)
     raise ValueError(f"Unsupported LLM_ENGINE: {LLM_ENGINE}")
 
 

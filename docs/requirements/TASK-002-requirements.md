@@ -8,33 +8,29 @@
 ## 功能需求
 
 ### FR-01：錄音上傳端點
-- `POST /api/upload`
-- 接受 multipart/form-data，欄位 `file`
-- 驗證格式（MP3/WAV/M4A）與時長（≤ 2 小時）
-- 儲存至 `tmp/{job_id}/audio.{ext}`
-- 回傳 `{ job_id, filename, duration_sec, size_bytes }`
+- `POST /api/upload/presign`、`POST /api/upload/complete`
+- 前端先取得 S3 presigned URL，再直傳音檔到 S3
+- 後端完成檔案驗證、建立 job、回傳 `{ job_id, filename, duration_sec, size_bytes }`
 - 錯誤：格式不符（400）、超出長度（400）、伺服器錯誤（500）
 
 ### FR-02：語音轉文字端點
 - `POST /api/transcribe`，Body: `{ job_id }`
-- 呼叫 Whisper API（`openai.audio.transcriptions.create`）
-- 語言設定：`zh`（支援中英混合）
-- 長音訊（>25MB）自動分段（每段 ≤ 24MB），轉錄後合併時間戳
-- 結果儲存至 `tmp/{job_id}/transcript.json`
+- 呼叫 AssemblyAI 非同步送出與輪詢 API
+- 語言設定：中英混合（繁中 + 英文）
+- 結果儲存至 jobstore，回傳逐字稿片段陣列 + 全文合併字串
 - 格式：`[{ start, end, text, speaker: null }]`
-- 回傳逐字稿片段陣列 + 全文合併字串
 
 ### FR-03：發言人識別端點
 - `POST /api/diarize`，Body: `{ job_id }`
-- 呼叫 pyannote.audio pipeline（`pyannote/speaker-diarization-3.1`）
-- 將逐字稿片段與說話人區段對齊，標注 `speaker: "SPEAKER_00"` 等
-- 結果覆寫更新 `tmp/{job_id}/transcript.json`
-- **降級策略**：pyannote 不可用時，回傳 `speaker: "SPEAKER_00"` 全部同一人，不擋主流程
+- 改由 AssemblyAI 原生 speaker diarization 完成，無需額外 pyannote
+- 將逐字稿片段與說話人區段對齊，標注 `speaker: "SPEAKER_A"` 等
+- 結果寫回 jobstore / transcript 資料
+- **降級策略**：speaker 資訊不足時，以單一 speaker 繼續流程，不擋主流程
 
 ### FR-04：AI 整理端點
 - `POST /api/summarize`，Body: `{ job_id }`
-- 讀取 `tmp/{job_id}/transcript.json`
-- 組合 Prompt，呼叫 LLM（預設 GPT-4o）
+- 讀取 jobstore 中的 transcript
+- 組合 Prompt，呼叫 LLM（v2.2 預設 `bedrock-proxy`，可切換 `github-models` / `openai-gpt4o` / `groq` / `gemini`）
 - Prompt 要求輸出 JSON 格式：
   ```json
   {
@@ -44,7 +40,7 @@
     "topics": [{ "title": "...", "content": "..." }]
   }
   ```
-- 結果儲存至 `tmp/{job_id}/minutes.json`
+- 結果儲存至 jobstore / minutes
 - 回傳結構化 JSON
 
 ### FR-05：進度查詢端點
@@ -55,18 +51,22 @@
 
 ### FR-06：清理端點
 - `DELETE /api/cleanup/{job_id}`
-- 刪除 `tmp/{job_id}/` 整個目錄
+- 刪除 jobstore 資料與暫存 S3 物件
 - 回傳 `{ deleted: true }`
 
 ### FR-07：設定管理
 - `.env` 設定檔（不進版控）
 - 欄位：
-  - `OPENAI_API_KEY`
-  - `WHISPER_ENGINE=openai-whisper`（可改 `whisper-local`）
-  - `LLM_ENGINE=openai-gpt4o`（可改 `google-gemini` / `anthropic-claude`）
-  - `HUGGINGFACE_TOKEN`（pyannote 需要）
-  - `TMP_DIR=./tmp`
-  - `MAX_AUDIO_HOURS=2`
+  - `ASSEMBLYAI_API_KEY`
+  - `LLM_ENGINE=bedrock-proxy`（可改 `github-models` / `openai-gpt4o` / `groq` / `gemini`）
+  - `LLM_MODEL=mistral.mistral-large-3-675b-instruct`
+  - `BEDROCK_PROXY_BASE_URL`
+  - `BEDROCK_PROXY_API_KEY`
+  - `ADMIN_EMAILS`
+  - `DYNAMODB_MEETINGS_TABLE`
+  - `DYNAMODB_LLM_USAGE_TABLE`
+  - `AUDIO_BUCKET_NAME`
+  - `TMP_DIR=/tmp`
 
 ---
 
@@ -74,7 +74,7 @@
 
 - Python 3.10+，框架 FastAPI（比 Flask 更易於非同步與型別提示）
 - 每個端點對應單元測試（pytest）
-- 進度狀態更新：各階段開始/結束時寫入 `tmp/{job_id}/status.json`
+- 進度狀態更新：各階段開始/結束時寫入 jobstore 狀態
 - 錯誤處理：所有外部 API 呼叫包 try/except，回傳統一格式 `{ error: "...", code: XXX }`
 - 暫存隔離：每次上傳產生 UUID job_id，避免路徑衝突
 
@@ -82,7 +82,7 @@
 
 ## 使用者故事
 
-作為**後端使用者（前端呼叫）**，我想要呼叫 `/api/upload` → `/api/transcribe` → `/api/diarize` → `/api/summarize`，以便取得完整會議紀錄。
+作為**後端使用者（前端呼叫）**，我想要呼叫 `/api/upload/presign` → `/api/upload/complete` → `/api/transcribe` → `/api/diarize` → `/api/summarize`，以便取得完整會議紀錄。
 
 ---
 
@@ -91,10 +91,11 @@
 | 模組 | 檔案 | 職責 |
 |------|------|------|
 | 主應用 | `src/app.py` | FastAPI app 初始化、路由掛載 |
-| 上傳模組 | `src/upload.py` | 接收檔案、驗證、存暫存 |
-| 轉錄模組 | `src/transcribe.py` | Whisper API 呼叫、分段合併 |
-| 識別模組 | `src/diarize.py` | pyannote pipeline、對齊逐字稿 |
+| 上傳模組 | `src/upload.py` | presigned URL、驗證、S3 complete |
+| 轉錄模組 | `src/transcribe.py` | AssemblyAI 送出與輪詢 |
+| 識別模組 | `src/diarize.py` | AssemblyAI speaker 對齊 |
 | 整理模組 | `src/summarize.py` | LLM 呼叫、Prompt 組合、結果解析 |
 | 設定模組 | `src/config.py` | .env 讀取、引擎切換邏輯 |
-| 進度模組 | `src/progress.py` | 狀態讀寫（status.json） |
+| 進度模組 | `src/progress.py` | 狀態讀寫（jobstore） |
+| 狀態儲存 | `src/jobstore.py` | DynamoDB job 狀態存取 |
 | 測試 | `src/tests/` | pytest 各模組測試 |

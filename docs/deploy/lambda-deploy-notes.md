@@ -12,7 +12,7 @@
 | 項目 | 建議值 | 說明 |
 |------|--------|------|
 | Memory | 512–1024 MB | reportlab/docx 產生檔案、JWT 驗證需要一定運算資源；可依實際冷啟動/執行時間調整 |
-| Timeout | 30 秒 | 一般 API 請求；若日後仍需同步等待轉譯完成的端點，需另外評估（目前設計已改用 AssemblyAI webhook，避免長時間等待） |
+| Timeout | 30 秒 | 一般 API 請求；轉譯流程已改為 AssemblyAI 非同步送出 + 輪詢，不再同步等待完成 |
 | 並行數（Reserved concurrency） | 依團隊規模設定，如 10 | 小團隊使用，避免意外高流量產生費用 |
 | 環境變數 | 見下方清單 | 一律透過 Lambda 環境變數或 Secrets Manager 注入，不寫死於程式碼 |
 
@@ -20,9 +20,10 @@
 
 | 變數 | 說明 |
 |------|------|
-| `LLM_ENGINE` | `github-models` / `openai-gpt4o` / `groq` / `gemini` |
+| `LLM_ENGINE` | `github-models` / `openai-gpt4o` / `groq` / `gemini` / `bedrock-proxy` |
 | `LLM_MODEL` | 覆寫預設模型（可留空） |
-| `GITHUB_TOKEN` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` | 依 `LLM_ENGINE` 擇一設定 |
+| `GITHUB_TOKEN` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` / `BEDROCK_PROXY_API_KEY` | 依 `LLM_ENGINE` 擇一設定 |
+| `BEDROCK_PROXY_BASE_URL` | Bedrock proxy 的 OpenAI 相容 base URL（`LLM_ENGINE=bedrock-proxy` 時使用） |
 | `ASSEMBLYAI_API_KEY` | 轉譯服務金鑰 |
 | `COGNITO_REGION` | Cognito User Pool 所在 region |
 | `COGNITO_USER_POOL_ID` | Cognito User Pool ID |
@@ -43,6 +44,9 @@
   `POST /api/upload/complete` 觸發後端下載/驗證，不透過 API Gateway/Lambda 傳輸
   二進位音檔本體（該路徑仍受 payload 上限 10MB / Lambda 同步呼叫 6MB 限制）。
   舊版 `POST /api/upload`（multipart 直傳）仍保留供本機開發/小檔案測試使用
+- 若使用 `bedrock-proxy`，請確認 `LLM_ENGINE`、`LLM_MODEL`、`BEDROCK_PROXY_BASE_URL`、
+  `BEDROCK_PROXY_API_KEY` 的值都**沒有前後空白**；本專案 `config.py` 會自動 trim，
+  但舊版部署若未同步更新，可能導致 proxy 回傳 404 / 401。
 - Lambda 執行角色（IAM Role）需授權：
   - DynamoDB：`Meetings`、`LLMUsage` 表的 `GetItem`/`PutItem`/`Query`/`DeleteItem`/`Scan`
   - S3：音檔 bucket 的 `GetObject`/`PutObject`/`DeleteObject`（若採用 presigned URL 上傳）
