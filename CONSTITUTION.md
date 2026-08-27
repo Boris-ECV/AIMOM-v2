@@ -1,4 +1,4 @@
-# CONSTITUTION — <PROJECT NAME>
+# CONSTITUTION — AIMOM
 
 <!--
 Durable engineering principles for this project. Read by
@@ -13,38 +13,51 @@ silently applied.
 Keep this short and stable. Add a principle only after it has come up
 as a real judgment call more than once; don't pre-populate hypothetical
 rules.
+
+本文件於 Phase B 從既有程式碼（brownfield，非本框架新寫）觀察歸納而成，
+反映「這個 repo 已經在用的做法」，不是憑空發明的新規範。詳見
+docs/04-project-instantiation.md 既有專案補充章節第 2 點。
 -->
 
 ## 失敗處理哲學（Failure handling）
 
-- 對外部依賴（DynamoDB、S3、第三方 API）的呼叫，預設要有明確的錯誤處理，
-  不可讓例外無聲穿透到 handler 外層變成未分類的 500。
-- 寫入類操作（create/update/delete）失敗時，不可留下部分寫入的中間狀態；
-  若底層儲存不支援原子性，要在設計文件中明確說明如何處理（例如冪等重試、
-  補償動作），而不是留給實作者臨場判斷。
-- 靜態頁面重新產生（publish 流程）失敗時，不可讓網站處於「部分頁面新、
-  部分頁面舊」且無記錄的狀態——要嘛整批成功，要嘛明確記錄哪些頁面未更新。
+- `app.py` 有全域 `@app.exception_handler(Exception)`，未預期例外一律經它
+  轉成統一格式的 500 JSON 回應（`{"detail": "伺服器內部錯誤：..."}`），並用
+  `logger.exception(...)` 記錄完整 traceback。新加的路由不需要也不應該自己
+  重複這層兜底，除非要回傳更精確的錯誤碼。
+- 對外部依賴（S3、DynamoDB、Cognito JWKS、LLM/ASR 供應商）的呼叫，慣例是
+  用 `try/except Exception as e` 包住，轉成帶有清楚中文訊息的
+  `HTTPException`（例如 `upload.py` 的 404/500 轉換），不可讓例外無聲穿透。
+- 既有程式碼裡這類 `except Exception` 屬於既有慣例（ruff 會標記
+  `BLE001`），延續既有慣例優先於為了消除警告而改變錯誤處理形狀；若要收斂
+  異常類型，應是獨立的技術債故事，而非隨手在功能 PR 裡順便改掉。
 
 ## 安全預設（Security defaults）
 
-- 所有需要登入才能存取的 API，預設拒絕（deny-by-default），而非預設允許
-  再加例外清單。
-- 涉及計數/限流的安全機制（例如登入失敗鎖定）必須是原子操作
-  （atomic increment/compare-and-swap），不可用「讀取→判斷→寫入」的非原子
-  組合，避免併發下被繞過。
-- 使用者輸入一律視為不可信：進入資料庫查詢、檔案路徑、HTML 輸出前都要
-  經過對應的驗證/逸出處理。
-- 不在程式碼或設定檔中硬編機密資訊；機密一律透過環境變數或既有的秘密管理
-  機制注入。
+- `app.py` 用 `dependencies=[Depends(get_current_user)]` 掛在每個
+  `include_router(...)` 上，預設整個 API 需要登入才能存取；只有
+  `/api/health`（探測用）跟 `/api/admin` 的路由分組例外處理。新增路由預設
+  應該掛進需要驗證的分組，除非明確理由需要公開。
+- 身分驗證固定走 Amazon Cognito JWT（見 `auth.py`），角色（`user`/`admin`）
+  由 `ADMIN_EMAILS` 環境變數白名單決定，不是存在資料庫的欄位；新增權限判斷
+  應延續「白名單環境變數」這個既有形狀，不要另外發明一套角色儲存機制。
+- 機密一律透過環境變數注入（`config.py` 集中讀取，`_env()`/`os.getenv()`），
+  不寫死在程式碼；`.env`、`infra/terraform.tfvars`、`infra/backend.hcl`
+  均已列在 `.gitignore`，不可移除這些排除規則。
 
 ## 測試哲學（Testing philosophy）
 
-- 測試斷言行為（behavior），不斷言實作細節；重構不應該需要改測試，除非
-  行為真的變了。
-- 每個 acceptance criterion 都要有對應的測試可追溯（AC → test 對照表），
-  不允許「大致測過」但沒有對應關係的測試。
-- e2e 測試若因環境限制無法執行，必須在測試報告中明確聲明
-  needs-e2e/no-e2e-needed 與理由，不可讓其在 CI 中無聲地被跳過或出錯。
+- 測試一律用 `pytest`，透過 `src/tests/conftest.py` 的 autouse fixture
+  跳過真實登入（`app.dependency_overrides[get_current_user]`）與模擬
+  DynamoDB（`moto.mock_aws`），不需要真實 AWS 帳號即可全部本地執行。新測試
+  延續這個模式，不要為了「更真實」而繞過 fixture 直接打真正的 AWS 服務。
+- 目前 baseline：`src/tests/` 12 個檔案、60 個測試案例全數通過，覆蓋率
+  92%（2026-08-27 驗證，CI 門檻設 85% 留緩衝，見 `project-profile.yaml`
+  `quality.coverage_threshold`）。新故事不可讓這個 baseline 退步。
+- lint（ruff）目前為既有技術債、CI report-only 不阻擋合併（見
+  `project-profile.yaml` `quality.lint_zero_tolerance` 與其 notes）；這不
+  代表新程式碼可以無視 lint，新增/修改的程式碼仍應盡量乾淨，只是既有 88
+  個歷史錯誤不會阻擋當前 Story 合併。
 
 ## 範圍紀律（Scope discipline）
 
@@ -52,11 +65,21 @@ rules.
   一律不做，留給未來的故事。
 - 需求不明確時，列為 open question 交由人類決策，不可用「合理猜測」補上，
   即使猜測看起來顯而易見。
-- Design 文件承諾下游故事會依賴的東西（共用函式、命名慣例、設定鍵）必須
-  真的存在，不可只是文件上的意圖。
+- 舊功能（TASK-002 ~ TASK-016 時期開發）沒有 `docs/design/<KEY>.md`
+  設計文件可查，相關背景只能讀 `docs/archive/` 的歷史交付紀錄或直接讀原始
+  碼；不可因為「找不到設計文件」就誤判為「無先例」而自行重新設計，見
+  `project-profile.yaml` 的 `conventions.notes`。
 
 ## 程式碼風格（Code style）
 
+- 模組化路由：每個功能一個檔案 + 一個 `APIRouter`（`upload.py`、
+  `transcribe.py`、`summarize.py` 等），在 `app.py` 用
+  `include_router()` 掛載，不把多個功能塞進同一個路由檔。
+- 註解/docstring 一律用**繁體中文**說明「為什麼」（例如 CORS 中介層順序的
+  取捨、TASK-XXX 的歷史脈絡），識別字（函式名/變數名）用英文；新程式碼延續
+  這個中英混用慣例，不要整段改成純英文或純中文。
+- 設定值一律集中在 `config.py`，用 `os.getenv()`/`_env()` 讀取並給預設值，
+  不在其他模組內散落直接呼叫 `os.getenv`。
 - 遵循既有程式庫中已建立的慣例（命名、錯誤處理形狀、目錄結構），優先於
   個人偏好；新模式只在既有慣例明顯不適用時才引入，並在 PR 中說明原因。
 - 避免不必要的抽象層：三段類似的程式碼優於一個只為了「將來可能會用到」而
@@ -64,6 +87,12 @@ rules.
 
 ## 視覺設計（Visual design）
 
-- 涉及畫面的 Story（前台頁面、後台介面）一律依 `docs/design-system.md` 的
-  色彩／字體／間距／斷點／元件規則執行，不逐頁自行判斷視覺樣式。細節規格
-  以該文件為準，此處不重複內容，只作為指標。
+- 前端目前是純靜態 HTML/JS（`src/frontend/index.html` + `config.js`），
+  沒有 build 流程、沒有 npm/package.json，也沒有 `docs/design-system.md`
+  這類正式設計系統文件。新故事若涉及畫面改動，先讀現有 `index.html` 抓既有
+  排版/樣式慣例延續，不要引入新的前端框架或 build 工具鏈，除非有獨立故事
+  明確要做這個技術決策。
+- `config.js` 是唯一隨環境（dev/staging/prod）變動的檔案（API base
+  URL、Cognito 設定等），修改環境設定只動這個檔案，不要把環境相關值散落到
+  `index.html`。
+
