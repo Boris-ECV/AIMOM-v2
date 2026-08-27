@@ -1,9 +1,18 @@
 __pycache__/
-*.pyc
+*.py[cod]
 .env
+.env.*
 tmp/
 .pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
 venv/
+.venv/
+*.egg-info/
+node_modules/
+dist/
+test-results/
 
 # Terraform
 infra/.terraform/
@@ -18,3 +27,11 @@ infra/bootstrap/terraform.tfstate
 infra/bootstrap/terraform.tfstate.backup
 infra-package.zip
 frontend-package.zip
+
+# This machine has a global git excludesfile with
+# **/.claude/settings.local.json (Claude Code's usual "local, not
+# version-controlled" convention). We deliberately want this file
+# tracked in THIS repo -- it's the reusable, non-path-bound permission
+# baseline for the template -- so negate it here to override the
+# global rule for this repo specifically.
+!.claude/settings.local.json

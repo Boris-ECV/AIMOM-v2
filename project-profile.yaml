@@ -1,0 +1,57 @@
+# ============================================================
+# PROJECT PROFILE — copy to project repo root as project-profile.yaml
+# This is the ONLY place project-specific facts live. Agents read this
+# before running any build/test/lint command. (docs/04)
+# ============================================================
+
+project:
+  name: "AIMOM"
+  jira_key: "SDLCAIP2"
+  repo: "github.com/Boris-ECV/AIMOM-v2"
+  default_branch: main
+  description: "AI 會議轉錄與摘要系統，透過 AWS（API Gateway/Cognito/DynamoDB/CloudFront/S3/Lambda/Bedrock）部署，前端為靜態 HTML/JS，後端為 Python Lambda handler。"
+
+stack:
+  language: "python 3.x (backend, AWS Lambda handler)"
+  frameworks: ["flask-style handlers (no full framework)", "static HTML/JS frontend (no build step, no package.json)"]
+  database: "DynamoDB"
+  notes: "AWS 部署透過 Terraform（infra/），前端無 npm/build 流程，純靜態檔案上傳至 S3 + CloudFront。"
+
+commands:
+  setup: "pip install -r src/requirements.txt"
+  build: ""
+  test: "pytest src/tests -q"
+  lint: "ruff check ."
+  coverage: "pytest src/tests --cov=src"
+
+quality:
+  coverage_threshold: 70      # TODO：Phase B 需先跑一次現有 12 個 pytest 測試取得實際 baseline 後調整
+  lint_zero_tolerance: true
+
+conventions:
+  code_style: "PEP8"
+  commit_format: "<type>(<JIRA-KEY>): <summary>"
+  branch_format: "story/<JIRA-KEY>-<slug>"
+  test_layout: "src/tests/ 內共 12 個 pytest 檔案"
+  notes: "此為既有專案（brownfield）承接，非綠地起始。舊系統採用自建的 POC-SDLC 流程（board/status/logs/versions 等目錄、舊版 .claude/agents、AGENTS.md），已在遷移到 AIMOM-v2 時移除，改用本框架。舊有功能沒有 docs/design/<KEY>.md 設計文件，不可誤判為「無先例」，應視為既有系統，設計文件缺口屬正常現象，見 docs/04-project-instantiation.md 既有專案補充章節。"
+
+structure:
+  src: "src/"
+  tests: "src/tests/"
+  docs: "docs/（框架文件）+ docs/archive/（舊 POC-SDLC 系統遺留的 TASK 交付紀錄，僅供歷史參考，非現行設計文件）"
+
+deployment:
+  environments: ["dev"]
+  notes: "AWS 部署透過 Terraform（infra/）。infra/backend.hcl 與 infra/terraform.tfvars 為 gitignored 機密設定，本地不存在 backend.hcl（僅有 backend.hcl.example），實際 S3 state bucket/region 需向現有維運者確認後手動建立，尚未驗證遷移後 `terraform plan` 為 no-op。"
+
+# ------------------------------------------------------------
+# jira_custom_field_ids — 已於 Phase A2 建立 SDLCAIP2 專案時確認。
+# orchestrator 讀寫這些欄位時優先用這份對照表，不落到
+# jira-workflow.yaml 的留言降級模式。
+# ------------------------------------------------------------
+jira_custom_field_ids:
+  "Agent Lock": customfield_11719
+  "Lock Timestamp": customfield_11721
+  "Reopen Count": customfield_11722
+  "Human Touch Count": customfield_11723
+  "Stage Entered At": customfield_11724

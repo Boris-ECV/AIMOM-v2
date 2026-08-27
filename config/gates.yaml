@@ -1,0 +1,71 @@
+# ============================================================
+# Gate configuration — HUMAN-EDITABLE ONLY.
+# Agents MUST NOT modify this file. Orchestrator reads it at bootstrap.
+# mode: manual  -> orchestrator posts gate report, waits for human comment
+#                  "GATE APPROVED" or "GATE REJECTED: <reason>" on the ticket
+# mode: auto    -> orchestrator verifies all criteria, passes gate, logs evidence
+# ============================================================
+
+gates:
+  G1:
+    name: requirements-approved
+    transition: "Refining -> Designing"   # architecture module enabled: G1 now
+                                           # leads into Designing, not directly to
+                                           # Ready — see G1b and modules/architecture
+    mode: manual              # manual | auto
+    criteria:                 # ALL must pass (checked in both modes; in manual
+                              # mode they gate the report, human is final say)
+      - id: gherkin_present
+        check: "Requirement spec contains >= 1 Gherkin acceptance criterion"
+      - id: out_of_scope_declared
+        check: "Out-of-scope section is present and non-empty"
+      - id: no_open_questions
+        check: "Open-questions section is empty"
+      - id: size_ok
+        check: "Estimated size <= 1 dev-day, otherwise story must be split first"
+
+  G2:
+    name: merge-to-main
+    transition: "In Review -> Done (PR merge)"
+    mode: manual
+    criteria:
+      - id: pr_exists
+        check: "PR exists and targets main"
+      - id: ci_green
+        check: "All GitHub Actions status checks pass"
+      - id: reviewer_approve
+        check: "Reviewer verdict comment is APPROVE"
+      - id: checklist_complete
+        check: "Every item in review checklist has an explicit result"
+      - id: coverage_met
+        check: "Coverage >= profile.quality.coverage_threshold"
+      - id: e2e_declared_and_honored
+        check: |
+          Testing stage's e2e declaration (docs/02 §3.3) is present in
+          ticket comments. If declared "needs e2e": at least one
+          non-skipped Playwright test under tests/e2e/ was added/changed
+          in this PR's diff and is passing in CI. A skip-only placeholder
+          does not satisfy this — reject and send back to Testing.
+
+  G1b:
+    name: design-approved
+    module: architecture
+    transition: "Designing -> Ready"
+    mode: manual              # start manual; see docs/06 §5 for the graduation path
+    criteria:
+      - id: design_doc_exists
+        check: "docs/design/<JIRA-KEY>.md exists, following templates/design-spec.md"
+      - id: interface_declared
+        check: "Interface/API contract section is non-empty (or explicitly 'N/A' with reason)"
+      - id: data_model_declared
+        check: "Data model section is non-empty (or explicitly 'no new data model')"
+      - id: no_open_design_questions
+        check: "Open design questions section is empty"
+
+# Module-provided gates are appended below by the module enablement
+# procedure (docs/05 §3). Example:
+# G3:
+#   name: deploy-to-production
+#   module: deployment
+#   mode: manual
+#   criteria: [...]
