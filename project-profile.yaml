@@ -35,7 +35,15 @@ conventions:
   commit_format: "<type>(<JIRA-KEY>): <summary>"
   branch_format: "story/<JIRA-KEY>-<slug>"
   test_layout: "src/tests/ 內共 12 個 pytest 檔案"
-  notes: "此為既有專案（brownfield）承接，非綠地起始。舊系統採用自建的 POC-SDLC 流程（board/status/logs/versions 等目錄、舊版 .claude/agents、AGENTS.md），已在遷移到 AIMOM-v2 時移除，改用本框架。舊有功能沒有 docs/design/<KEY>.md 設計文件，不可誤判為「無先例」，應視為既有系統，設計文件缺口屬正常現象，見 docs/04-project-instantiation.md 既有專案補充章節。"
+  notes: "此為既有專案（brownfield）承接，非綠地起始。舊系統採用自建的 POC-SDLC 流程（board/status/logs/versions 等目錄、舊版 .claude/agents、AGENTS.md），已在遷移到 AIMOM-v2 時移除，改用本框架。舊有功能沒有 docs/design/<KEY>.md 設計文件，不可誤判為「無先例」，應視為既有系統，設計文件缺口屬正常現象，見 docs/04-project-instantiation.md 既有專案補充章節。
+
+    已知技術債（Phase A 遷移時發現，CI 目前為 report-only、不阻擋合併）：
+    1. Lint：既有程式碼有 88 個 ruff 錯誤（UP045/DTZ003/B008/BLE001 等）未清理。
+    2. 測試無法收集：requirements.txt 的 `assemblyai>=0.30.0` 未鎖版本，CI 裝到的最新版
+       移除了 `assemblyai.transcriber.api`，導致 src/progress.py 在 import 階段就失敗，
+       全部測試無法收集執行。這是既有相依性漂移問題，非本次遷移造成。需要開一張
+       Phase B 技術債 Story：查出當初實際可用的 assemblyai 版本並鎖定，讓測試恢復可執行，
+       之後 CI 的 test/lint 步驟才能改回硬性阻擋（continue-on-error 移除）。"
 
 structure:
   src: "src/"
