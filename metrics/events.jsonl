@@ -31,3 +31,6 @@
 {"ts": "2026-08-27T09:44:19Z", "event": "design_completed", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"design_doc": "docs/design/SDLCAIP2-4.md"}}
 {"ts": "2026-08-27T09:44:19Z", "event": "stage_transition", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
 {"ts": "2026-08-27T09:44:19Z", "event": "gate_review", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"gate": "G1b", "mode": "manual", "result": "pending_human", "criteria_results": {"design_doc_exists": "PASS", "interface_declared": "PASS", "data_model_declared": "PASS", "no_open_design_questions": "PASS"}}}
+{"ts": "2026-08-27T09:50:06Z", "event": "design_completed", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"design_doc": "docs/design/SDLCAIP2-5.md"}}
+{"ts": "2026-08-27T09:50:06Z", "event": "stage_transition", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
+{"ts": "2026-08-27T09:50:06Z", "event": "gate_review", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"gate": "G1b", "mode": "manual", "result": "pending_human", "criteria_results": {"design_doc_exists": "PASS", "interface_declared": "PASS", "data_model_declared": "PASS", "no_open_design_questions": "PASS"}}}
