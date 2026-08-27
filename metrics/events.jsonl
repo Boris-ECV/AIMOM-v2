@@ -15,3 +15,11 @@
 {"ts": "2026-08-27T08:20:05Z", "event": "stage_transition", "ticket": "SDLCAIP2-2", "agent": "orch-20260827-q7k4", "data": {"from": "Awaiting Gate", "to": "Done"}}
 {"ts": "2026-08-27T08:25:00Z", "event": "session_end", "ticket": null, "agent": "orch-20260827-q7k4", "data": {"tickets_touched": ["SDLCAIP2-2"], "board_snapshot": {"DONE": 2}, "reason": "no Backlog/Ready/Blocked/Awaiting Gate work remains"}}
 {"ts": "2026-08-27T09:14:33Z", "event": "stage_transition", "ticket": "SDLCAIP2-3", "agent": "orch-20260827-k7q2", "data": {"from": "Backlog", "to": "Refining"}}
+{"ts": "2026-08-27T09:20:38Z", "event": "stage_transition", "ticket": "SDLCAIP2-3", "agent": "orch-20260827-k7q2", "data": {"from": "Refining", "to": "Blocked"}}
+{"ts": "2026-08-27T09:20:38Z", "event": "blocked", "ticket": "SDLCAIP2-3", "agent": "orch-20260827-k7q2", "data": {"reason": "split into SDLCAIP2-4 and SDLCAIP2-5 per docs/02 §6; tracking parent only, no workflow state for 'split/closed' available"}}
+{"ts": "2026-08-27T09:21:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"from": "created", "to": "Refining"}}
+{"ts": "2026-08-27T09:21:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"from": "created", "to": "Refining"}}
+{"ts": "2026-08-27T09:22:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"from": "Refining", "to": "Awaiting Gate"}}
+{"ts": "2026-08-27T09:22:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"from": "Refining", "to": "Awaiting Gate"}}
+{"ts": "2026-08-27T09:22:00Z", "event": "gate_review", "ticket": "SDLCAIP2-4", "agent": "orch-20260827-k7q2", "data": {"gate": "G1", "mode": "manual", "result": "pending_human", "criteria_results": {"gherkin_present": "PASS", "out_of_scope_declared": "PASS", "no_open_questions": "PASS", "size_ok": "PASS"}}}
+{"ts": "2026-08-27T09:22:07Z", "event": "gate_review", "ticket": "SDLCAIP2-5", "agent": "orch-20260827-k7q2", "data": {"gate": "G1", "mode": "manual", "result": "pending_human", "criteria_results": {"gherkin_present": "PASS", "out_of_scope_declared": "PASS", "no_open_questions": "PASS", "size_ok": "PASS"}}}
