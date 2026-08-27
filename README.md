@@ -1,125 +1,71 @@
-# POC-SDLC 快速開始指南（GitHub Copilot 版）
+# AIMOM
 
-## 系統現況
+AI 會議轉錄與摘要系統。後端為 Python（AWS Lambda handler），前端為靜態 HTML/JS，
+資料儲存於 DynamoDB，認證採 AWS Cognito，基礎設施以 Terraform 管理。
 
-```
-poc-sdlc-copilot/
-├── .github/
-│   ├── copilot-instructions.md  ← ✅ Copilot 全局指令
-│   └── instructions/agents/     ← ✅ 7 個代理 Copilot 指令檔
-├── .claude/agents/              ← ✅ 7 個代理 Claude Code 備用格式
-├── board/
-│   ├── backlog/        ← ✅ TASK-001.md（等待處理）
-│   ├── analysis/
-│   ├── design/
-│   ├── development/
-│   ├── review/
-│   ├── testing/
-│   ├── done/
-│   └── blocked/
-├── docs/
-│   ├── requirements/
-│   ├── design/
-│   └── api/
-├── src/
-├── versions/
-├── status/             ← ✅ 7 個代理，全部 idle
-├── logs/               ← ✅ 7 個代理，初始 log
-├── AGENTS.md           ← ✅ Copilot 代理索引
-└── CLAUDE.md           ← ✅ 系統規範文件（Copilot & Claude Code 共用）
-```
+> 本 repo 是從既有專案 `AIMOM`（`Boris-ECV/AIMOM`）延續而來，套用了
+> sdlc-agent-framework 多代理 SDLC 框架繼續開發。舊 repo 已標記為
+> deprecated，往後開發統一在此 repo 進行。
 
----
-
-## 啟動方式
-
-在 `poc-sdlc-copilot/` 資料夾中開啟 **GitHub Copilot CLI**，輸入：
+## 系統架構
 
 ```
-/autopilot
-請啟動 SDLC 流程，掃描 board/ 中所有待處理工單，
-自動完成從需求分析到部署的完整流程，不需要我的介入。
+src/
+├── app.py                   ← 主要 API 進入點（路由/中介層）
+├── lambda_handler.py         ← AWS Lambda 進入點（mangum）
+├── auth.py                    ← Cognito JWT 認證
+├── config.py                   ← 環境變數集中管理
+├── db.py                         ← DynamoDB 存取
+├── transcribe.py / diarize.py / summarize.py / export.py / progress.py
+│                                  ← 轉錄、講者分離、摘要、匯出、進度追蹤等功能模組
+├── admin.py / history.py / jobstore.py / usage.py / upload.py
+│                                  ← 管理、歷史紀錄、任務儲存、用量、上傳相關功能
+├── frontend/                    ← 靜態 HTML/JS（無 build 流程）
+└── tests/                         ← pytest 測試（12 個檔案）
+
+infra/                          ← Terraform（AWS 基礎設施）
+docs/                             ← 框架文件（見下方「開發流程」）
+docs/archive/                      ← 舊 POC-SDLC 系統遺留的 TASK 交付紀錄，僅供歷史參考，非現行設計文件
 ```
 
-Copilot 將自動依序執行：
-`BA Agent → SA Agent → Dev Agent → Review Agent → QA Agent → DevOps Agent`
-
-### 手動模式（逐步控制）
-
-```
-/agent ba-agent      → 只執行需求分析
-/agent sa-agent      → 只執行系統設計
-/agent dev-agent     → 只執行開發
-/agent review-agent  → 只執行 Code Review
-/agent qa-agent      → 只執行測試
-/agent devops-agent  → 只執行部署
-```
-
----
-
-## 目前工單
-
-| ID | 標題 | 狀態 | 位置 |
-|----|------|------|------|
-| TASK-001 | 實作使用者登入功能 | backlog | board/backlog/ |
-
----
-
-## 代理清單
-
-| `/agent` 指令 | 代理 | 職責 | 接單條件 |
-|--------------|------|------|----------|
-| `/agent orchestrator` | Orchestrator | 分派工單、監控進度 | 人工需求輸入 |
-| `/agent ba-agent` | BA Agent | 需求分析、文件撰寫 | board/backlog/ 有工單 |
-| `/agent sa-agent` | SA Agent | 系統設計、API 規格 | board/design/ 有工單 |
-| `/agent dev-agent` | Dev Agent | 功能開發、撰寫測試 | board/development/ 有工單 |
-| `/agent review-agent` | Review Agent | Code Review | board/review/ 有工單 |
-| `/agent qa-agent` | QA Agent | 測試執行、Bug 回報 | board/testing/ 有工單 |
-| `/agent devops-agent` | DevOps Agent | 部署、交付報告 | board/done/ 有工單 |
-
----
-
-## 預期執行流程（TASK-001）
-
-```
-orchestrator    讀取 backlog → 分派 TASK-001 給 ba-agent
-ba-agent        分析需求 → 建立 docs/requirements/TASK-001-requirements.md
-                移動工單：backlog → analysis → design
-sa-agent        設計系統 → 建立 docs/design/TASK-001-design.md
-                移動工單：design → development
-dev-agent       建立 before 快照 → 開發 src/auth.js + src/auth.test.js
-                建立 after 快照 → 移動工單：development → review
-review-agent    Code Review → PASS → 移動工單：review → testing
-qa-agent        執行測試 → 全過 → 移動工單：testing → done
-devops-agent    模擬部署 → 建立交付報告 docs/TASK-001-delivery.md
-```
-
----
-
-## 指令檔說明
-
-| 檔案 | 用途 |
-|------|------|
-| `CLAUDE.md` | 系統總規範，Copilot 與 Claude Code 皆讀取 |
-| `AGENTS.md` | 代理索引，Copilot 讀取 |
-| `.github/copilot-instructions.md` | Copilot 專用全局指令 |
-| `.github/instructions/agents/*.instructions.md` | Copilot 代理定義（主要）|
-| `.claude/agents/*.md` | Claude Code 代理定義（備用）|
-
----
-
-## 常用操作指令
+## 本地開發
 
 ```powershell
-# 查看所有工單
-Get-ChildItem board -Recurse -Filter "*.md" | Where {$_.Name -ne "_TEMPLATE.md"}
+# 安裝依賴
+pip install -r src/requirements.txt
 
-# 查看所有代理狀態
-Get-Content status\*.status
+# 執行測試（含覆蓋率）
+pytest src/tests --cov=src --cov-report=term-missing
 
-# 手動移動工單
-Move-Item board\backlog\TASK-001.md board\analysis\TASK-001.md
-
-# 查看 log
-Get-Content logs\ba-agent.log
+# Lint（目前為既有技術債，CI 尚未硬性阻擋，見 project-profile.yaml quality.lint_zero_tolerance）
+ruff check .
 ```
+
+實際指令、品質門檻與已知技術債，以 [project-profile.yaml](project-profile.yaml) 為唯一依據。
+
+## 部署
+
+AWS 基礎設施透過 Terraform（`infra/`）管理。`infra/backend.hcl` 與
+`infra/terraform.tfvars` 為機密設定，未納入版控（僅提供 `.example` 範本），
+實際部署前需向現有維運者取得 S3 state bucket 等資訊。
+
+## 開發流程（sdlc-agent-framework）
+
+本專案套用 sdlc-agent-framework 多代理 SDLC 框架進行後續功能開發：
+
+- **需求追蹤**：Jira 專案 `SDLCAIP2` 為唯一事實來源，所有工單狀態、gate 決策皆記錄在 Jira 上。
+- **開發流程**：每張 Story 依序走過 `Backlog → Refining → G1(需求核准) → Designing →
+  G1b(設計核准) → Ready → In Progress → Testing → In Review → G2(合併) → Done`，
+  由 orchestrator（Claude Code CLI）依 `.claude/CLAUDE.md` 規則驅動各 agent 完成。
+- **啟動方式**：在此資料夾開啟 Claude Code CLI，執行 `/sdlc:start` 讓 orchestrator
+  接手處理 Jira 上待處理的工單。
+- **CI/CD**：GitHub Actions（`.github/workflows/ci.yml`）跑 lint + test + coverage 門檻，
+  `main` 分支已設定 branch protection，需 PR 且 CI（`quality` job）綠燈才可合併。
+- **工程原則**：見 [CONSTITUTION.md](CONSTITUTION.md)（失敗處理哲學、安全預設、測試哲學、
+  範圍紀律、程式碼風格等，依既有程式碼慣例歸納，非憑空制定）。
+- **既有專案（brownfield）補充**：本專案承接自既有程式碼，非綠地起始，舊系統既有功能
+  沒有 `docs/design/<KEY>.md` 設計文件屬正常現象，不代表「無先例」，詳見
+  `docs/04-project-instantiation.md` 既有專案套用補充章節。
+
+框架本體文件（`.claude/`、`config/`、`templates/`、`docs/00-08*.md`）皆疊加自
+sdlc-agent-framework 上游，若需修改框架行為，應回饋修改上游框架而非在此 repo 分叉。
