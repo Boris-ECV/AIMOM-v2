@@ -1,4 +1,8 @@
 """TASK-012 測試：Lambda handler（Mangum）可正確處理模擬的 API Gateway event。"""
+from fastapi.testclient import TestClient
+
+from app import app
+from auth import get_current_user
 from lambda_handler import handler
 
 
@@ -48,3 +52,24 @@ def test_lambda_handler_unknown_route_returns_404():
     response = handler(event, _FakeLambdaContext())
 
     assert response["statusCode"] == 404
+
+
+def test_health_check_v2_returns_ok_and_version_without_auth():
+    """SDLCAIP2-2：未帶任何認證 token 呼叫 /api/health-check-v2 應成功。"""
+    app.dependency_overrides.pop(get_current_user, None)
+    client = TestClient(app)
+
+    response = client.get("/api/health-check-v2")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["version"]
+
+
+def test_health_check_v2_route_has_no_auth_dependency():
+    """SDLCAIP2-2：/api/health-check-v2 路由不應依賴 Depends(get_current_user)。"""
+    route = next(r for r in app.routes if getattr(r, "path", None) == "/api/health-check-v2")
+
+    dependency_calls = {dep.call for dep in route.dependant.dependencies}
+    assert get_current_user not in dependency_calls

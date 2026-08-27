@@ -47,6 +47,12 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/api/health-check-v2")
+async def health_check_v2():
+    """健康檢查端點 v2，無需登入。回傳固定狀態與應用程式版本（SDLCAIP2-2）。"""
+    return {"status": "ok", "version": app.version}
+
+
 @app.get("/api/me")
 async def get_me(user: CurrentUser = Depends(get_current_user)):
     """回傳目前登入使用者資訊（TASK-008）。"""
