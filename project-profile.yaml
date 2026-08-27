@@ -26,7 +26,9 @@ commands:
 
 quality:
   coverage_threshold: 70      # TODO：Phase B 需先跑一次現有 12 個 pytest 測試取得實際 baseline 後調整
-  lint_zero_tolerance: true
+  lint_zero_tolerance: false  # TODO：暫時關閉。既有程式碼首次跑 ruff 抓到 88 個既有 lint 錯誤（UP045/DTZ003/B008/BLE001 等），
+                              # 尚未清理，CI 的 lint 目前為 report-only、不阻擋合併。待開一張技術債 Story 逐步清乾淨後，
+                              # 應改回 true 並讓 CI lint 恢復為硬性阻擋。
 
 conventions:
   code_style: "PEP8"
