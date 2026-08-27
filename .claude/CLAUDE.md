@@ -85,6 +85,18 @@ report to the human supervisor.
    (Jira/git history is how a human reconstructs what happened; don't
    make them guess which PRs a session merged on its own).
    fill gaps with assumptions.**
+4d. **At G2, after a human approves the gate but before `gh pr merge`, check
+   `mergeStateStatus`/`mergeable` on the PR.** A story branch can go stale
+   simply from housekeeping commits (metrics events, PRD updates) landing on
+   `main` while the story sat in Testing/Review/Awaiting Gate — this is
+   normal, not a sign of conflict with the story's own diff. If `BEHIND`:
+   `gh pr update-branch`, wait for CI to re-run on the updated head, confirm
+   green, then merge. Never merge with `--admin` to force past a stale-branch
+   block, and never treat "not mergeable: head branch is not up to date"
+   as a reason to reopen the story or ask the human to re-approve — it is
+   a mechanical branch-sync step, not a new gate decision. Observed in this
+   framework's pilot (SDLCAIP2-2): G2 was approved, but PR merge initially
+   failed for this exact reason.
 6. **Follow the lock protocol (docs/01 §4) before working on any ticket.**
 7. **Emit metrics events** (docs/07 schema) to `metrics/events.jsonl` for
    every stage transition, gate review, reopen, escalation, block/unblock.
