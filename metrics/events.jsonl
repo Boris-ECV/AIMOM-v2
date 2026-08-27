@@ -1,0 +1,2 @@
+{"ts": "2026-08-27T07:13:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-2", "agent": "orch-20260827-p9x2", "data": {"from": "Backlog", "to": "Refining"}}
+{"ts": "2026-08-27T07:15:00Z", "event": "gate_review", "ticket": "SDLCAIP2-2", "agent": "orch-20260827-p9x2", "data": {"gate": "G1", "mode": "manual", "result": "pending", "criteria_results": {"gherkin_present": "pass", "out_of_scope_declared": "pass", "no_open_questions": "pass", "size_ok": "pass"}}}
