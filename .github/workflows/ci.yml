@@ -25,10 +25,5 @@ jobs:
       - name: Lint (report-only, see project-profile.yaml quality.lint_zero_tolerance)
         run: ruff check . || true
 
-      # report-only for now: assemblyai>=0.30.0 (unpinned) resolves to a version
-      # that removed assemblyai.transcriber.api, breaking test collection at
-      # src/progress.py import time. Pre-existing dependency drift, not caused by
-      # this migration. Fix (pin assemblyai to a working version) is tracked as
-      # a Phase B tech-debt story; revert to a hard-fail step once fixed.
-      - name: Test + coverage gate (report-only, see project-profile.yaml notes)
-        run: pytest src/tests --cov=src --cov-report=term-missing --cov-fail-under=70 -q || true
+      - name: Test + coverage gate
+        run: pytest src/tests --cov=src --cov-report=term-missing --cov-fail-under=85 -q
