@@ -97,6 +97,35 @@ report to the human supervisor.
    a mechanical branch-sync step, not a new gate decision. Observed in this
    framework's pilot (SDLCAIP2-2): G2 was approved, but PR merge initially
    failed for this exact reason.
+4e. **Before `git checkout -b <housekeeping-branch>` for a rule-4b/4c
+   commit (metrics event, PRD update, etc.), explicitly `git checkout
+   main` first — never assume the shared checkout is already on `main`,
+   even right after your own prior git ops.** A developer/tester subagent
+   delegation leaves the shared working directory checked out on
+   *its* story branch when it finishes (it has no reason to switch back).
+   Branching from that HEAD instead of `main` silently carries the
+   subagent's entire uncommitted-to-main story diff into what you
+   believe is a metrics-only branch — the commit only *adds* your one
+   event line, but the branch's ancestry already contains the story's
+   commits, so squash-merging it per rule 4c's self-merge path pushes
+   unreviewed, ungated story code straight to `main`. Rule 4c's file-path
+   checklist does not catch this, because it describes what you *meant*
+   to change, not what the branch actually contains. **Two independent
+   guards, both required:** (1) always `git checkout main` (not just
+   `git checkout -b ...` from whatever HEAD happens to be) before cutting
+   a housekeeping branch; (2) before pushing/self-merging any rule-4c
+   branch, run `git diff main --stat` against the branch's *parent*
+   commit (i.e. confirm the branch is one commit ahead of `main` with
+   only the intended file(s) changed) — if anything besides the intended
+   metrics/doc file shows up, stop and investigate before pushing.
+   Observed in this framework's pilot (SDLCAIP2-4): exactly this
+   sequence squash-merged an entire unreviewed e2e-scaffold story
+   (package.json, playwright.config.ts, src/tests/e2e_server.py,
+   tests/e2e/smoke.spec.ts) into `main` under a PR titled as a metrics
+   commit; caught immediately after by re-reading the merge diff, fixed
+   with a follow-up revert PR (the story's own branch was untouched and
+   unaffected, since revert only rewrites `main`'s history, not the
+   story branch's).
 6. **Follow the lock protocol (docs/01 §4) before working on any ticket.**
 7. **Emit metrics events** (docs/07 schema) to `metrics/events.jsonl` for
    every stage transition, gate review, reopen, escalation, block/unblock.
