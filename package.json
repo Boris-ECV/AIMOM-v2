@@ -1,0 +1,13 @@
+{
+  "name": "aimom-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright e2e 測試骨架（本機後端 + moto mock）。此 package.json 僅供 Node 工具鏈使用，不影響 src/ 下既有 Python 後端/前端程式碼。",
+  "scripts": {
+    "e2e": "playwright test",
+    "postinstall": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}
