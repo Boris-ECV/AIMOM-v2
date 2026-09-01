@@ -222,7 +222,7 @@
       <h2 style="font-size:1.2rem;margin-bottom:24px;">📤 上傳錄音檔</h2>
       <div id="drop-zone">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-        <strong>拖拽錄音檔至此，或點擊選取</strong>
+        <strong>拖放錄音檔至此，或點擊選取</strong>
         <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
       </div>
       <input type="file" id="file-input" accept=".mp3,.wav,.m4a">
@@ -239,7 +239,7 @@
       </div>
     </div>
     <p style="color:var(--muted);font-size:.8rem;text-align:center;">
-      本系統不會長期儲存您的錄音檔，處理完成後可手動清除暫存資料。
+      本系統不會儲存您的錄音檔，處理完成後可手動清除暫存資料。
     </p>
   </div>
 
@@ -264,14 +264,14 @@
           <div class="stage-icon waiting" id="icon-transcribed">🎙️</div>
           <div>
             <div class="stage-label">語音轉文字 + 說話者識別</div>
-            <div class="stage-msg">AssemblyAI 處理中（轉錄 + 發言人同步完成）</div>
+            <div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div>
           </div>
         </div>
         <div class="stage-item" id="stage-done">
           <div class="stage-icon waiting" id="icon-done">✨</div>
           <div>
             <div class="stage-label">AI 整理會議紀錄</div>
-            <div class="stage-msg">GPT-4o 摘要與整理</div>
+            <div class="stage-msg">摘要與整理</div>
           </div>
         </div>
       </div>
