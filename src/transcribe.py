@@ -56,7 +56,7 @@ async def transcribe(req: TranscribeRequest):
     if job is None:
         raise HTTPException(status_code=404, detail="job_id 不存在")
 
-    update_progress(job_id, "transcribing", 15, "準備送交 AssemblyAI...")
+    update_progress(job_id, "transcribing", 15, "準備轉錄...")
 
     try:
         loop = asyncio.get_event_loop()
@@ -69,7 +69,7 @@ async def transcribe(req: TranscribeRequest):
         job_id,
         stage="transcribing",
         progress=20,
-        message="已送交 AssemblyAI，等待轉錄完成...",
+        message="等待轉錄完成...",
         assemblyai_transcript_id=transcript_id,
     )
 
