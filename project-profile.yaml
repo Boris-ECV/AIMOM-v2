@@ -23,6 +23,7 @@ commands:
   test: "pytest src/tests -q"
   lint: "ruff check ."
   coverage: "pytest src/tests --cov=src"
+  e2e: "npx playwright test"
 
 quality:
   coverage_threshold: 85      # Phase B 已驗證 baseline：60 個 pytest 全過，實際覆蓋率 92%。門檻設 85% 留緩衝，逐步往上調。

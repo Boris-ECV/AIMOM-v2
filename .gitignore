@@ -13,6 +13,7 @@ venv/
 node_modules/
 dist/
 test-results/
+playwright-report/
 
 # Terraform
 infra/.terraform/
