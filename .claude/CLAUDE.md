@@ -138,6 +138,24 @@ report to the human supervisor.
    not mid-command, so a fixed path is what makes an allow rule stick
    across calls), then `cat .tmp/event.jsonl >> metrics/events.jsonl`
    via Bash (docs/07 §1 "如何寫入").
+7b. **Before running rule 7's `cat .tmp/event.jsonl >> metrics/events.jsonl`
+   append, `git branch --show-current` first and confirm you are on
+   `main`.** The append itself doesn't `git checkout` anything — it silently
+   writes onto whatever branch the shared checkout's HEAD already happens
+   to be, which per rule 4e is not reliably `main` after any subagent
+   delegation. If not on `main`, do not append yet: stash or hold the event
+   line aside, `git checkout main` (rule 4e), confirm synced, cut the
+   housekeeping branch, *then* apply the append and commit. Observed in
+   this framework's pilot (SDLCAIP2-4, 2026-09-01): the orchestrator ran
+   the append literally as rule 7 describes right after a developer subagent
+   delegation left HEAD on the story branch — the event line landed as an
+   uncommitted diff on top of the story branch, one accidental
+   `git add -A` + rule-4c self-merge away from carrying unreviewed story
+   code into what looked like a metrics-only PR (the exact failure rule 4e
+   was written to prevent). Caught this time via `git diff --
+   metrics/events.jsonl` before committing; rule 7 as originally written
+   doesn't tell you to check this, so following it literally reproduces
+   the race.
 8. **Respect token discipline** (config/limits.yaml): WIP limit, story cap
    per session, clean wrap-up when context gets heavy.
 9. **A lesson learned beyond this single session must be promoted into a
