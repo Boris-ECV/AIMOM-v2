@@ -27,3 +27,41 @@ jobs:
 
       - name: Test + coverage gate
         run: pytest src/tests --cov=src --cov-report=term-missing --cov-fail-under=85 -q
+
+  e2e:
+    name: e2e (Playwright, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies (for local e2e_server.py)
+        run: pip install -r src/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # npm ci 已透過 package.json 的 postinstall script
+      # (`playwright install --with-deps chromium`，見 SDLCAIP2-4 設計文件
+      # 決策 6) 自動安裝 Chromium + 系統相依套件，此處不需要重複的
+      # `npx playwright install` 步驟。
+
+      - name: Run Playwright e2e tests
+        run: npx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
