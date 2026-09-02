@@ -227,3 +227,17 @@ State backend 設定（3 個，取自既有 `infra/bootstrap` 輸出/現行手�
 - `TF_VAR_bedrock_proxy_base_url`
 - `TF_VAR_bedrock_proxy_api_key`
 - `TF_VAR_assemblyai_api_key`
+
+## 附註：SDLCAIP2-11 的整合擴充點（不改變本文件已核准的任何決策）
+
+SDLCAIP2-11（前端 CD）的設計（`docs/design/SDLCAIP2-11.md`）需要 `backend`
+job 額外暴露 `frontend_bucket_name`／`cloudfront_distribution_id` 兩個唯讀值
+給 `frontend` job 使用，因此在本文件已核准的 `backend` job 定義之上，實作時
+需追加：
+1. 一個新 step（`terraform output -raw` 匯出，唯讀操作，不影響已完成的
+   `terraform apply` 結果）
+2. job 層級的 `outputs:` 宣告
+
+此為新增兩個唯讀輸出值的暴露管道，不改動本文件已核准的 `needs`/`if`/既有
+steps 的執行內容或順序，故不視為推翻本文件的技術決策，不需重新走 G1b。
+完整 diff 內容見 `docs/design/SDLCAIP2-11.md`「介面/API 契約」章節。
