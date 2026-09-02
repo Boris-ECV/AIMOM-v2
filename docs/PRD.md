@@ -112,3 +112,68 @@ Feature: 上傳與處理中頁面文案精簡
     And 語音轉文字階段說明應顯示「處理中（轉錄 + 發言人同步完成）」且不包含「AssemblyAI」字樣
     And AI 整理階段說明應顯示「摘要與整理」且不包含「GPT-4o」字樣
 ```
+
+---
+
+## SDLCAIP2-10：建立後端 CD 自動部署（Terraform apply 自動化）
+
+### 使用者故事
+
+As a AIMOM-v2 的開發團隊, I want PR 合併到 main 後，後端基礎設施（Lambda 與其依賴的 infra/ 資源）能自動以 terraform apply 完成部署, so that 不需要每次手動在本機/CloudShell 執行 terraform apply，降低漏步驟或憑證/state 設定錯誤的風險。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 後端 CD 自動部署
+
+  Scenario: PR 合併後自動觸發非互動式 terraform apply
+    Given PR 已合併到 main
+    When GitHub Actions workflow 觸發
+    Then 自動執行非互動式 terraform apply，重建 infra/backend.hcl（從既有 S3 state bucket/key/region），執行 terraform init + apply，更新 Lambda source_code_hash 以符合最新 src/ 版本
+
+  Scenario: 敏感變數經由 GitHub Secrets 個別注入
+    Given infra/variables.tf 定義 10 個 sensitive=true 的變數：google_client_id, google_client_secret, admin_emails, github_token, openai_api_key, groq_api_key, gemini_api_key, bedrock_proxy_base_url, bedrock_proxy_api_key, assemblyai_api_key
+    When GitHub Actions workflow 執行 terraform apply
+    Then 每個敏感變數經由 GitHub Secrets 個別注入為 TF_VAR_<name> 環境變數，不得在 workflow yaml 中硬寫值
+
+  Scenario: 部署失敗於 GitHub Actions 清晰可見
+    Given GitHub Actions workflow 執行 terraform apply
+    When 部署因故失敗
+    Then 失敗清晰顯示於 GitHub Actions 檢查結果，包含完整錯誤日誌
+```
+
+---
+
+## SDLCAIP2-11：建立前端 CD 自動部署（S3 sync + CloudFront invalidation）
+
+### 使用者故事
+
+As a AIMOM-v2 的開發團隊, I want PR 合併到 main 後，前端靜態內容能自動同步到 S3 並觸發 CloudFront invalidation, so that 不需要每次手動執行 aws s3 sync / aws cloudfront create-invalidation，縮短小改動從合併到上線的時間。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 前端 CD 自動部署
+
+  Scenario: infra/outputs.tf 新增 cloudfront_distribution_id 輸出
+    Given infra/outputs.tf 目前的定義
+    When 本 Story 的變更合併
+    Then infra/outputs.tf 新增 cloudfront_distribution_id 輸出
+
+  Scenario: 後端 job 成功後自動同步前端並觸發 CloudFront 失效
+    Given SDLCAIP2-10 的後端 job 已成功執行
+    When 後端 job 完成
+    Then 前端 job 自動執行，同步 src/frontend/ 到 S3 bucket（搭配 cache-control: no-cache, must-revalidate），並觸發 CloudFront invalidation（--paths "/*"）
+
+  Scenario: 前端 job 依賴後端 job 成功
+    Given GitHub Actions workflow 定義了後端 job 與前端 job
+    When workflow 執行
+    Then 前端 job 的依賴順序明確設定為須等待後端 job 成功才執行，被 SDLCAIP2-10 阻擋
+
+  Scenario: 部署失敗於 GitHub Actions 清晰可見
+    Given GitHub Actions workflow 執行前端 job
+    When 部署因故失敗
+    Then 失敗清晰顯示於 GitHub Actions 檢查結果，包含完整錯誤日誌
+```
+
+---
