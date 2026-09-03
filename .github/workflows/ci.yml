@@ -65,3 +65,72 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  backend:
+    name: Deploy backend (terraform apply)
+    needs: [quality, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      frontend_bucket_name: ${{ steps.tf_outputs.outputs.frontend_bucket_name }}
+      cloudfront_distribution_id: ${{ steps.tf_outputs.outputs.cloudfront_distribution_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.TF_STATE_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Lambda layer
+        run: bash scripts/build_lambda_layer.sh
+
+      - name: Reconstruct infra/backend.hcl
+        run: |
+          cat > infra/backend.hcl <<EOF
+          bucket = "${{ secrets.TF_STATE_BUCKET }}"
+          key    = "${{ secrets.TF_STATE_KEY }}"
+          region = "${{ secrets.TF_STATE_REGION }}"
+          encrypt = true
+          use_lockfile = true
+          EOF
+
+      - name: terraform init
+        working-directory: infra
+        run: terraform init -backend-config=backend.hcl -input=false
+
+      - name: terraform apply
+        working-directory: infra
+        run: terraform apply -auto-approve -input=false
+        env:
+          TF_VAR_google_client_id: ${{ secrets.TF_VAR_google_client_id }}
+          TF_VAR_google_client_secret: ${{ secrets.TF_VAR_google_client_secret }}
+          TF_VAR_admin_emails: ${{ secrets.TF_VAR_admin_emails }}
+          TF_VAR_github_token: ${{ secrets.TF_VAR_github_token }}
+          TF_VAR_openai_api_key: ${{ secrets.TF_VAR_openai_api_key }}
+          TF_VAR_groq_api_key: ${{ secrets.TF_VAR_groq_api_key }}
+          TF_VAR_gemini_api_key: ${{ secrets.TF_VAR_gemini_api_key }}
+          TF_VAR_bedrock_proxy_base_url: ${{ secrets.TF_VAR_bedrock_proxy_base_url }}
+          TF_VAR_bedrock_proxy_api_key: ${{ secrets.TF_VAR_bedrock_proxy_api_key }}
+          TF_VAR_assemblyai_api_key: ${{ secrets.TF_VAR_assemblyai_api_key }}
+
+      - name: Export terraform outputs for downstream jobs
+        id: tf_outputs
+        working-directory: infra
+        run: |
+          echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
