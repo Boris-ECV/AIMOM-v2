@@ -114,3 +114,4 @@
 {"ts": "2026-09-03T03:34:55Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"from": "In Progress", "to": "Testing"}}
 {"ts": "2026-09-03T03:40:50Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/80"}}
 {"ts": "2026-09-03T03:44:40Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"from": "In Review", "to": "Awaiting Gate", "gate": "G2"}}
+{"ts": "2026-09-03T03:45:30Z", "event": "session_end", "ticket": null, "agent": "orch-20260903-f7q2", "data": {"tickets_touched": ["SDLCAIP2-10", "SDLCAIP2-11"], "stories_completed": ["SDLCAIP2-10"], "wip_at_end": 0, "awaiting_human": ["SDLCAIP2-11 G2 gate approval"]}}
