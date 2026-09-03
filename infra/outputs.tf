@@ -33,6 +33,11 @@ output "frontend_cloudfront_domain" {
   value       = aws_cloudfront_distribution.frontend.domain_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "前端 CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.frontend.id
+}
+
 output "dynamodb_meetings_table" {
   description = "Meetings DynamoDB 表名稱"
   value       = aws_dynamodb_table.meetings.name
