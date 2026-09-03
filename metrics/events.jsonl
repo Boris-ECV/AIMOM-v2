@@ -129,3 +129,5 @@
 {"ts": "2026-09-03T06:30:30Z", "event": "session_end", "ticket": null, "agent": "orch-20260903-c3", "data": {"tickets_touched": [], "stories_completed": [], "wip_at_end": 0, "board_state": "SDLCAIP2-12/13 still awaiting human G1 gate decision; no other actionable work", "reason": "bootstrap-only session, manual gates pending human decision"}}
 {"ts": "2026-09-03T06:48:30Z", "event": "stage_transition", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-c3", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
 {"ts": "2026-09-03T06:48:35Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
+{"ts": "2026-09-03T07:05:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-c3", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-03T07:05:05Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "Awaiting Gate", "to": "Ready"}}
