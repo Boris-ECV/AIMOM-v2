@@ -98,3 +98,8 @@
 {"ts": "2026-09-02T08:58:46Z", "event": "stage_transition", "ticket": "SDLCAIP2-10", "agent": "orch-20260902-q7v2", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
 {"ts": "2026-09-02T08:59:04Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260902-q7v2", "data": {"from": "Awaiting Gate", "to": "Designing"}}
 {"ts": "2026-09-02T09:03:18Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260902-q7v2", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
+{"ts": "2026-09-03T02:58:00Z", "event": "session_start", "ticket": null, "agent": "orch-20260903-f7q2", "data": {"trigger": "sdlc-start"}}
+{"ts": "2026-09-03T02:58:12Z", "event": "gate_review", "ticket": "SDLCAIP2-10", "agent": "orch-20260903-f7q2", "data": {"gate": "G1b", "mode": "manual", "result": "approved", "criteria_results": {"design_doc_exists": "pass", "interface_declared": "pass", "data_model_declared": "pass", "no_open_design_questions": "pass"}}}
+{"ts": "2026-09-03T02:58:20Z", "event": "stage_transition", "ticket": "SDLCAIP2-10", "agent": "orch-20260903-f7q2", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-03T02:58:30Z", "event": "gate_review", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"gate": "G1b", "mode": "manual", "result": "approved", "criteria_results": {"design_doc_exists": "pass", "interface_declared": "pass", "data_model_declared": "pass", "no_open_design_questions": "pass"}}}
+{"ts": "2026-09-03T02:58:40Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"from": "Awaiting Gate", "to": "Ready"}}
