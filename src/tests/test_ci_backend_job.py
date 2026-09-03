@@ -18,6 +18,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CI_YML_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 VARIABLES_TF_PATH = REPO_ROOT / "infra" / "variables.tf"
+COGNITO_TF_PATH = REPO_ROOT / "infra" / "cognito.tf"
+APIGATEWAY_TF_PATH = REPO_ROOT / "infra" / "apigateway.tf"
+S3_TF_PATH = REPO_ROOT / "infra" / "s3.tf"
 
 
 @pytest.fixture(scope="module")
@@ -150,6 +153,68 @@ def test_all_env_values_in_apply_step_reference_secrets_or_vars_context(backend_
         assert re.match(r"^\$\{\{\s*(secrets|vars)\.", value), (
             f"{key} 的值 {value!r} 不是以 secrets 或 vars context 開頭"
         )
+
+
+# --- SDLCAIP2-12/SDLCAIP2-13: 正式站前端 callback/logout URL 注入 CI/CD ---
+
+def test_frontend_callback_and_logout_urls_injected_from_repo_vars(backend_job):
+    """SDLCAIP2-12 Scenario「CI 注入正式站 callback/logout URL」:
+    backend job 的 terraform apply 步驟必須設定 TF_VAR_frontend_callback_urls
+    與 TF_VAR_frontend_logout_urls，且皆來自 GitHub Actions repository
+    Variables（${{ vars.* }}），而非 secrets 或字面常數。"""
+    steps = backend_job.get("steps", [])
+    apply_steps = [s for s in steps if "terraform apply" in (s.get("run") or "")]
+    assert apply_steps, "找不到 terraform apply 步驟"
+    env = apply_steps[0].get("env", {})
+
+    assert "TF_VAR_frontend_callback_urls" in env, (
+        "terraform apply 步驟缺少 TF_VAR_frontend_callback_urls"
+    )
+    assert "TF_VAR_frontend_logout_urls" in env, (
+        "terraform apply 步驟缺少 TF_VAR_frontend_logout_urls"
+    )
+    assert env["TF_VAR_frontend_callback_urls"] == "${{ vars.FRONTEND_CALLBACK_URLS }}", (
+        f"TF_VAR_frontend_callback_urls 的值不是來自 vars.FRONTEND_CALLBACK_URLS: "
+        f"{env['TF_VAR_frontend_callback_urls']!r}"
+    )
+    assert env["TF_VAR_frontend_logout_urls"] == "${{ vars.FRONTEND_LOGOUT_URLS }}", (
+        f"TF_VAR_frontend_logout_urls 的值不是來自 vars.FRONTEND_LOGOUT_URLS: "
+        f"{env['TF_VAR_frontend_logout_urls']!r}"
+    )
+
+
+def test_cognito_app_client_references_frontend_url_vars():
+    """SDLCAIP2-12 Scenario「Cognito App Client 白名單修正」:
+    aws_cognito_user_pool_client 的 callback_urls/logout_urls 必須引用
+    var.frontend_callback_urls/var.frontend_logout_urls，而非寫死的值，
+    這樣 CI 注入的 TF_VAR_* 才能實際傳遞到白名單。"""
+    content = COGNITO_TF_PATH.read_text(encoding="utf-8")
+    assert re.search(r"callback_urls\s*=\s*var\.frontend_callback_urls", content), (
+        "infra/cognito.tf 的 callback_urls 未引用 var.frontend_callback_urls"
+    )
+    assert re.search(r"logout_urls\s*=\s*var\.frontend_logout_urls", content), (
+        "infra/cognito.tf 的 logout_urls 未引用 var.frontend_logout_urls"
+    )
+
+
+def test_apigateway_cors_references_frontend_callback_urls_var():
+    """SDLCAIP2-13 Scenario「CI 注入的變數同時修正 API Gateway CORS」:
+    aws_apigatewayv2_api.http_api 的 cors_configuration.allow_origins
+    必須引用 var.frontend_callback_urls，而非寫死或 localhost 預設值。"""
+    content = APIGATEWAY_TF_PATH.read_text(encoding="utf-8")
+    assert re.search(r"allow_origins\s*=\s*var\.frontend_callback_urls", content), (
+        "infra/apigateway.tf 的 CORS allow_origins 未引用 var.frontend_callback_urls"
+    )
+
+
+def test_s3_bucket_cors_references_frontend_callback_urls_var():
+    """SDLCAIP2-13 Scenario「S3 bucket CORS 也同步修正」:
+    音檔 S3 bucket 的 cors_rule.allowed_origins 必須引用
+    var.frontend_callback_urls，確保上傳流程走同一組正式站網址。"""
+    content = S3_TF_PATH.read_text(encoding="utf-8")
+    assert re.search(r"allowed_origins\s*=\s*var\.frontend_callback_urls", content), (
+        "infra/s3.tf 的 CORS allowed_origins 未引用 var.frontend_callback_urls"
+    )
 
 
 # --- Scenario 3: 部署失敗時清楚可見 ---
