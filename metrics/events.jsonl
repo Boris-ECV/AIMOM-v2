@@ -135,3 +135,5 @@
 {"ts": "2026-09-03T07:07:05Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "Ready", "to": "In Progress"}}
 {"ts": "2026-09-03T07:03:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-c3", "data": {"from": "In Progress", "to": "Testing"}}
 {"ts": "2026-09-03T07:03:05Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-03T07:08:40Z", "event": "stage_transition", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-c3", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/95"}}
+{"ts": "2026-09-03T07:08:45Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/95"}}
