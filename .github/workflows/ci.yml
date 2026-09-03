@@ -127,6 +127,8 @@ jobs:
           TF_VAR_bedrock_proxy_base_url: ${{ secrets.TF_VAR_bedrock_proxy_base_url }}
           TF_VAR_bedrock_proxy_api_key: ${{ secrets.TF_VAR_bedrock_proxy_api_key }}
           TF_VAR_assemblyai_api_key: ${{ secrets.TF_VAR_assemblyai_api_key }}
+          TF_VAR_frontend_callback_urls: ${{ vars.FRONTEND_CALLBACK_URLS }}
+          TF_VAR_frontend_logout_urls: ${{ vars.FRONTEND_LOGOUT_URLS }}
 
       - name: Export terraform outputs for downstream jobs
         id: tf_outputs
