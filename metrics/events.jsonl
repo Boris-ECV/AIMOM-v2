@@ -127,3 +127,5 @@
 {"ts": "2026-09-03T06:24:30Z", "event": "human_intervention", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-b2", "data": {"kind": "incident_response", "note": "production incidents SDLCAIP2-12/13 caused by SDLCAIP2-10 CD automation; root cause identified and fix spec drafted same session"}}
 {"ts": "2026-09-03T06:30:00Z", "event": "session_start", "ticket": null, "agent": "orch-20260903-c3", "data": {"trigger": "sdlc-start"}}
 {"ts": "2026-09-03T06:30:30Z", "event": "session_end", "ticket": null, "agent": "orch-20260903-c3", "data": {"tickets_touched": [], "stories_completed": [], "wip_at_end": 0, "board_state": "SDLCAIP2-12/13 still awaiting human G1 gate decision; no other actionable work", "reason": "bootstrap-only session, manual gates pending human decision"}}
+{"ts": "2026-09-03T06:48:30Z", "event": "stage_transition", "ticket": "SDLCAIP2-12", "agent": "orch-20260903-c3", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
+{"ts": "2026-09-03T06:48:35Z", "event": "stage_transition", "ticket": "SDLCAIP2-13", "agent": "orch-20260903-c3", "data": {"from": "Designing", "to": "Awaiting Gate", "gate": "G1b"}}
