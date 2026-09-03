@@ -103,3 +103,4 @@
 {"ts": "2026-09-03T02:58:20Z", "event": "stage_transition", "ticket": "SDLCAIP2-10", "agent": "orch-20260903-f7q2", "data": {"from": "Awaiting Gate", "to": "Ready"}}
 {"ts": "2026-09-03T02:58:30Z", "event": "gate_review", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"gate": "G1b", "mode": "manual", "result": "approved", "criteria_results": {"design_doc_exists": "pass", "interface_declared": "pass", "data_model_declared": "pass", "no_open_design_questions": "pass"}}}
 {"ts": "2026-09-03T02:58:40Z", "event": "stage_transition", "ticket": "SDLCAIP2-11", "agent": "orch-20260903-f7q2", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-03T03:03:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-10", "agent": "orch-20260903-f7q2", "data": {"from": "Ready", "to": "In Progress"}}
