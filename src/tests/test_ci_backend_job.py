@@ -132,16 +132,23 @@ def test_no_hardcoded_secret_literals_in_workflow_file():
         assert not matches, f"workflow 檔案中發現疑似明文機密: {matches}"
 
 
-def test_all_env_values_in_apply_step_reference_secrets_context(backend_job):
-    """terraform apply 步驟的 env 區塊中，所有值都必須引用 ${{ secrets.* }}，
-    不得是字面常數。"""
+def test_all_env_values_in_apply_step_reference_secrets_or_vars_context(backend_job):
+    """terraform apply 步驟的 env 區塊中，所有值都必須引用 GitHub Actions
+    的 ${{ secrets.* }} 或 ${{ vars.* }} context，不得是字面常數。
+
+    SDLCAIP2-12/SDLCAIP2-13 核准的設計決策 1（docs/design/SDLCAIP2-12.md）：
+    非機密的前端網址（frontend_callback_urls/frontend_logout_urls）改用
+    GitHub Actions repository Variables（${{ vars.* }}）注入，而非 Secrets，
+    因為這些值本來就是前端公開網址、不具機密性。此測試的核心不變量——
+    「所有值都必須來自 GitHub context、不得是寫死的字面常數」——維持不變，
+    只放寬允許的 context 前綴以涵蓋 vars.*。"""
     steps = backend_job.get("steps", [])
     apply_steps = [s for s in steps if "terraform apply" in (s.get("run") or "")]
     env = apply_steps[0].get("env", {})
     assert env, "terraform apply 步驟沒有 env 區塊"
     for key, value in env.items():
-        assert re.match(r"^\$\{\{\s*secrets\.", value), (
-            f"{key} 的值 {value!r} 不是以 secrets context 開頭"
+        assert re.match(r"^\$\{\{\s*(secrets|vars)\.", value), (
+            f"{key} 的值 {value!r} 不是以 secrets 或 vars context 開頭"
         )
 
 
