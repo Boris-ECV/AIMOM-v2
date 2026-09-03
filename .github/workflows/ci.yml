@@ -134,3 +134,33 @@ jobs:
         run: |
           echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> "$GITHUB_OUTPUT"
           echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+
+  frontend:
+    name: Deploy frontend (S3 sync + CloudFront invalidation)
+    needs: [backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.TF_STATE_REGION }}
+
+      - name: Sync frontend to S3
+        run: |
+          aws s3 sync src/frontend/ s3://${{ needs.backend.outputs.frontend_bucket_name }}/ \
+            --exclude ".DS_Store" \
+            --cache-control "no-cache, must-revalidate"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ needs.backend.outputs.cloudfront_distribution_id }} \
+            --paths "/*"
