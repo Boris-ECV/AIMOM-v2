@@ -156,6 +156,34 @@ report to the human supervisor.
    metrics/events.jsonl` before committing; rule 7 as originally written
    doesn't tell you to check this, so following it literally reproduces
    the race.
+7c. **The Bash tool's shell working directory persists across tool calls
+   within a session — including after you `cd` into a developer/tester
+   worktree to inspect or verify its output.** If you don't explicitly
+   `cd` back to the repo root afterward, every subsequent command
+   (including rule 7b's `git branch --show-current` check, `git stash`,
+   and the `metrics/events.jsonl` append) silently runs inside that
+   worktree instead of the shared checkout — and `git branch
+   --show-current` will *correctly* report the worktree's own branch,
+   which can look like "I'm on the right branch" if you don't also
+   notice it isn't `main`. This is a distinct failure mode from rule 4e
+   (which covers HEAD drifting in the *shared* checkout after a
+   delegation) — here the shared checkout was never touched; the
+   orchestrator's own shell simply never left the worktree. **Rule:**
+   after any `cd` into a worktree (to verify a subagent's branch, run
+   tests independently, etc.), explicitly `cd` back to the repo root as
+   your next command before doing any further git/metrics operations —
+   do not rely on a later `git checkout main` alone, since `checkout`
+   does not change which directory the shell is in. When in doubt,
+   run `pwd` alongside `git branch --show-current`; the former catches
+   what the latter can mask. Observed in this framework's pilot
+   (2026-09-09, SDLCAIP2-21/23 G2 cycle): after independently verifying
+   a developer's worktree, the orchestrator's shell stayed there across
+   several later calls; a `git stash pop` intended for `main` landed
+   the pending `metrics/events.jsonl` edit inside the worktree instead.
+   Caught via `git diff` before committing, reverted in the worktree,
+   and correctly reapplied on `main` after an explicit `cd` + `pwd`
+   check — no corruption, but it cost an extra recovery pass that this
+   rule would have prevented.
 8. **Respect token discipline** (config/limits.yaml): WIP limit, story cap
    per session, clean wrap-up when context gets heavy.
 9. **A lesson learned beyond this single session must be promoted into a
