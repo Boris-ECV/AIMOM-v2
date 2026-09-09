@@ -23,6 +23,7 @@ PRICING_PER_MILLION_TOKENS = {
     ("groq", "llama-3.1-8b-instant"): (0.05, 0.08),
     ("gemini", "gemini-2.0-flash"): (0.25, 1.50),
     ("gemini", "gemini-1.5-pro"): (1.50, 9.00),
+    ("bedrock-proxy", "mistral.mistral-large-3-675b-instruct"): (0.50, 1.50),
 }
 
 
@@ -96,6 +97,7 @@ def record_llm_usage(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "estimated_cost": cost,
+        "pricing_unavailable": cost is None,
         "user_id": user_id,
         "meeting_id": meeting_id,
         "created_at": now.isoformat(),
@@ -114,11 +116,18 @@ def summarize_usage() -> dict:
 
     by_date: dict[str, dict] = {}
     by_user: dict[str, dict] = {}
+    pricing_unavailable_engines: set[tuple[str, str]] = set()
+    pricing_unavailable_count = 0
 
     for i in items:
-        cost = float(i.get("estimated_cost") or 0)
+        unavailable = i.get("pricing_unavailable", False)
+        cost = 0.0 if unavailable else float(i.get("estimated_cost") or 0)
         date = i["date"]
         user_id = i["user_id"]
+
+        if unavailable:
+            pricing_unavailable_count += 1
+            pricing_unavailable_engines.add((i.get("engine"), i.get("model")))
 
         d = by_date.setdefault(date, {"input_tokens": 0, "output_tokens": 0, "estimated_cost": 0.0, "calls": 0})
         d["input_tokens"] += i.get("input_tokens", 0)
@@ -132,9 +141,23 @@ def summarize_usage() -> dict:
         u["estimated_cost"] += cost
         u["calls"] += 1
 
+    total_estimated_cost = round(
+        sum(
+            float(i.get("estimated_cost") or 0)
+            for i in items
+            if not i.get("pricing_unavailable", False)
+        ),
+        6,
+    )
+
     return {
         "by_date": [{"date": k, **v} for k, v in sorted(by_date.items())],
         "by_user": [{"user_id": k, **v} for k, v in sorted(by_user.items())],
         "total_calls": len(items),
-        "total_estimated_cost": round(sum(float(i.get("estimated_cost") or 0) for i in items), 6),
+        "total_estimated_cost": total_estimated_cost,
+        "pricing_unavailable_count": pricing_unavailable_count,
+        "pricing_unavailable_engines": [
+            {"engine": engine, "model": model}
+            for engine, model in sorted(pricing_unavailable_engines)
+        ],
     }
