@@ -177,3 +177,153 @@ Feature: 前端 CD 自動部署
 ```
 
 ---
+
+## SDLCAIP2-16：會議紀錄彈性區塊 schema 重構 + 內建會議模板（後端）
+
+### 使用者故事
+
+As a 團隊成員, I want 上傳會議錄音時可以選擇符合這場會議性質的模板（如專案進度會議、客戶會議、腦力激盪、Retro）, so that AI 產出的會議紀錄結構貼近實際需要記錄的重點，而不是每種會議都套同一種「摘要/決定/待辦」格式。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 選擇內建模板後，AI 產出對應結構的區塊
+  Given 逐字稿已產生完成
+  When 使用者呼叫 /summarize 並指定 template="retro"
+  Then 回傳的 minutes 含 sections 陣列，每個 section 有 title 與 content
+  And section 標題符合 Retro 模板定義（例如「Keep」「Problem」「Try」）
+
+---
+
+Scenario: 不指定模板時維持向下相容
+  Given 逐字稿已產生完成
+  When 使用者呼叫 /summarize 且未帶 template 參數
+  Then 系統套用預設模板「一般會議」
+  And 回傳結構與現行行為相容（meeting_info、action_items 欄位不變）
+
+---
+
+Scenario: 指定不存在的模板代碼
+  When 使用者呼叫 /summarize 並指定 template="not_exist"
+  Then 回傳 400 錯誤，訊息列出可用的模板代碼清單
+```
+
+內建模板清單（G1 核准時未提出異動，採用暫定清單）：一般會議、專案進度會議、客戶業務會議、腦力激盪、Retro
+
+---
+
+## SDLCAIP2-21：補上 bedrock-proxy 定價並修正查無定價時靜默顯示 0 的問題
+
+### 使用者故事
+
+As a 管理者, I want 管理者儀表板的 LLM 成本彙總能正確反映正式環境實際使用的 bedrock-proxy 引擎成本、且在定價缺漏時明確標示而非靜默顯示 0, so that 我看到的成本數字是可信的，不會誤判實際花費。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 新增 bedrock-proxy 定價後成本可正確估算
+  Given PRICING_PER_MILLION_TOKENS 已補上 ("bedrock-proxy", "mistral.mistral-large-3-675b-instruct") 對應 (0.50, 1.50) （美元/百萬 tokens，換算自 $0.0005/1K input、$0.0015/1K output）
+  When 使用 bedrock-proxy 引擎呼叫 /summarize 並產生一筆用量紀錄
+  Then estimated_cost 為依實際 input_tokens/output_tokens 換算後的正確金額，不再是 0
+
+---
+
+Scenario: 查無定價的 engine/model 明確標記，不再靜默顯示 0
+  Given 某筆用量紀錄的 (engine, model) 組合不在定價表中
+  When record_llm_usage 寫入該筆紀錄
+  Then 該筆紀錄新增欄位 pricing_unavailable=true，estimated_cost 維持 None（不落地為數字 0）
+
+---
+
+Scenario: 管理者儀表板顯示定價缺漏筆數
+  Given DynamoDB 中同時存在有定價與查無定價的用量紀錄
+  When 管理者呼叫 /admin/usage
+  Then 回傳結果除了 total_estimated_cost 外，額外包含 pricing_unavailable_count（查無定價的筆數）與其涉及的 (engine, model) 清單
+  And total_estimated_cost 的計算明確排除 pricing_unavailable 的紀錄
+
+---
+
+Scenario: 既有沒有 pricing_unavailable 欄位的舊資料維持相容
+  Given DynamoDB 中已有舊資料且沒有 pricing_unavailable 欄位
+  When summarize_usage() 讀取舊資料
+  Then 視為 pricing_unavailable=false（沿用原本 estimated_cost 數字）處理，不拋錯
+```
+
+---
+
+## SDLCAIP2-22：AssemblyAI 轉錄成本估算
+
+### 使用者故事
+
+As a 管理者, I want 管理者儀表板也能看到 AssemblyAI 轉錄成本（不只是 LLM 摘要成本）, so that 我看到的「總成本」是完整的，涵蓋轉錄與摘要兩個階段。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 轉錄完成後記錄一筆轉錄成本
+  Given 音檔上傳時已知 duration_sec
+  When 轉錄流程完成（segments 組裝完成）
+  Then 系統依 (duration_sec / 3600) * 費率（含 diarization add-on 費率，若該次有開啟）估算成本
+  And 寫入一筆用量紀錄，service 標記為 "transcription"，與現有 LLM 用量紀錄可區分
+
+---
+
+Scenario: 診斷模型/add-on 組合尚未支援定價
+  Given ASSEMBLYAI_MODEL 或 add-on 設定不在目前定價對照表中
+  When 轉錄完成要記錄成本
+  Then 該筆紀錄標記 pricing_unavailable=true（比照 SDLCAIP2-21 的作法），estimated_cost 不落地為 0
+
+---
+
+Scenario: 管理者儀表板同時顯示轉錄與摘要成本
+  Given 資料庫中同時有 transcription 與 summarization 兩種用量紀錄
+  When 管理者呼叫 /admin/usage
+  Then 回傳結果分別列出 transcription 與 summarization 的小計成本，以及兩者合計的總成本
+
+---
+
+Scenario: duration_sec 缺失時不強行估算
+  Given 某筆轉錄紀錄找不到 duration_sec（例如舊資料或例外流程）
+  When 嘗試記錄轉錄成本
+  Then 不寫入該筆成本紀錄，並標記 pricing_unavailable=true，不做無依據的猜測
+```
+
+---
+
+## SDLCAIP2-23：登入白名單控管（ALLOWED_EMAILS）
+
+### 使用者故事
+
+As a 系統管理者, I want 只有白名單內的 email 能登入使用系統, so that 任何擁有 Google 帳號的人都不能未經授權存取系統、消耗 AssemblyAI/LLM 額度。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: email 在白名單內，正常登入
+  Given ALLOWED_EMAILS 設定為 "a@example.com,b@example.com"
+  When 使用者以 a@example.com 完成 Google 登入並呼叫需驗證的 API
+  Then 請求正常處理，回傳 200
+
+---
+
+Scenario: email 不在白名單內，拒絕存取
+  Given ALLOWED_EMAILS 設定為 "a@example.com"
+  When 使用者以 c@example.com（合法 token，但不在白名單）呼叫需驗證的 API
+  Then 回傳 403，訊息說明此帳號未被授權使用本系統
+
+---
+
+Scenario: ALLOWED_EMAILS 留空時維持向下相容
+  Given ALLOWED_EMAILS 未設定或為空字串
+  When 任何合法 token 的使用者呼叫需驗證的 API
+  Then 不做白名單限制，行為與目前一致（允許所有合法登入的使用者）
+
+---
+
+Scenario: 管理者也必須同時在白名單內
+  Given ADMIN_EMAILS 含 admin@example.com，但 ALLOWED_EMAILS 未包含 admin@example.com（且 ALLOWED_EMAILS 非空）
+  When admin@example.com 嘗試登入
+  Then 回傳 403（管理者身份不自動繞過白名單檢查）
+```
+
+---
