@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from pathlib import Path
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from models import (
     UploadResponse,
     UploadPresignRequest,
@@ -10,6 +10,7 @@ from models import (
 )
 import config
 import jobstore
+from auth import CurrentUser, get_current_user
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ def get_audio_duration(file_path: Path) -> float:
     return 0.0
 
 
-def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str, suffix: str, s3_key: str = None) -> UploadResponse:
+def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str, suffix: str, user_id: str, s3_key: str = None) -> UploadResponse:
     """驗證音檔長度、寫入 job 狀態（DynamoDB，見 TASK-016）。供 legacy 直傳與 presign 流程共用。"""
     size_bytes = audio_path.stat().st_size
     duration = get_audio_duration(audio_path)
@@ -58,6 +59,9 @@ def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str
         audio_path=str(audio_path),
         suffix=suffix,
         s3_key=s3_key,
+        # job 擁有者為上傳音檔的人，於上傳時就寫入（而非輪詢 /api/status 時
+        # 才取得，見 SDLCAIP2-22 技術決策 2）。
+        user_id=user_id,
     )
 
     return UploadResponse(
@@ -69,7 +73,7 @@ def _finalize_upload(job_id: str, job_dir: Path, audio_path: Path, filename: str
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_audio(file: UploadFile = File(...)):
+async def upload_audio(file: UploadFile = File(...), user: CurrentUser = Depends(get_current_user)):
     """既有的直傳端點：檔案先整包送進 Lambda，受 API Gateway/Lambda payload 上限（約 4-5MB）限制。
 
     保留供小檔案／本機開發使用；正式前端流程已改用 /upload/presign + /upload/complete
@@ -87,7 +91,7 @@ async def upload_audio(file: UploadFile = File(...)):
     content = await file.read()
     audio_path.write_bytes(content)
 
-    return _finalize_upload(job_id, job_dir, audio_path, file.filename, suffix)
+    return _finalize_upload(job_id, job_dir, audio_path, file.filename, suffix, user.email)
 
 
 @router.post("/upload/presign", response_model=UploadPresignResponse)
@@ -126,7 +130,7 @@ async def presign_upload(req: UploadPresignRequest):
 
 
 @router.post("/upload/complete", response_model=UploadResponse)
-async def complete_upload(req: UploadCompleteRequest):
+async def complete_upload(req: UploadCompleteRequest, user: CurrentUser = Depends(get_current_user)):
     """瀏覽器完成 S3 直傳後呼叫：從 S3 下載音檔到 /tmp、驗證長度、寫入 meta.json，
     後續 /transcribe 等端點不需變更，仍讀取本機暫存的音檔（TASK-015）。"""
     suffix = Path(req.filename).suffix.lower()
@@ -159,4 +163,4 @@ async def complete_upload(req: UploadCompleteRequest):
     # AssemblyAI 非同步去抓取這個物件（TASK-016），過早刪除會有競態風險。
     # 暫存物件的清除交給 bucket 既有的 1 天 lifecycle 規則，或使用者手動
     # /api/cleanup/{job_id} 時一併清除。
-    return _finalize_upload(str(job_uuid), job_dir, audio_path, req.filename, suffix, s3_key=req.s3_key)
+    return _finalize_upload(str(job_uuid), job_dir, audio_path, req.filename, suffix, user.email, s3_key=req.s3_key)

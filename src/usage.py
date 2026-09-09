@@ -26,6 +26,14 @@ PRICING_PER_MILLION_TOKENS = {
     ("bedrock-proxy", "mistral.mistral-large-3-675b-instruct"): (0.50, 1.50),
 }
 
+# 每小時美元定價（model, diarization_enabled）→ price（SDLCAIP2-22）。
+# diarization 開啟時的價格已內含 add-on 費率（例如 0.15 + 0.02 diarization add-on = 0.17）。
+# 找不到對應組合視為「尚未支援定價」，回傳 None（不做無依據的猜測）。
+PRICING_ASSEMBLYAI_PER_HOUR = {
+    ("universal-2", False): 0.15,
+    ("universal-2", True): 0.17,  # 0.15 (universal-2) + 0.02 (diarization add-on)
+}
+
 
 def _resource():
     return boto3.resource("dynamodb", region_name=config.COGNITO_REGION)
@@ -85,7 +93,7 @@ def record_llm_usage(
     user_id: str,
     meeting_id: str,
 ) -> dict:
-    """寫入一筆 LLM 用量紀錄至 DynamoDB。"""
+    """寫入一筆 LLM（摘要）用量紀錄至 DynamoDB。"""
     ensure_usage_table_exists()
     now = datetime.datetime.utcnow()
     cost = estimate_cost(engine, model, input_tokens, output_tokens)
@@ -101,9 +109,68 @@ def record_llm_usage(
         "user_id": user_id,
         "meeting_id": meeting_id,
         "created_at": now.isoformat(),
+        "service": "summarization",
     }
     # DynamoDB 不支援原生 float，寫入時轉為 Decimal，回傳給呼叫端仍維持 float 方便運算
     dynamo_item = {**item, "estimated_cost": Decimal(str(cost)) if cost is not None else None}
+    _table().put_item(Item=dynamo_item)
+    return item
+
+
+def estimate_transcription_cost(
+    model: str, diarization_enabled: bool, duration_sec: Optional[float]
+) -> Optional[float]:
+    """依 (duration_sec / 3600) * 每小時費率估算轉錄成本（美元）。
+
+    `duration_sec` 缺失（None）或 (model, diarization_enabled) 組合不在定價表中，
+    一律回傳 None（查無定價／缺乏依據時都不做猜測估算，SDLCAIP2-22）。
+    """
+    if duration_sec is None:
+        return None
+    price = PRICING_ASSEMBLYAI_PER_HOUR.get((model, diarization_enabled))
+    if price is None:
+        return None
+    cost = (duration_sec / 3600) * price
+    return round(cost, 6)
+
+
+def record_transcription_usage(
+    model: str,
+    diarization_enabled: bool,
+    duration_sec: Optional[float],
+    user_id: str,
+    meeting_id: str,
+) -> dict:
+    """寫入一筆 AssemblyAI 轉錄成本用量紀錄至 DynamoDB（沿用既有 LLM 用量表，SDLCAIP2-22）。
+
+    無論成本是否可估算都會寫入一筆紀錄：可估算時 `estimated_cost` 為估算值，
+    不可估算時（定價表查無對應組合，或 `duration_sec` 缺失）`estimated_cost` 為 None，
+    `pricing_unavailable` 標記為 true——兩種「無法估算」情境在資料模型上採一致表示。
+    """
+    ensure_usage_table_exists()
+    now = datetime.datetime.utcnow()
+    cost = estimate_transcription_cost(model, diarization_enabled, duration_sec)
+    item = {
+        "date": now.strftime("%Y-%m-%d"),
+        "usage_id": str(uuid.uuid4()),
+        "engine": "assemblyai",
+        "model": model,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "estimated_cost": cost,
+        "pricing_unavailable": cost is None,
+        "user_id": user_id,
+        "meeting_id": meeting_id,
+        "created_at": now.isoformat(),
+        "service": "transcription",
+        "duration_sec": duration_sec,
+        "diarization_enabled": diarization_enabled,
+    }
+    dynamo_item = {
+        **item,
+        "estimated_cost": Decimal(str(cost)) if cost is not None else None,
+        "duration_sec": Decimal(str(duration_sec)) if duration_sec is not None else None,
+    }
     _table().put_item(Item=dynamo_item)
     return item
 
@@ -116,6 +183,12 @@ def summarize_usage() -> dict:
 
     by_date: dict[str, dict] = {}
     by_user: dict[str, dict] = {}
+    # 依 service 分列小計（SDLCAIP2-22 AC3）。舊資料沒有 service 欄位，
+    # 視為 "summarization"（向下相容，比照 pricing_unavailable 的處理方式）。
+    by_service: dict[str, dict] = {
+        "transcription": {"calls": 0, "estimated_cost": 0.0},
+        "summarization": {"calls": 0, "estimated_cost": 0.0},
+    }
     pricing_unavailable_engines: set[tuple[str, str]] = set()
     pricing_unavailable_count = 0
 
@@ -124,6 +197,7 @@ def summarize_usage() -> dict:
         cost = 0.0 if unavailable else float(i.get("estimated_cost") or 0)
         date = i["date"]
         user_id = i["user_id"]
+        service = i.get("service", "summarization")
 
         if unavailable:
             pricing_unavailable_count += 1
@@ -141,6 +215,10 @@ def summarize_usage() -> dict:
         u["estimated_cost"] += cost
         u["calls"] += 1
 
+        s = by_service.setdefault(service, {"calls": 0, "estimated_cost": 0.0})
+        s["calls"] += 1
+        s["estimated_cost"] += cost
+
     total_estimated_cost = round(
         sum(
             float(i.get("estimated_cost") or 0)
@@ -153,6 +231,10 @@ def summarize_usage() -> dict:
     return {
         "by_date": [{"date": k, **v} for k, v in sorted(by_date.items())],
         "by_user": [{"user_id": k, **v} for k, v in sorted(by_user.items())],
+        "by_service": {
+            k: {"calls": v["calls"], "estimated_cost": round(v["estimated_cost"], 6)}
+            for k, v in by_service.items()
+        },
         "total_calls": len(items),
         "total_estimated_cost": total_estimated_cost,
         "pricing_unavailable_count": pricing_unavailable_count,

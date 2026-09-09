@@ -1,10 +1,12 @@
 """任務進度查詢與清除（TASK-005，v2 起改用 DynamoDB 儲存狀態，見 TASK-016）。"""
-from fastapi import APIRouter, HTTPException
-from models import StatusResponse, CleanupResponse
 import assemblyai as aai
 from assemblyai.transcriber import api as aai_api
+from fastapi import APIRouter, HTTPException
+
 import config
 import jobstore
+import usage
+from models import CleanupResponse, StatusResponse
 from transcript_utils import build_segments_from_transcript
 
 router = APIRouter()
@@ -68,8 +70,44 @@ def _finalize_if_transcription_done(job: dict) -> dict:
         # 仍在 AssemblyAI 佇列中或處理中，狀態不變，前端繼續輪詢即可
         return job
 
-    segments, full_text = build_segments_from_transcript(transcript)
-    unique_speakers = len(set(s["speaker"] for s in segments if s.get("speaker")))
+    # 併發輪詢防護（SDLCAIP2-22）：只在真正要組裝 segments／記費前才搶鎖，
+    # 避免「還在處理中」的多次輪詢無謂觸碰這個 attribute。搶輸的請求視為
+    # 已被另一個併發 /api/status 請求處理完畢，直接回傳目前（可能已更新的）狀態。
+    if not jobstore.claim_finalize(job["job_id"]):
+        return jobstore.get_job(job["job_id"]) or job
+
+    try:
+        segments, full_text = build_segments_from_transcript(transcript)
+        unique_speakers = len(set(s["speaker"] for s in segments if s.get("speaker")))
+    except Exception as e:  # noqa: BLE001 — 組裝 segments 失敗不可讓 job 卡死
+        # SDLCAIP2-22 code review 修正：finalize_claimed 鎖已在上面搶到、
+        # 且不會被清除，若這裡例外沒被接住，job 會永遠卡在 stage="transcribing"
+        # —— 之後每次 /api/status 輪詢都會再呼叫 claim_finalize()，但鎖已被
+        # 佔用而永遠回傳 False，導致這段組裝程式碼永遠不會再被執行到，
+        # 呈現「永遠卡住、無錯誤訊息」的狀態。改成寫入 stage="error"，
+        # 一來讓使用者看到明確錯誤而非無限卡住，二來讓 stage 脫離
+        # "transcribing"，之後的輪詢會直接命中函式最上方的 guard 而不再
+        # 誤觸 claim_finalize()。詳見 docs/design/SDLCAIP2-22.md 決策 4。
+        return jobstore.update_job(
+            job["job_id"], stage="error", progress=job.get("progress", 20),
+            message=f"轉錄結果解析失敗：{e}",
+        )
+
+    try:
+        # 送出當下釘住的設定優先；舊 job（本story上線前已在 transcribing、
+        # 沒有這兩個欄位）退回讀取目前 config.* 當 fallback。
+        model = job.get("assemblyai_model", config.ASSEMBLYAI_MODEL)
+        diarization_enabled = job.get("assemblyai_diarization_enabled", config.ASSEMBLYAI_SPEAKER_DIARIZATION)
+        usage.record_transcription_usage(
+            model=model,
+            diarization_enabled=diarization_enabled,
+            duration_sec=job.get("duration_sec"),
+            user_id=job.get("user_id", ""),
+            meeting_id=job["job_id"],
+        )
+    except Exception:  # noqa: BLE001 — 用量記錄失敗不應阻擋 /api/status 回應
+        pass
+
     return jobstore.update_job(
         job["job_id"],
         stage="transcribed",
