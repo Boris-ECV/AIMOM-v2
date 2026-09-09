@@ -63,6 +63,7 @@ class DiarizeResponse(BaseModel):
 
 class SummarizeRequest(BaseModel):
     job_id: str
+    template: Optional[str] = None
 
 
 class ActionItem(BaseModel):
@@ -71,7 +72,7 @@ class ActionItem(BaseModel):
     due: str
 
 
-class Topic(BaseModel):
+class Section(BaseModel):
     title: str
     content: str
 
@@ -87,11 +88,12 @@ class MeetingInfo(BaseModel):
 
 class SummarizeResponse(BaseModel):
     job_id: str
+    template: str
     meeting_info: MeetingInfo
     summary: str
     action_items: List[ActionItem]
     decisions: List[str]
-    topics: List[Topic]
+    sections: List[Section]
 
 
 class StatusResponse(BaseModel):

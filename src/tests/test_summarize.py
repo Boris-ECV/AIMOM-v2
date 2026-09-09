@@ -26,7 +26,7 @@ MOCK_LLM_RESPONSE = json.dumps({
     "summary": "本次會議討論了技術選型，決定使用 FastAPI 框架。",
     "action_items": [{"owner": "王小明", "task": "建立 FastAPI 專案", "due": "下週五"}],
     "decisions": ["使用 FastAPI 框架"],
-    "topics": [{"title": "技術選型", "content": "比較了 Flask 和 FastAPI"}],
+    "sections": [{"title": "技術選型", "content": "比較了 Flask 和 FastAPI"}],
 })
 
 
@@ -56,6 +56,8 @@ def test_summarize_success():
     assert "summary" in data
     assert len(data["action_items"]) == 1
     assert data["decisions"] == ["使用 FastAPI 框架"]
+    assert data["template"] == "general"
+    assert data["sections"] == [{"title": "技術選型", "content": "比較了 Flask 和 FastAPI"}]
     assert data["meeting_info"] == {
         "date": "2026-08-04",
         "time": "14:00",
@@ -80,7 +82,7 @@ def test_summarize_normalizes_malformed_llm_payload():
         "summary": "  摘要內容  ",
         "action_items": ["建立 FastAPI 專案", {"owner": None, "task": "整理文件", "due": None}],
         "decisions": ["  採用 FastAPI  ", None],
-        "topics": ["技術選型", {"title": None, "content": "比較 Flask 與 FastAPI"}],
+        "sections": ["技術選型", {"title": None, "content": "比較 Flask 與 FastAPI"}],
     })
     mock_choice = MagicMock()
     mock_choice.message = mock_message
@@ -97,7 +99,7 @@ def test_summarize_normalizes_malformed_llm_payload():
     assert data["summary"] == "摘要內容"
     assert data["action_items"][0] == {"owner": "", "task": "建立 FastAPI 專案", "due": ""}
     assert data["decisions"] == ["採用 FastAPI"]
-    assert data["topics"][0] == {"title": "技術選型", "content": ""}
+    assert data["sections"][0] == {"title": "技術選型", "content": ""}
     assert data["meeting_info"] == {
         "date": "",
         "time": "10:00",
@@ -116,7 +118,7 @@ def test_summarize_meeting_info_missing_defaults_to_unmentioned():
         "summary": "簡短摘要",
         "action_items": [],
         "decisions": [],
-        "topics": [],
+        "sections": [],
     })
     mock_choice = MagicMock()
     mock_choice.message = mock_message
@@ -148,7 +150,7 @@ def test_summarize_action_item_due_left_blank_when_unmentioned():
         "summary": "簡短摘要",
         "action_items": [{"owner": "", "task": "調查方案", "due": ""}],
         "decisions": [],
-        "topics": [],
+        "sections": [],
     })
     mock_choice = MagicMock()
     mock_choice.message = mock_message
@@ -177,6 +179,154 @@ def test_summarize_llm_client_failure_sets_error_state():
 
     job = jobstore.get_job(job_id)
     assert job["stage"] == "error"
+
+
+def test_summarize_with_retro_template_returns_fixed_sections():
+    """AC1: 選擇內建模板後，AI 產出對應結構的區塊（Keep/Problem/Try，順序定案）。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = json.dumps({
+        "meeting_info": {"date": "", "time": "", "location": "", "participants": []},
+        "summary": "回顧會議摘要",
+        "action_items": [],
+        "decisions": [],
+        "sections": [
+            {"title": "Problem", "content": "部署流程太慢"},
+            {"title": "Keep", "content": "每日站會維持"},
+            # LLM 未提到 Try，_normalize_sections 應補上空字串
+        ],
+    })
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id, "template": "retro"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["template"] == "retro"
+    assert [s["title"] for s in data["sections"]] == ["Keep", "Problem", "Try"]
+    assert data["sections"] == [
+        {"title": "Keep", "content": "每日站會維持"},
+        {"title": "Problem", "content": "部署流程太慢"},
+        {"title": "Try", "content": ""},
+    ]
+    for section in data["sections"]:
+        assert "title" in section
+        assert "content" in section
+
+
+def test_summarize_with_project_status_template_returns_fixed_sections():
+    """設計文件 SDLCAIP2-16 固定模板清單：project_status 的區塊標題
+    （進度更新／風險與阻礙／下一步計畫）與順序亦須為定案，非僅 retro。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = json.dumps({
+        "meeting_info": {"date": "", "time": "", "location": "", "participants": []},
+        "summary": "專案進度會議摘要",
+        "action_items": [],
+        "decisions": [],
+        "sections": [
+            # LLM 回傳順序打亂，且缺漏「下一步計畫」，驗證 _normalize_sections 會修正
+            {"title": "風險與阻礙", "content": "第三方 API 延遲"},
+            {"title": "進度更新", "content": "本週完成登入模組"},
+        ],
+    })
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id, "template": "project_status"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["template"] == "project_status"
+    assert [s["title"] for s in data["sections"]] == ["進度更新", "風險與阻礙", "下一步計畫"]
+    assert data["sections"] == [
+        {"title": "進度更新", "content": "本週完成登入模組"},
+        {"title": "風險與阻礙", "content": "第三方 API 延遲"},
+        {"title": "下一步計畫", "content": ""},
+    ]
+
+
+def test_summarize_without_template_defaults_to_general_and_stays_compatible():
+    """AC2: 不指定模板時維持向下相容，套用預設「一般會議」，
+    meeting_info、action_items 欄位不變。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = MOCK_LLM_RESPONSE
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["template"] == "general"
+    assert data["meeting_info"] == {
+        "date": "2026-08-04",
+        "time": "14:00",
+        "location": "3樓會議室",
+        "participants": ["王小明", "李小華"],
+    }
+    assert data["action_items"] == [
+        {"owner": "王小明", "task": "建立 FastAPI 專案", "due": "下週五"}
+    ]
+    assert data["sections"] == [{"title": "技術選型", "content": "比較了 Flask 和 FastAPI"}]
+
+
+def test_summarize_with_null_template_also_defaults_to_general():
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = MOCK_LLM_RESPONSE
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id, "template": None})
+
+    assert response.status_code == 200
+    assert response.json()["template"] == "general"
+
+
+def test_summarize_with_unknown_template_returns_400_before_calling_llm():
+    """AC3: 指定不存在的模板代碼，回傳 400，訊息列出可用的模板代碼清單；
+    驗證發生在呼叫 LLM 之前。"""
+    job_id = _setup_job()
+
+    mock_client = MagicMock()
+
+    with patch("config.get_llm_client", return_value=mock_client) as mock_get_client:
+        response = client.post("/api/summarize", json={"job_id": job_id, "template": "not_exist"})
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "not_exist" in detail
+    for code in ["brainstorm", "client_meeting", "general", "project_status", "retro"]:
+        assert code in detail
+    mock_get_client.assert_not_called()
+    mock_client.chat.completions.create.assert_not_called()
 
 
 def test_summarize_llm_error_includes_status_and_response():

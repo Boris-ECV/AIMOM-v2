@@ -1,15 +1,16 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from models import SummarizeRequest, SummarizeResponse, ActionItem, Topic, MeetingInfo
+from models import SummarizeRequest, SummarizeResponse, ActionItem, Section, MeetingInfo
 import config
 import jobstore
+import meeting_templates
 from progress import update_progress
 from auth import CurrentUser, get_current_user
 from usage import record_llm_usage
 
 router = APIRouter()
 
-SYSTEM_PROMPT = """你是專業的會議記錄助手。請根據以下逐字稿，輸出 JSON 格式的會議紀錄。
+BASE_SYSTEM_PROMPT = """你是專業的會議記錄助手。請根據以下逐字稿，輸出 JSON 格式的會議紀錄。
 JSON 必須包含以下欄位：
 - meeting_info: 物件，包含 date（會議日期）、time（會議時間）、location（會議地點）、
   participants（參與者姓名陣列）。這些資訊「只能」根據逐字稿中明確提及的內容填寫，
@@ -22,9 +23,21 @@ JSON 必須包含以下欄位：
   負責人是誰或截止日期/時間，該欄位請填空字串，絕對不可以自行推算或臆測
   具體的人名或日期。
 - decisions: 字串陣列，列出本次會議做出的決定
-- topics: 陣列，每項含 title（議題標題）、content（議題重點）
+- sections: 陣列，每項含 title（區塊標題）、content（區塊重點）
 
 所有文字請使用繁體中文回應。只輸出 JSON，不要其他說明文字。"""
+
+
+def _build_system_prompt(template: meeting_templates.MeetingTemplate) -> str:
+    if template.section_titles is None:
+        return BASE_SYSTEM_PROMPT
+    titles_list = "、".join(template.section_titles)
+    fixed_sections_instruction = (
+        f"\n\n本次會議使用「{template.name}」模板，sections 必須恰好包含以下標題，"
+        f"依此順序：{titles_list}；某個標題若逐字稿未提及對應內容，"
+        f"content 請填空字串，不可臆測或省略該標題。"
+    )
+    return BASE_SYSTEM_PROMPT + fixed_sections_instruction
 
 
 def _build_transcript_text(segments: list[dict]) -> str:
@@ -50,7 +63,7 @@ def _parse_llm_response(content: str) -> dict:
             "summary": content[:500],
             "action_items": [],
             "decisions": [],
-            "topics": [],
+            "sections": [],
         }
 
 
@@ -77,12 +90,13 @@ def _normalize_action_items(raw_items) -> list[dict]:
     return normalized
 
 
-def _normalize_topics(raw_topics) -> list[dict]:
-    if not isinstance(raw_topics, list):
+def _normalize_free_sections(raw_sections) -> list[dict]:
+    """`general` 模板：自由格式，沿用現行 topics 自由格式邏輯，只改名稱。"""
+    if not isinstance(raw_sections, list):
         return []
 
     normalized: list[dict] = []
-    for item in raw_topics:
+    for item in raw_sections:
         if isinstance(item, dict):
             normalized.append(
                 {
@@ -93,6 +107,22 @@ def _normalize_topics(raw_topics) -> list[dict]:
         elif isinstance(item, str) and item.strip():
             normalized.append({"title": item.strip(), "content": ""})
     return normalized
+
+
+def _normalize_sections(
+    raw_sections, template: meeting_templates.MeetingTemplate
+) -> list[dict]:
+    """固定模板：依模板定義的標題清單、固定順序回傳，缺漏標題以空字串補齊。
+    `general` 模板：沿用自由格式邏輯。"""
+    if template.section_titles is None:
+        return _normalize_free_sections(raw_sections)
+
+    free_sections = _normalize_free_sections(raw_sections)
+    content_by_title = {s["title"]: s["content"] for s in free_sections if s["title"]}
+    return [
+        {"title": title, "content": content_by_title.get(title, "")}
+        for title in template.section_titles
+    ]
 
 
 def _normalize_decisions(raw_decisions) -> list[str]:
@@ -150,8 +180,17 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
     if segments is None:
         raise HTTPException(status_code=400, detail="請先執行 /transcribe 並等待轉錄完成")
 
+    if req.template is not None and req.template not in meeting_templates.TEMPLATES:
+        valid_codes = ", ".join(meeting_templates.valid_codes_sorted())
+        raise HTTPException(
+            status_code=400,
+            detail=f"未知的 template 代碼：{req.template}。可用代碼：{valid_codes}",
+        )
+    template = meeting_templates.get_template(req.template)
+
     transcript_text = _build_transcript_text(segments)
     model = config.get_llm_model()
+    system_prompt = _build_system_prompt(template)
 
     update_progress(job_id, "summarizing", 70, "正在 AI 整理會議紀錄...")
     try:
@@ -159,7 +198,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"逐字稿如下：\n\n{transcript_text}"},
             ],
             temperature=0.3,
@@ -188,7 +227,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
     summary = _text(data.get("summary"))
     action_items = _normalize_action_items(data.get("action_items"))
     decisions = _normalize_decisions(data.get("decisions"))
-    topics = _normalize_topics(data.get("topics"))
+    sections = _normalize_sections(data.get("sections"), template)
 
     try:
         usage_info = response.usage
@@ -205,19 +244,21 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
 
     minutes = {
         "job_id": job_id,
+        "template": template.code,
         "meeting_info": meeting_info,
         "summary": summary,
         "action_items": action_items,
         "decisions": decisions,
-        "topics": topics,
+        "sections": sections,
     }
     jobstore.update_job(job_id, stage="done", progress=100, message="會議紀錄整理完成", minutes=minutes)
 
     return SummarizeResponse(
         job_id=job_id,
+        template=template.code,
         meeting_info=MeetingInfo(**meeting_info),
         summary=summary,
         action_items=[ActionItem(**a) for a in action_items],
         decisions=decisions,
-        topics=[Topic(**t) for t in topics],
+        sections=[Section(**s) for s in sections],
     )
