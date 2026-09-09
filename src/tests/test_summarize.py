@@ -221,6 +221,44 @@ def test_summarize_with_retro_template_returns_fixed_sections():
         assert "content" in section
 
 
+def test_summarize_with_project_status_template_returns_fixed_sections():
+    """設計文件 SDLCAIP2-16 固定模板清單：project_status 的區塊標題
+    （進度更新／風險與阻礙／下一步計畫）與順序亦須為定案，非僅 retro。"""
+    job_id = _setup_job()
+
+    mock_message = MagicMock()
+    mock_message.content = json.dumps({
+        "meeting_info": {"date": "", "time": "", "location": "", "participants": []},
+        "summary": "專案進度會議摘要",
+        "action_items": [],
+        "decisions": [],
+        "sections": [
+            # LLM 回傳順序打亂，且缺漏「下一步計畫」，驗證 _normalize_sections 會修正
+            {"title": "風險與阻礙", "content": "第三方 API 延遲"},
+            {"title": "進度更新", "content": "本週完成登入模組"},
+        ],
+    })
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        response = client.post("/api/summarize", json={"job_id": job_id, "template": "project_status"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["template"] == "project_status"
+    assert [s["title"] for s in data["sections"]] == ["進度更新", "風險與阻礙", "下一步計畫"]
+    assert data["sections"] == [
+        {"title": "進度更新", "content": "本週完成登入模組"},
+        {"title": "風險與阻礙", "content": "第三方 API 延遲"},
+        {"title": "下一步計畫", "content": ""},
+    ]
+
+
 def test_summarize_without_template_defaults_to_general_and_stays_compatible():
     """AC2: 不指定模板時維持向下相容，套用預設「一般會議」，
     meeting_info、action_items 欄位不變。"""
