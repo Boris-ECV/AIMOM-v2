@@ -62,6 +62,106 @@ def test_admin_usage_endpoint_requires_admin(client):
         app.dependency_overrides.pop(get_current_user, None)
 
 
+def test_bedrock_proxy_pricing_estimates_correct_cost():
+    with mock_aws():
+        item = usage.record_llm_usage(
+            engine="bedrock-proxy",
+            model="mistral.mistral-large-3-675b-instruct",
+            input_tokens=2000,
+            output_tokens=1000,
+            user_id="user@example.com",
+            meeting_id="job-bedrock",
+        )
+    expected = round((2000 / 1_000_000) * 0.50 + (1000 / 1_000_000) * 1.50, 6)
+    assert item["estimated_cost"] == expected
+    assert item["estimated_cost"] != 0
+    assert item["pricing_unavailable"] is False
+
+
+def test_record_llm_usage_unknown_pricing_marks_unavailable_and_none_cost():
+    with mock_aws():
+        item = usage.record_llm_usage(
+            engine="unknown-engine",
+            model="unknown-model",
+            input_tokens=100,
+            output_tokens=100,
+            user_id="user@example.com",
+            meeting_id="job-unknown",
+        )
+    assert item["pricing_unavailable"] is True
+    assert item["estimated_cost"] is None
+
+
+def test_summarize_usage_reports_pricing_unavailable_and_excludes_from_total():
+    with mock_aws():
+        usage.record_llm_usage("groq", "llama-3.3-70b-versatile", 2000, 1000, "a@example.com", "job-a")
+        usage.record_llm_usage("unknown-engine", "unknown-model", 500, 500, "b@example.com", "job-b")
+
+        summary = usage.summarize_usage()
+
+    assert summary["pricing_unavailable_count"] == 1
+    assert summary["pricing_unavailable_engines"] == [
+        {"engine": "unknown-engine", "model": "unknown-model"}
+    ]
+    known_cost = usage.estimate_cost("groq", "llama-3.3-70b-versatile", 2000, 1000)
+    assert summary["total_estimated_cost"] == round(known_cost, 6)
+
+
+def test_summarize_usage_treats_legacy_items_without_pricing_unavailable_as_false():
+    with mock_aws():
+        usage.ensure_usage_table_exists()
+        table = usage._table()
+        from decimal import Decimal
+
+        table.put_item(
+            Item={
+                "date": "2026-01-01",
+                "usage_id": "legacy-1",
+                "engine": "github-models",
+                "model": "gpt-4o",
+                "input_tokens": 1000,
+                "output_tokens": 500,
+                "estimated_cost": Decimal("7.5"),
+                "user_id": "legacy@example.com",
+                "meeting_id": "job-legacy",
+                "created_at": "2026-01-01T00:00:00",
+            }
+        )
+
+        summary = usage.summarize_usage()
+
+    assert summary["pricing_unavailable_count"] == 0
+    assert summary["total_estimated_cost"] == 7.5
+    assert summary["by_user"] == [
+        {
+            "user_id": "legacy@example.com",
+            "input_tokens": 1000,
+            "output_tokens": 500,
+            "estimated_cost": 7.5,
+            "calls": 1,
+        }
+    ]
+
+
+def test_admin_usage_endpoint_includes_pricing_unavailable_fields(client):
+    def _admin_user() -> CurrentUser:
+        return CurrentUser(email="admin@example.com", role="admin")
+
+    app.dependency_overrides[get_current_user] = _admin_user
+    try:
+        usage.record_llm_usage("unknown-engine", "unknown-model", 100, 100, "u@example.com", "job-x")
+        resp = client.get("/api/admin/usage")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["pricing_unavailable_count"] == 1
+        assert body["pricing_unavailable_engines"] == [
+            {"engine": "unknown-engine", "model": "unknown-model"}
+        ]
+        assert body["total_estimated_cost"] == 0
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
 def test_admin_usage_endpoint_allows_admin(client):
     def _admin_user() -> CurrentUser:
         return CurrentUser(email="admin@example.com", role="admin")
