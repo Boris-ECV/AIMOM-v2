@@ -12,18 +12,20 @@
 - `assemblyai_model`/`assemblyai_diarization_enabled` 於 /transcribe 送出時釘住，
   舊 job 缺欄位時退回讀取目前 config.*
 """
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-from fastapi.testclient import TestClient
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from fastapi.testclient import TestClient
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
-from app import app
 import config
 import jobstore
 import usage
+from app import app
 
 client = TestClient(app)
 
@@ -308,6 +310,46 @@ def test_transcribe_pins_model_and_diarization_at_submit_time():
     job = jobstore.get_job(job_id)
     assert job["assemblyai_model"] == config.ASSEMBLYAI_MODEL
     assert job["assemblyai_diarization_enabled"] == config.ASSEMBLYAI_SPEAKER_DIARIZATION
+
+
+# ─── build_segments_from_transcript 失敗不可讓 job 永久卡住（SDLCAIP2-22 code review）──
+
+
+def test_segment_assembly_failure_after_claiming_lock_surfaces_as_error_not_stuck():
+    """claim_finalize() 成功搶鎖後，若 build_segments_from_transcript() 拋例外
+    （例如 AssemblyAI 回應格式異常），job 不可永遠卡在 stage="transcribing"
+    （否則之後每次輪詢 claim_finalize() 都會失敗，組裝程式碼永遠不會再被執行，
+    呈現無錯誤訊息的永久卡死）。應改寫入 stage="error"，讓使用者看到明確錯誤，
+    且之後的輪詢直接命中函式最上方的 guard、不再誤觸 claim_finalize()。"""
+    job_id = "cost-job-segment-fail"
+    jobstore.create_job(
+        job_id, stage="transcribing", progress=20, message="等待中",
+        assemblyai_transcript_id="aai-fail", duration_sec=3600.0,
+        assemblyai_model="universal-2", assemblyai_diarization_enabled=False,
+        user_id="user@example.com",
+    )
+
+    with patch("progress._fetch_transcript_status_once", return_value=_completed_transcript()), \
+         patch("progress.build_segments_from_transcript", side_effect=RuntimeError("unexpected shape")):
+        response = client.get(f"/api/status/{job_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["stage"] == "error"
+
+    job = jobstore.get_job(job_id)
+    assert job["stage"] == "error"
+    assert "unexpected shape" in job["message"]
+
+    # 沒有記錄用量（組裝失敗發生在 usage.record_transcription_usage 之前）
+    usage.ensure_usage_table_exists()
+    assert _transcription_items_for(job_id) == []
+
+    # 之後的輪詢不再誤觸 claim_finalize()：stage 已脫離 "transcribing"，
+    # 直接命中函式最上方的 guard 回傳目前狀態，不會再次嘗試組裝或報錯。
+    response2 = client.get(f"/api/status/{job_id}")
+    assert response2.status_code == 200
+    assert response2.json()["stage"] == "error"
 
 
 def test_old_job_without_pinned_model_falls_back_to_current_config():

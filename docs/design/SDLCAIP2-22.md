@@ -128,6 +128,32 @@ G1 已核准的 ticket 描述（SDLCAIP2-22，`docs/PRD.md` 同名段落）。�
    這是技術健全性措施（既有 race 本來無害，記費後才變得可見），非產品
    決策，依橘子色風險註記 #3 屬於架構師可自行決定的範圍。
 
+   **「搶鎖成功後、寫回 `stage="transcribed"` 之前」這段窗口若中途拋例外，
+   也必須妥善處理，不能讓 job 卡死（code review 追加修正）**：`finalize_claimed`
+   一旦設定就不會被清除，若 `build_segments_from_transcript()`（例如
+   AssemblyAI 回應格式異常、直接 attribute access 失敗）在搶鎖之後、
+   `jobstore.update_job(stage="transcribed", ...)` 之前拋出未被接住的例外，
+   會產生比修 race 之前更糟的結果：`stage` 停留在 `"transcribing"`，之後
+   每次 `/api/status` 輪詢都會再次通過函式最上方的 `stage == "transcribing"`
+   guard、再次呼叫 `claim_finalize()`——但鎖已被佔用，永遠回傳 `False`，
+   落入 `return jobstore.get_job(job_id) or job` 分支，組裝程式碼永遠不會
+   再被執行到，job 呈現「永久卡在轉錄中、無任何錯誤訊息」的狀態，且無法
+   靠使用者重試復原。
+   修法：把 `build_segments_from_transcript(transcript)` 與
+   `unique_speakers` 的計算包進 `try/except`，失敗時比照上面 AssemblyAI
+   錯誤分支（`transcript.status == aai.TranscriptStatus.error` 的處理），
+   同樣寫入 `jobstore.update_job(..., stage="error", message=...)`。理由：
+   1) 讓使用者看到明確錯誤而非無限卡住，符合 CONSTITUTION.md 失敗處理哲學
+   （對外部依賴的呼叫不可讓例外無聲穿透）；2) `stage` 一旦離開
+   `"transcribing"`，之後的輪詢會直接命中函式最上方的 guard、不再誤觸
+   `claim_finalize()`，行為與既有的 AssemblyAI 錯誤分支完全一致，不需要
+   額外新增「清除鎖以便重試」的機制。對照組：`usage.record_transcription_usage()`
+   的呼叫仍維持原本的 `try/except Exception: pass`（見決策 6）——差別在於
+   segments 組裝失敗代表這次轉錄結果本身不可用，理應讓使用者知道；用量
+   記錄失敗只是附帶效果的記帳動作，不影響使用者已經拿到的轉錄結果，兩者
+   失敗後果不同，因此處理方式刻意不同。測試見
+   `src/tests/test_transcription_cost.py::test_segment_assembly_failure_after_claiming_lock_surfaces_as_error_not_stuck`。
+
 5. **轉錄成本沿用既有 `DYNAMODB_LLM_USAGE_TABLE` 這張表，不另開新表。**
    理由：`/admin/usage` 需要「合計」兩種 service 的成本，同表 `scan()`
    一次就能拿到全部資料，`summarize_usage()` 改動也最小；符合 CONSTITUTION.md
