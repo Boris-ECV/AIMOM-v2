@@ -105,6 +105,31 @@ def update_job(job_id: str, **fields) -> dict:
     return _put(job_id, data)
 
 
+def claim_finalize(job_id: str) -> bool:
+    """搶下「轉錄完成收尾（組裝 segments／記費）」的一次性鎖（SDLCAIP2-22）。
+
+    用獨立於 `data` JSON blob 之外的頂層 attribute `finalize_claimed` +
+    `ConditionExpression`，讓 DynamoDB 保證併發呼叫中只有一個能成功寫入。
+    成功搶到鎖回傳 True；已被其他併發請求搶走（ConditionalCheckFailedException）
+    回傳 False，呼叫端應視為「已被搶走，直接回傳目前狀態」。
+    """
+    from botocore.exceptions import ClientError
+
+    ensure_jobs_table_exists()
+    try:
+        _table().update_item(
+            Key={"job_id": job_id},
+            UpdateExpression="SET finalize_claimed = :true",
+            ConditionExpression="attribute_not_exists(finalize_claimed)",
+            ExpressionAttributeValues={":true": True},
+        )
+        return True
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return False
+        raise
+
+
 def delete_job(job_id: str) -> bool:
     ensure_jobs_table_exists()
     existing = get_job(job_id)

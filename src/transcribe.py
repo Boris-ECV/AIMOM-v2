@@ -71,6 +71,10 @@ async def transcribe(req: TranscribeRequest):
         progress=20,
         message="等待轉錄完成...",
         assemblyai_transcript_id=transcript_id,
+        # 釘住送出當下實際使用的設定，供完成收尾時算成本用（SDLCAIP2-22 技術決策 3）：
+        # config.* 是 process 等級環境變數，收尾當下讀取可能已非送出當時的值。
+        assemblyai_model=config.ASSEMBLYAI_MODEL,
+        assemblyai_diarization_enabled=config.ASSEMBLYAI_SPEAKER_DIARIZATION,
     )
 
     return StatusResponse(job_id=job_id, stage=job["stage"], progress=job["progress"], message=job["message"])

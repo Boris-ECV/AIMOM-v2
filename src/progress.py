@@ -5,6 +5,7 @@ import assemblyai as aai
 from assemblyai.transcriber import api as aai_api
 import config
 import jobstore
+import usage
 from transcript_utils import build_segments_from_transcript
 
 router = APIRouter()
@@ -68,8 +69,30 @@ def _finalize_if_transcription_done(job: dict) -> dict:
         # 仍在 AssemblyAI 佇列中或處理中，狀態不變，前端繼續輪詢即可
         return job
 
+    # 併發輪詢防護（SDLCAIP2-22）：只在真正要組裝 segments／記費前才搶鎖，
+    # 避免「還在處理中」的多次輪詢無謂觸碰這個 attribute。搶輸的請求視為
+    # 已被另一個併發 /api/status 請求處理完畢，直接回傳目前（可能已更新的）狀態。
+    if not jobstore.claim_finalize(job["job_id"]):
+        return jobstore.get_job(job["job_id"]) or job
+
     segments, full_text = build_segments_from_transcript(transcript)
     unique_speakers = len(set(s["speaker"] for s in segments if s.get("speaker")))
+
+    try:
+        # 送出當下釘住的設定優先；舊 job（本story上線前已在 transcribing、
+        # 沒有這兩個欄位）退回讀取目前 config.* 當 fallback。
+        model = job.get("assemblyai_model", config.ASSEMBLYAI_MODEL)
+        diarization_enabled = job.get("assemblyai_diarization_enabled", config.ASSEMBLYAI_SPEAKER_DIARIZATION)
+        usage.record_transcription_usage(
+            model=model,
+            diarization_enabled=diarization_enabled,
+            duration_sec=job.get("duration_sec"),
+            user_id=job.get("user_id", ""),
+            meeting_id=job["job_id"],
+        )
+    except Exception:  # noqa: BLE001 — 用量記錄失敗不應阻擋 /api/status 回應
+        pass
+
     return jobstore.update_job(
         job["job_id"],
         stage="transcribed",
