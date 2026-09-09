@@ -120,3 +120,86 @@ def test_get_current_user_missing_header_401():
     client = TestClient(app)
     resp = client.get("/api/me")
     assert resp.status_code == 401
+
+
+# --- SDLCAIP2-23: ALLOWED_EMAILS 白名單 ---
+
+
+def test_verify_token_email_in_allowlist_passes(rsa_key, monkeypatch):
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com,b@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    token = _make_token(pem, email="a@example.com")
+
+    user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+    assert user.email == "a@example.com"
+
+
+def test_verify_token_email_not_in_allowlist_raises(rsa_key, monkeypatch):
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    token = _make_token(pem, email="c@example.com")
+
+    with pytest.raises(auth.EmailNotAllowedError):
+        auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+
+def test_verify_token_empty_allowlist_backward_compatible(rsa_key, monkeypatch):
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    token = _make_token(pem, email="anyone@example.com")
+
+    user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+    assert user.email == "anyone@example.com"
+
+
+def test_verify_token_admin_not_in_allowlist_still_rejected(rsa_key, monkeypatch):
+    monkeypatch.setattr(config, "ADMIN_EMAILS", "admin@example.com")
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "other@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    pem, jwk = rsa_key
+    token = _make_token(pem, email="admin@example.com")
+
+    with pytest.raises(auth.EmailNotAllowedError):
+        auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+
+def test_get_current_user_email_in_allowlist_returns_200(rsa_key, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import app
+    from auth import get_current_user
+
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com,b@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    monkeypatch.setattr(auth, "_JWKS_CACHE", {"keys": {"keys": [jwk]}, "fetched_at": time.time()})
+    token = _make_token(pem, email="a@example.com")
+
+    app.dependency_overrides.pop(get_current_user, None)
+    client = TestClient(app)
+    resp = client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 200
+
+
+def test_get_current_user_email_not_in_allowlist_returns_403(rsa_key, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import app
+    from auth import get_current_user
+
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    monkeypatch.setattr(auth, "_JWKS_CACHE", {"keys": {"keys": [jwk]}, "fetched_at": time.time()})
+    token = _make_token(pem, email="c@example.com")
+
+    app.dependency_overrides.pop(get_current_user, None)
+    client = TestClient(app)
+    resp = client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "此帳號未被授權使用本系統"

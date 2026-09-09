@@ -53,6 +53,7 @@ COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-northeast-1")
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
 COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID", "")
 ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "")  # 逗號分隔白名單，判定管理者角色
+ALLOWED_EMAILS = os.getenv("ALLOWED_EMAILS", "")  # 逗號分隔白名單，登入門檻（非空時強制）
 
 # DynamoDB（TASK-009/011/016）
 DYNAMODB_MEETINGS_TABLE = os.getenv("DYNAMODB_MEETINGS_TABLE", "aimom-meetings")
