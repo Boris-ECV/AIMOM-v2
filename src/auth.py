@@ -26,6 +26,10 @@ class CurrentUser(BaseModel):
     role: Literal["user", "admin"]
 
 
+class EmailNotAllowedError(Exception):
+    """token 驗證通過，但 email 不在 ALLOWED_EMAILS 白名單內。"""
+
+
 def _cognito_issuer() -> str:
     return (
         f"https://cognito-idp.{config.COGNITO_REGION}.amazonaws.com/"
@@ -50,6 +54,11 @@ def _default_jwks_provider() -> dict:
 
 def _get_admin_emails() -> set[str]:
     raw = config.ADMIN_EMAILS or ""
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+def _get_allowed_emails() -> set[str]:
+    raw = config.ALLOWED_EMAILS or ""
     return {e.strip().lower() for e in raw.split(",") if e.strip()}
 
 
@@ -86,6 +95,10 @@ def verify_token(token: str, jwks_provider: Callable[[], dict] = _default_jwks_p
     if not email:
         raise ValueError("token 缺少 email claim")
 
+    allowed_emails = _get_allowed_emails()
+    if allowed_emails and email.lower() not in allowed_emails:
+        raise EmailNotAllowedError(email)
+
     role = "admin" if email.lower() in _get_admin_emails() else "user"
     return CurrentUser(email=email, role=role)
 
@@ -98,6 +111,8 @@ async def get_current_user(authorization: Optional[str] = Header(default=None)) 
     token = authorization.split(" ", 1)[1].strip()
     try:
         return verify_token(token)
+    except EmailNotAllowedError as exc:
+        raise HTTPException(status_code=403, detail="此帳號未被授權使用本系統") from exc
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="未授權，請重新登入") from exc
 
