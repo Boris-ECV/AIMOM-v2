@@ -168,6 +168,24 @@ def test_verify_token_admin_not_in_allowlist_still_rejected(rsa_key, monkeypatch
         auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
 
 
+def test_get_current_user_email_in_allowlist_returns_200(rsa_key, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import app
+    from auth import get_current_user
+
+    pem, jwk = rsa_key
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com,b@example.com")
+    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    monkeypatch.setattr(auth, "_JWKS_CACHE", {"keys": {"keys": [jwk]}, "fetched_at": time.time()})
+    token = _make_token(pem, email="a@example.com")
+
+    app.dependency_overrides.pop(get_current_user, None)
+    client = TestClient(app)
+    resp = client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resp.status_code == 200
+
+
 def test_get_current_user_email_not_in_allowlist_returns_403(rsa_key, monkeypatch):
     from fastapi.testclient import TestClient
     from app import app
