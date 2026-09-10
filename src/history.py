@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 import db
 import jobstore
@@ -71,6 +71,29 @@ async def list_meetings(user: CurrentUser = Depends(get_current_user)):
 async def get_meeting(meeting_id: str, user: CurrentUser = Depends(get_current_user)):
     """取得單筆會議紀錄完整內容。"""
     item = db.get_meeting(user_id=user.email, meeting_id=meeting_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="找不到此會議紀錄")
+    return {
+        "meeting_id": item["meeting_id"],
+        "title": item["title"],
+        "transcript_text": item["transcript_text"],
+        "minutes": json.loads(item["minutes_json"]),
+        "expires_at": item["expires_at"],
+    }
+
+
+@router.patch("/meetings/{meeting_id}")
+async def update_meeting(
+    meeting_id: str,
+    minutes: dict = Body(...),
+    user: CurrentUser = Depends(get_current_user),
+):
+    """編輯已保留的會議紀錄，整份覆蓋 minutes 內容。"""
+    item = db.update_meeting(
+        user_id=user.email,
+        meeting_id=meeting_id,
+        minutes_json=json.dumps(minutes, ensure_ascii=False),
+    )
     if item is None:
         raise HTTPException(status_code=404, detail="找不到此會議紀錄")
     return {
