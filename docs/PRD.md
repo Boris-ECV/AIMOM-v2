@@ -248,6 +248,51 @@ Scenario: 指定不存在的模板代碼
 
 ---
 
+## SDLCAIP2-18：逐字稿分頁講者命名 UI（前端）
+
+### 使用者故事
+
+As a 團隊成員, I want 在會議紀錄結果畫面的逐字稿分頁中為偵測到的講者輸入姓名並送出儲存, so that 我不需要理解 API 就能完成命名，且命名結果會保留在逐字稿與匯出檔案中。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 逐字稿分頁列出偵測到的講者標籤與命名輸入框
+  Given 轉錄與摘要完成，偵測到 2 位講者
+  When 使用者切換到逐字稿分頁
+  Then 畫面顯示 2 個講者標籤，各自搭配一個姓名輸入框（自由輸入文字，非下拉選單）
+
+Scenario: 送出命名後呼叫後端 API 並更新逐字稿顯示
+  Given 使用者在講者姓名輸入框輸入姓名
+  When 使用者點擊「送出」按鈕
+  Then 前端呼叫 POST /api/speaker-names（一次送出所有已填寫的姓名對應）
+  And 逐字稿顯示區的講者標籤即時替換為 API 回傳的新姓名
+  And 匯出的 Markdown/純文字/Word/PDF 內容使用新姓名
+
+Scenario: 不命名任何講者仍可正常使用會議紀錄
+  Given 使用者未輸入任何講者姓名、也未點擊「送出」
+  When 使用者切換分頁或匯出檔案
+  Then 講者標籤維持原始 AI 標籤（SPEAKER_A 等），不受影響
+
+Scenario: 後端回傳未知標籤時前端不報錯
+  Given 使用者送出的姓名對應中包含 job 內不存在的講者標籤
+  When 呼叫 POST /api/speaker-names 成功回傳 200
+  Then 前端依回傳的 segments/speakers 正常更新顯示，不顯示錯誤訊息
+
+Scenario: 畫面明確告知命名的影響範圍（依 SDLCAIP2-27 Q4 追加要求）
+  Given 使用者進入逐字稿分頁的講者命名區塊
+  Then 畫面需有明確提示文字，說明講者命名只會更新逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者/待辦事項負責人，避免使用者誤以為全部同步更新
+```
+
+### 範圍外
+
+* 批次匯入/管理團隊成員姓名清單（下拉選單式選人）
+* 命名後重新呼叫 /api/summarize 以更新「會議紀錄」分頁的參與者/待辦事項欄位（留待未來 Story；本 Story 僅更新逐字稿分頁與匯出檔案）
+* 新增獨立的「審核」畫面/流程步驟；沿用現有 view-result 逐字稿分頁
+* 跨會議聲紋辨識、已保留歷史會議改名（同 SDLCAIP2-20 範圍外）
+
+---
+
 ## SDLCAIP2-19：已保留會議紀錄編輯 API（後端）
 
 ### 使用者故事
@@ -262,20 +307,13 @@ Scenario: 編輯已保留的會議紀錄
   When 使用者呼叫 PATCH /meetings/{meeting_id}，body 為完整的 minutes 物件（與 GET /meetings/{meeting_id} 回傳的 minutes 同形狀）
   Then 儲存成功，整份 minutes 內容被覆蓋為 body 內容，回傳更新後的完整會議紀錄
 
----
-
 Scenario: 編輯不存在或非本人擁有的會議紀錄
   Given meeting_id 不存在，或屬於另一位使用者（依 DynamoDB user_id+meeting_id 複合鍵，查不到即視為不存在，不額外揭露「存在但非本人」）
   When 使用者呼叫 PATCH /meetings/{meeting_id}
   Then 回傳 404 錯誤（與既有 GET/DELETE /meetings/{meeting_id} 一致，不使用 403）
-
----
-
-Scenario: 編輯後重新匯出反映最新內容
-  Given 使用者已成功編輯會議紀錄
-  When 使用者匯出 docx 或 pdf
-  Then 匯出檔案內容為編輯後的最新版本
 ```
+
+**注：** 原第 3 個 Scenario「編輯後重新匯出反映最新內容」已拆分至獨立 Story SDLCAIP2-29（已保留會議紀錄匯出 API），因現行系統完全沒有依 meeting_id 匯出的端點，屬於獨立於編輯語意的既有缺口。
 
 ### 範圍外
 

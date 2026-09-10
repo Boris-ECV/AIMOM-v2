@@ -60,11 +60,14 @@ const TEMPLATE_OPTIONS = [
 - `exportMarkdown()`：`(m.topics || [])` → `(m.sections || [])`。
 - `exportPlainText()`：`(m.topics || [])` → `(m.sections || [])`。
 - 新增 `regenerateSummary()`：讀取 `#template-select` 目前選中的 `code`，
-  以 `POST /api/summarize`（body 帶 `job_id` 與 `template`）重新取得
-  `SummarizeResponse`，覆蓋 `state.minutes`，重新呼叫 `renderMinutes()`。
-  按鈕文案「🔄 重新產生」，沿用 `doUpload()` 既有的
-  disable-during-request 樣式慣例（呼叫期間按鈕文字改為「產生中...」並
-  disable，成功/失敗後還原）。
+  若 `state.modified` 為 `true`（使用者曾手動編輯過任何欄位），先跳出
+  `confirm()` 確認對話框，取消則中止不送出請求；確認後以
+  `POST /api/summarize`（body 帶 `job_id` 與 `template`）重新取得
+  `SummarizeResponse`，**整包覆蓋** `state.minutes`（非僅 `sections`，
+  見下方關鍵技術決策 #6、#7），重新呼叫 `renderMinutes()` 並重設
+  `state.modified = false`。按鈕文案「🔄 重新產生」，沿用 `doUpload()`
+  既有的 disable-during-request 樣式慣例（呼叫期間按鈕文字改為
+  「產生中...」並 disable，成功/失敗後還原）。
 
 ### 後端匯出（`src/export.py`）新增「討論重點」區塊
 `_build_docx()` 與 `_build_pdf()` 目前完全沒有 sections/topics 渲染（新增
@@ -123,22 +126,23 @@ else:
    CONSTITUTION「視覺設計」原則：先讀現有慣例延續，不引入新模式除非有
    獨立故事明確要做這個決策。
 
-## 開放設計問題（定稿時必須為空）
+6. **「重新產生」整包覆蓋 `state.minutes`（含 `meeting_info`／`summary`／
+   `action_items`／`decisions`／`sections`），不僅覆蓋 `sections`。**
+   人類已於 SDLCAIP2-28 回覆確認採用 Option B：直接用 API 回應整包取代，
+   符合「換模板重新產生」的字面直覺；不做欄位級選擇性合併。
 
-1. **「重新產生」呼叫 `/api/summarize` 後，覆蓋範圍是整個
-   `state.minutes`（含 `meeting_info`／`summary`／`action_items`／
-   `decisions`），還是只覆蓋 `sections`？** AC3 原文只寫「覆蓋原本的
-   sections」，但後端 `/api/summarize` 回應是完整物件，若使用者在重新
-   產生前已手動編輯過摘要/待辦事項/會議資訊（結果畫面本身支援雙擊編輯），
-   兩種實作對使用者體感差異很大（後者會保留使用者手動編輯，前者會被
-   LLM 重新產生的內容蓋掉）。這是 spec 未講清楚的產品行為，不可用「合理
-   猜測」補上，需要人類決策。
-2. **覆蓋 `sections`（或整個 minutes）前是否需要跳出確認提示，警示使用者
-   目前對討論重點（或其他欄位，視問題 1 決議）的手動編輯將遺失？** AC3
-   未提及任何確認流程，是否需要屬於未定的產品決策。
+7. **覆蓋前若 `state.modified === true`，彈出 `confirm()` 確認對話框；
+   `false` 則直接送出不彈窗。** 人類已於 SDLCAIP2-28 回覆確認採用
+   Option A，因應決策 #6 的整包覆蓋會遺失使用者手動編輯，需要明確告警。
+   `state.modified` 為既有全域旗標（`markModified()` 已在雙擊編輯、講者
+   改名等既有互動中設定），沿用不新增額外追蹤狀態。
+
+## 開放設計問題（定稿時必須為空）
+無。原 2 項開放問題已由人類於 SDLCAIP2-28 回覆定案（見決策 #6、#7）。
 
 ## 對應摘要
 - 檔案：`docs/design/SDLCAIP2-15.md`
 - 介面/資料模型：無新增後端端點/資料模型；前端新增模板下拉選單 + 重新產生
-  流程（沿用既有 `/api/summarize`），`export.py` 新增通用 sections 渲染。
-- 開放問題：2 項（重新產生的覆蓋範圍；是否需要覆蓋前確認提示）。
+  流程（沿用既有 `/api/summarize`，整包覆蓋 `state.minutes` + 修改前確認
+  提示），`export.py` 新增通用 sections 渲染。
+- 開放問題：無。
