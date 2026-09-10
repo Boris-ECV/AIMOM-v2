@@ -212,6 +212,95 @@ Scenario: 指定不存在的模板代碼
 
 ---
 
+## SDLCAIP2-19：已保留會議紀錄編輯 API（後端）
+
+### 使用者故事
+
+As a 團隊成員, I want 編輯已保留會議紀錄的內容（摘要、待辦事項、決議等，儲存在 minutes 內的欄位）, so that 我能修正 AI 誤判或補充遺漏的重點，不需要重新錄音。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 編輯已保留的會議紀錄
+  Given 使用者已保留一筆會議紀錄
+  When 使用者呼叫 PATCH /meetings/{meeting_id}，body 為完整的 minutes 物件（與 GET /meetings/{meeting_id} 回傳的 minutes 同形狀）
+  Then 儲存成功，整份 minutes 內容被覆蓋為 body 內容，回傳更新後的完整會議紀錄
+
+---
+
+Scenario: 編輯不存在或非本人擁有的會議紀錄
+  Given meeting_id 不存在，或屬於另一位使用者（依 DynamoDB user_id+meeting_id 複合鍵，查不到即視為不存在，不額外揭露「存在但非本人」）
+  When 使用者呼叫 PATCH /meetings/{meeting_id}
+  Then 回傳 404 錯誤（與既有 GET/DELETE /meetings/{meeting_id} 一致，不使用 403）
+
+---
+
+Scenario: 編輯後重新匯出反映最新內容
+  Given 使用者已成功編輯會議紀錄
+  When 使用者匯出 docx 或 pdf
+  Then 匯出檔案內容為編輯後的最新版本
+```
+
+### 範圍外
+
+* 逐字稿原始文字編輯（僅編輯 AI 產出的會議紀錄結構，不含原始逐字稿內容修改）
+* 編輯歷史/版本紀錄與 undo 功能（僅保留最新版本）
+* 會議紀錄標題（title）編輯（PATCH 僅覆蓋 minutes 內容，不含 title 欄位）
+* 部分欄位局部更新（partial patch）語意：本次 PATCH 一律為整份 minutes 覆蓋，不支援只送部分欄位
+
+---
+
+## SDLCAIP2-20：轉錄後講者姓名對應 API（後端）
+
+### 使用者故事
+
+As a 團隊成員, I want 在確認保留會議紀錄前，把偵測到的講者標籤對應成實際姓名（含非團隊成員的外部與會者，自由輸入文字非下拉選單）, so that 存檔後的逐字稿與會議紀錄顯示真實姓名。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 提交講者姓名對應後，job 的 segments 更新為指定姓名
+  Given 轉錄已完成，job 內有多個講者標籤（如 SPEAKER_A, SPEAKER_B）
+  When 使用者呼叫新的講者姓名對應 API，提交 {"SPEAKER_A": "王小明"}
+  Then job 的 segments 中原本標記 SPEAKER_A 的項目，speaker 欄位改為「王小明」
+
+---
+
+Scenario: 未命名的講者維持原始標籤
+  Given job 內有 SPEAKER_A 與 SPEAKER_B 兩位講者
+  When 使用者只提交 {"SPEAKER_A": "王小明"} 的對應
+  Then SPEAKER_B 的 segments 維持原本標籤不變
+
+---
+
+Scenario: 重新呼叫 /summarize 後反映新姓名
+  Given 已完成講者姓名對應
+  When 使用者呼叫 /summarize
+  Then 回傳的 meeting_info.participants 與 action_items.owner 使用對應後的姓名（若逐字稿中有明確提及）
+
+---
+
+Scenario: job 尚未完成轉錄時呼叫此 API
+  Given job 尚未完成 /transcribe
+  When 使用者呼叫講者姓名對應 API
+  Then 回傳 400 錯誤，訊息說明需先完成轉錄
+
+---
+
+Scenario: 提交的講者標籤與 job 內實際標籤不符
+  Given job 內只有 SPEAKER_A 與 SPEAKER_B 兩位講者
+  When 使用者提交 {"SPEAKER_C": "陌生人"} 的對應（job 內不存在 SPEAKER_C）
+  Then API 忽略該筆不存在的標籤，不報錯，其餘存在的對應正常套用
+```
+
+### 範圍外
+
+* 跨會議聲紋辨識、記憶講者身份（涉及生物特徵隱私法規，另案評估）
+* 已保留（keep）之歷史會議的講者改名——由「會議紀錄手動編輯」相關 Story 涵蓋
+* 講話片段重新歸屬（segment 級別的「這句其實是別人講的」修正）
+
+---
+
 ## SDLCAIP2-21：補上 bedrock-proxy 定價並修正查無定價時靜默顯示 0 的問題
 
 ### 使用者故事
