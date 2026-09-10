@@ -276,3 +276,10 @@
 {"ts": "2026-09-10T06:54:01Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-t8j3", "data": {"from": "Awaiting Gate", "to": "Ready"}}
 {"ts": "2026-09-10T06:54:19Z", "event": "gate_review", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-t8j3", "data": {"gate": "G1", "mode": "manual", "result": "approved", "criteria_results": "all PASS"}}
 {"ts": "2026-09-10T06:54:19Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-t8j3", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-10T07:07:57Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-t8j3", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-10T07:02:42Z", "event": "design_completed", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-t8j3", "data": {"verdict": "BLOCKED", "open_questions": 2}}
+{"ts": "2026-09-10T07:02:42Z", "event": "blocked", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-t8j3", "data": {"reason": "regenerate-overwrite scope + confirmation-prompt questions; opened SDLCAIP2-28"}}
+{"ts": "2026-09-10T07:02:42Z", "event": "human_intervention", "ticket": "SDLCAIP2-28", "agent": "orch-20260910-t8j3", "data": {"kind": "human_input_needed", "ticket_ref": "SDLCAIP2-15"}}
+{"ts": "2026-09-10T07:13:36Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-t8j3", "data": {"from": "Testing", "to": "In Review"}}
+{"ts": "2026-09-10T07:15:27Z", "event": "gate_review", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-t8j3", "data": {"gate": "review", "mode": "n/a", "result": "APPROVE", "criteria_results": "all PASS, no FAIL items"}}
+{"ts": "2026-09-10T07:15:50Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-t8j3", "data": {"from": "In Review", "to": "Awaiting Gate"}}
