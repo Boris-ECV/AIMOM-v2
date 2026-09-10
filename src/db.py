@@ -112,6 +112,17 @@ def get_meeting(user_id: str, meeting_id: str) -> Optional[dict]:
     return item
 
 
+def update_meeting(user_id: str, meeting_id: str, minutes_json: str) -> Optional[dict]:
+    """覆寫一筆會議紀錄的 minutes_json（整份覆蓋），若不存在或不屬於此使用者則回傳 None。"""
+    existing = get_meeting(user_id, meeting_id)
+    if existing is None:
+        return None
+    updated = dict(existing)
+    updated["minutes_json"] = minutes_json
+    _table().put_item(Item=updated)
+    return updated
+
+
 def delete_meeting(user_id: str, meeting_id: str) -> bool:
     """刪除一筆會議紀錄（使用者手動提前刪除）。回傳是否成功刪除既有項目。"""
     existing = get_meeting(user_id, meeting_id)

@@ -76,6 +76,69 @@ def test_delete_nonexistent_meeting_returns_404():
     assert resp.status_code == 404
 
 
+def test_update_meeting_overwrites_minutes():
+    _write_job_result("job-6")
+    keep_resp = client.post("/api/meetings/job-6/keep").json()
+    meeting_id = keep_resp["meeting_id"]
+
+    new_minutes = {"summary": "更新後的摘要", "action_items": [{"task": "追蹤", "owner": "Alice"}]}
+    resp = client.patch(f"/api/meetings/{meeting_id}", json=new_minutes)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meeting_id"] == meeting_id
+    assert body["minutes"] == new_minutes
+    # title / expires_at 應維持不變（PATCH 只覆蓋 minutes）
+    assert body["title"] == "weekly-sync.mp3"
+    assert body["expires_at"] == keep_resp["expires_at"]
+
+    # 再次 GET 確認已真的持久化，而非只回應而未寫入
+    detail = client.get(f"/api/meetings/{meeting_id}").json()
+    assert detail["minutes"] == new_minutes
+
+
+def test_update_meeting_is_full_overwrite_not_partial_merge():
+    _write_job_result("job-7")
+    meeting_id = client.post("/api/meetings/job-7/keep").json()["meeting_id"]
+
+    # 原始 minutes 有 summary + action_items，PATCH 只送一個較小的物件
+    new_minutes = {"summary": "只剩摘要"}
+    resp = client.patch(f"/api/meetings/{meeting_id}", json=new_minutes)
+    assert resp.status_code == 200
+    body = resp.json()
+    # 整份覆蓋：不應該殘留原本的 action_items 欄位
+    assert body["minutes"] == {"summary": "只剩摘要"}
+    assert "action_items" not in body["minutes"]
+
+
+def test_update_nonexistent_meeting_returns_404():
+    resp = client.patch("/api/meetings/does-not-exist", json={"summary": "x"})
+    assert resp.status_code == 404
+
+
+def test_update_other_users_meeting_returns_404():
+    _write_job_result("job-8")
+    meeting_id = client.post("/api/meetings/job-8/keep").json()["meeting_id"]
+
+    def _other_user() -> CurrentUser:
+        return CurrentUser(email="other-user@example.com", role="user")
+
+    def _owner_user() -> CurrentUser:
+        return CurrentUser(email="test-user@example.com", role="user")
+
+    app.dependency_overrides[get_current_user] = _other_user
+    try:
+        resp = client.patch(f"/api/meetings/{meeting_id}", json={"summary": "駭入"})
+        assert resp.status_code == 404
+    finally:
+        # 恢復為本人身分（而非完全移除 override），避免後續請求因缺少
+        # conftest.py autouse fixture 的預設身分而變成未登入。
+        app.dependency_overrides[get_current_user] = _owner_user
+
+    # 原始資料仍應維持不變（未被非本人竄改）
+    original = client.get(f"/api/meetings/{meeting_id}").json()
+    assert original["minutes"]["summary"] == "討論重點"
+
+
 def test_user_isolation_cannot_see_other_users_meeting():
     _write_job_result("job-5")
     meeting_id = client.post("/api/meetings/job-5/keep").json()["meeting_id"]
