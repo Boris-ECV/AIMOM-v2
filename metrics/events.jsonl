@@ -262,3 +262,4 @@
 {"ts": "2026-09-10T06:20:49Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-q7v2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
 {"ts": "2026-09-10T06:20:07Z", "event": "design_completed", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-q7v2", "data": {"verdict": "BLOCKED", "open_questions": 2}}
 {"ts": "2026-09-10T06:20:49Z", "event": "design_completed", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-q7v2", "data": {"verdict": "DONE", "open_questions": 0}}
+{"ts": "2026-09-10T06:25:00Z", "event": "session_end", "ticket": null, "agent": "orch-20260910-q7v2", "data": {"tickets_advanced": ["SDLCAIP2-20", "SDLCAIP2-19"], "tickets_awaiting_gate": ["SDLCAIP2-20"], "tickets_blocked": ["SDLCAIP2-19", "SDLCAIP2-15"], "human_inputs_opened": ["SDLCAIP2-25", "SDLCAIP2-26"], "reopen_count_total": 0, "escalations_used": 0, "session_report": "docs/session-report-2026-09-10-session16.md"}}
