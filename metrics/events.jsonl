@@ -321,3 +321,7 @@
 {"ts": "2026-09-10T10:32:21Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-w4t8", "data": {"from": "In Progress", "to": "Testing"}}
 {"ts": "2026-09-10T10:45:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-w4t8", "data": {"from": "In Progress", "to": "Testing"}}
 {"ts": "2026-09-10T14:09:35Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-w4t8", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/144"}}
+{"ts": "2026-09-10T16:14:23Z", "event": "gate_review", "ticket": "SDLCAIP2-19", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "from": "In Review", "to": "Awaiting Gate", "result": "report_posted"}}
+{"ts": "2026-09-10T16:28:23Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/146"}}
+{"ts": "2026-09-10T16:30:11Z", "event": "gate_review", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "from": "In Review", "to": "Awaiting Gate", "result": "report_posted"}}
+{"ts": "2026-09-10T16:36:05Z", "event": "escalation", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-w4t8", "data": {"from": "Refining", "to": "Blocked", "human_input_ticket": "SDLCAIP2-30"}}
