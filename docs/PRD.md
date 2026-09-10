@@ -178,6 +178,42 @@ Feature: 前端 CD 自動部署
 
 ---
 
+## SDLCAIP2-15：前端會議模板選擇 UI 與匯出格式調整
+
+### 使用者故事
+
+As a 團隊成員, I want 在會議紀錄結果畫面選擇/切換會議模板、並在匯出的 Word/PDF 中看到對應模板的區塊排版, so that 我不需要額外手動排版就能拿到符合會議性質的紀錄文件。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 結果畫面提供模板下拉選單
+  Given 會議紀錄已產生（沿用現行自動觸發、預設 general 模板的行為，不變更）
+  When 使用者進入結果畫面
+  Then 畫面顯示模板下拉選單（前端內建固定清單，對應後端 5 種模板代碼），目前套用的模板為預設選中值
+
+Scenario: 匯出文件依 sections 陣列通用渲染
+  Given 會議紀錄已用某個模板產生（sections 陣列格式）
+  When 使用者匯出 Word 或 PDF
+  Then 匯出文件新增「討論重點」區塊，依 sections 陣列逐一渲染標題與內容，不因模板不同而需要額外程式邏輯
+
+Scenario: 使用者於結果畫面重新選擇模板並重新產生
+  Given 會議紀錄已產生，使用者在結果畫面
+  When 使用者從下拉選單選擇不同模板並點擊「重新產生」
+  Then 系統重新呼叫 /api/summarize（帶入新 template 參數）並覆蓋原本的 sections
+  And 產生一筆新的 LLM usage 紀錄（沿用現有 usage.py 機制，行為不變）
+  And 前端 m.topics 讀取全面改為 m.sections（renderMinutes / exportMarkdown / exportPlainText 共 3 處）
+```
+
+### 範圍外
+
+* 使用者自訂模板 UI（暫不開放）
+* 舊會議紀錄的模板回溯套用——僅影響新產生的會議紀錄
+* 新增後端「列出可用模板」API——前端以靜態內建清單對應後端固定 5 種模板代碼
+* 變更首次自動觸發 /api/summarize 的既有時機/流程（維持轉錄完成即自動以 general 產生）
+
+---
+
 ## SDLCAIP2-16：會議紀錄彈性區塊 schema 重構 + 內建會議模板（後端）
 
 ### 使用者故事
