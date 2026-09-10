@@ -256,3 +256,9 @@
 {"ts": "2026-09-10T06:09:10Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-q7v2", "data": {"from": "Awaiting Gate", "to": "Designing"}}
 {"ts": "2026-09-10T06:14:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-q7v2", "data": {"from": null, "to": "PRD updated", "note": "PRD.md updated by reporter post-G1"}}
 {"ts": "2026-09-10T06:14:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-q7v2", "data": {"from": null, "to": "PRD updated", "note": "PRD.md updated by reporter post-G1"}}
+{"ts": "2026-09-10T06:20:07Z", "event": "blocked", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-q7v2", "data": {"reason": "design-stage open questions: TTL reset semantics (SDLCAIP2-26), missing export-by-meeting_id endpoint for AC3 (SDLCAIP2-25)"}}
+{"ts": "2026-09-10T06:20:07Z", "event": "human_intervention", "ticket": "SDLCAIP2-25", "agent": "orch-20260910-q7v2", "data": {"kind": "human_input_needed", "ticket_ref": "SDLCAIP2-19"}}
+{"ts": "2026-09-10T06:20:07Z", "event": "human_intervention", "ticket": "SDLCAIP2-26", "agent": "orch-20260910-q7v2", "data": {"kind": "human_input_needed", "ticket_ref": "SDLCAIP2-19"}}
+{"ts": "2026-09-10T06:20:49Z", "event": "stage_transition", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-q7v2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
+{"ts": "2026-09-10T06:20:07Z", "event": "design_completed", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-q7v2", "data": {"verdict": "BLOCKED", "open_questions": 2}}
+{"ts": "2026-09-10T06:20:49Z", "event": "design_completed", "ticket": "SDLCAIP2-20", "agent": "orch-20260910-q7v2", "data": {"verdict": "DONE", "open_questions": 0}}
