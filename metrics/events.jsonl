@@ -325,3 +325,20 @@
 {"ts": "2026-09-10T16:28:23Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/146"}}
 {"ts": "2026-09-10T16:30:11Z", "event": "gate_review", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "from": "In Review", "to": "Awaiting Gate", "result": "report_posted"}}
 {"ts": "2026-09-10T16:36:05Z", "event": "escalation", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-w4t8", "data": {"from": "Refining", "to": "Blocked", "human_input_ticket": "SDLCAIP2-30"}}
+{"ts": "2026-09-10T16:50:41Z", "event": "gate_review", "ticket": "SDLCAIP2-19", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "result": "approved"}}
+{"ts": "2026-09-10T17:04:05Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260911-w4t8", "data": {"from": "Awaiting Gate", "to": "Done", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/144"}}
+{"ts": "2026-09-10T16:49:37Z", "event": "gate_review", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"gate": "G1b", "result": "approved"}}
+{"ts": "2026-09-10T17:17:21Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-10T16:50:13Z", "event": "gate_review", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "result": "approved"}}
+{"ts": "2026-09-10T17:14:29Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260911-w4t8", "data": {"from": "Awaiting Gate", "to": "Done", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/146", "note": "found and fixed missing pypdf dependency before merge; CLAUDE.md rule 2b added"}}
+{"ts": "2026-09-10T16:51:15Z", "event": "gate_review", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"gate": "G1b", "result": "approved"}}
+{"ts": "2026-09-10T17:17:48Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-10T17:20:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"from": "Ready", "to": "In Progress"}}
+{"ts": "2026-09-10T17:20:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"from": "Ready", "to": "In Progress"}}
+{"ts": "2026-09-10T17:32:33Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-10T17:32:38Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-10T17:43:08Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/149"}}
+{"ts": "2026-09-10T17:48:04Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"from": "Testing", "to": "In Review", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/150"}}
+{"ts": "2026-09-10T17:50:56Z", "event": "gate_review", "ticket": "SDLCAIP2-29", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "from": "In Review", "to": "Awaiting Gate", "result": "report_posted"}}
+{"ts": "2026-09-10T17:52:07Z", "event": "gate_review", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"gate": "G2", "from": "In Review", "to": "Awaiting Gate", "result": "report_posted"}}
+{"ts": "2026-09-10T17:52:07Z", "event": "escalation", "ticket": "SDLCAIP2-18", "agent": "orch-20260911-w4t8", "data": {"type": "follow_up_ticket", "reason": "pre-existing XSS gap found by reviewer, non-blocking", "created_ticket": "SDLCAIP2-31"}}
