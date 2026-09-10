@@ -288,6 +288,10 @@
       </div>
       <div class="btn-row" style="align-items:center;">
         <span id="modified-badge">● 未儲存修改</span>
+        <label style="font-size:.8rem;color:var(--muted);">模板
+          <select id="template-select"></select>
+        </label>
+        <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">🔄 重新產生</button>
         <button class="btn btn-success btn-sm" onclick="exportMarkdown()">⬇ 匯出 Markdown</button>
         <button class="btn btn-success btn-sm" onclick="exportPlainText()">⬇ 匯出純文字</button>
         <button class="btn btn-success btn-sm" onclick="exportServerFile('docx')">⬇ 匯出 Word</button>
@@ -372,6 +376,15 @@ const state = {
   file: null,
   summarizeTriggered: false,
 };
+
+// 前端內建固定清單，鏡射 src/meeting_templates.py 5 種模板代碼
+const TEMPLATE_OPTIONS = [
+  { code: 'general',        name: '一般會議' },
+  { code: 'project_status', name: '專案進度會議' },
+  { code: 'client_meeting', name: '客戶業務會議' },
+  { code: 'brainstorm',     name: '腦力激盪' },
+  { code: 'retro',          name: 'Retro' },
+];
 
 // ─── AUTH（TASK-014：Cognito Hosted UI, Authorization Code + PKCE）────────
 const AUTH = {
@@ -747,6 +760,16 @@ function renderMinutes() {
 
   document.getElementById('summary-text').textContent = m.summary || '';
 
+  const templateSelect = document.getElementById('template-select');
+  templateSelect.innerHTML = '';
+  TEMPLATE_OPTIONS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt.code;
+    o.textContent = opt.name;
+    templateSelect.appendChild(o);
+  });
+  templateSelect.value = m.template || 'general';
+
   const tbody = document.getElementById('action-tbody');
   tbody.innerHTML = '';
   (m.action_items || []).forEach(a => {
@@ -767,11 +790,11 @@ function renderMinutes() {
 
   const tc = document.getElementById('topics-container');
   tc.innerHTML = '';
-  if (!(m.topics || []).length) {
+  if (!(m.sections || []).length) {
     tc.innerHTML = '<div class="empty-state"><p>無討論重點</p></div>';
     return;
   }
-  m.topics.forEach((t, i) => {
+  m.sections.forEach((t, i) => {
     tc.innerHTML += `
       <div class="topic-item">
         <div class="topic-header" onclick="toggleTopic(${i})">
@@ -898,7 +921,7 @@ function exportMarkdown() {
   md += '\n';
 
   md += `## 討論重點\n\n`;
-  (m.topics || []).forEach(t => {
+  (m.sections || []).forEach(t => {
     md += `### ${t.title}\n\n${t.content}\n\n`;
   });
 
@@ -949,7 +972,7 @@ function exportPlainText() {
   txt += '\n';
 
   txt += `【討論重點】\n`;
-  (m.topics || []).forEach(t => {
+  (m.sections || []).forEach(t => {
     txt += `${t.title}\n${t.content}\n\n`;
   });
 
@@ -986,6 +1009,43 @@ async function exportServerFile(format) {
     toast(format === 'docx' ? '已匯出 Word 檔案' : '已匯出 PDF 檔案');
   } catch (e) {
     toast('匯出失敗，請稍後再試');
+  }
+}
+
+// ─── REGENERATE SUMMARY（重新選模板後重新產生）─────────────
+async function regenerateSummary() {
+  if (!state.jobId) return;
+
+  if (state.modified) {
+    const ok = confirm('您已手動編輯過部分內容，重新產生將會覆蓋這些修改，確定要繼續嗎？');
+    if (!ok) return;
+  }
+
+  const template = document.getElementById('template-select').value;
+  const btn = document.getElementById('regenerate-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '產生中...';
+
+  try {
+    const res = await apiFetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: state.jobId, template }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '重新產生失敗');
+
+    state.minutes = data;
+    renderMinutes();
+    state.modified = false;
+    document.getElementById('modified-badge').style.display = 'none';
+    toast('已重新產生會議紀錄');
+  } catch (err) {
+    toast('重新產生失敗：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
