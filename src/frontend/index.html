@@ -351,6 +351,10 @@
       <div id="speaker-rename-area" style="display:none;">
         <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
         <div id="rename-rows"></div>
+        <p style="font-size:.8rem; color:#64748B; margin:8px 0;">
+          提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。
+        </p>
+        <button class="btn btn-primary btn-sm" id="submit-speaker-names-btn" onclick="submitSpeakerNames()">送出</button>
       </div>
       <div class="card">
         <div id="transcript-container"></div>
@@ -861,6 +865,41 @@ function renameSpeaker(original, newName) {
   state.speakers[original] = newName.trim() || original;
   markModified();
   renderTranscript();
+}
+
+async function submitSpeakerNames() {
+  if (!state.jobId) return;
+
+  const speakerNames = {};
+  Object.keys(state.speakers).forEach(tag => {
+    const name = (state.speakers[tag] || '').trim();
+    if (name && name !== tag) speakerNames[tag] = name;
+  });
+
+  const btn = document.getElementById('submit-speaker-names-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+
+  try {
+    const res = await apiFetch('/api/speaker-names', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: state.jobId, speaker_names: speakerNames }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '送出講者姓名失敗');
+
+    state.segments = data.segments || [];
+    state.speakers = {};
+    renderTranscript();
+    toast('已更新講者姓名');
+  } catch (err) {
+    toast('送出講者姓名失敗：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 }
 
 function fmtTime(sec) {
