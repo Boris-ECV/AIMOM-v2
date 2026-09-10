@@ -305,3 +305,15 @@
 {"ts": "2026-09-10T10:08:31Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-m6y2", "data": {"from": "Backlog", "to": "Refining"}}
 {"ts": "2026-09-10T10:12:54Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-m6y2", "data": {"from": "Refining", "to": "Awaiting Gate"}}
 {"ts": "2026-09-10T10:14:00Z", "event": "session_end", "ticket": null, "agent": "orch-20260910-m6y2", "data": {"tickets_advanced": ["SDLCAIP2-29"], "tickets_awaiting_gate": ["SDLCAIP2-19", "SDLCAIP2-18", "SDLCAIP2-15", "SDLCAIP2-29"], "reopen_count_total": 0, "escalations_used": 0, "session_report": "docs/session-report-2026-09-10-session23.md"}}
+{"ts": "2026-09-10T10:16:33Z", "event": "gate_review", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-e9p5", "data": {"gate": "G1b", "mode": "manual", "result": "approved", "criteria_results": "all PASS"}}
+{"ts": "2026-09-10T10:16:33Z", "event": "stage_transition", "ticket": "SDLCAIP2-19", "agent": "orch-20260910-e9p5", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-10T10:16:44Z", "event": "gate_review", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-e9p5", "data": {"gate": "G1b", "mode": "manual", "result": "approved", "criteria_results": "all PASS"}}
+{"ts": "2026-09-10T10:16:44Z", "event": "stage_transition", "ticket": "SDLCAIP2-15", "agent": "orch-20260910-e9p5", "data": {"from": "Awaiting Gate", "to": "Ready"}}
+{"ts": "2026-09-10T10:16:56Z", "event": "gate_review", "ticket": "SDLCAIP2-18", "agent": "orch-20260910-e9p5", "data": {"gate": "G1", "mode": "manual", "result": "approved", "criteria_results": "all PASS"}}
+{"ts": "2026-09-10T10:16:56Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260910-e9p5", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-10T10:17:06Z", "event": "gate_review", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-e9p5", "data": {"gate": "G1", "mode": "manual", "result": "approved", "criteria_results": "all PASS"}}
+{"ts": "2026-09-10T10:17:06Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-e9p5", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-10T10:20:08Z", "event": "design_completed", "ticket": "SDLCAIP2-18", "agent": "orch-20260910-e9p5", "data": {"verdict": "DONE", "open_questions": 0}}
+{"ts": "2026-09-10T10:20:08Z", "event": "stage_transition", "ticket": "SDLCAIP2-18", "agent": "orch-20260910-e9p5", "data": {"from": "Designing", "to": "Awaiting Gate"}}
+{"ts": "2026-09-10T10:20:31Z", "event": "design_completed", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-e9p5", "data": {"verdict": "DONE", "open_questions": 0}}
+{"ts": "2026-09-10T10:20:31Z", "event": "stage_transition", "ticket": "SDLCAIP2-29", "agent": "orch-20260910-e9p5", "data": {"from": "Designing", "to": "Awaiting Gate"}}

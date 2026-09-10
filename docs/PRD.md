@@ -490,3 +490,38 @@ Scenario: 管理者也必須同時在白名單內
 ```
 
 ---
+
+## SDLCAIP2-29：已保留會議紀錄匯出 API（依 meeting_id 匯出 docx/pdf）
+
+### 使用者故事
+
+As a 團隊成員, I want 依已保留會議紀錄的 meeting_id 匯出 docx/pdf, so that 我不需要透過原始 job_id（6 小時後即過期）就能取得已保留紀錄的正式文件。
+
+### 情境緣由
+
+本 Story 是從 SDLCAIP2-19（已保留會議紀錄編輯 API）的設計階段拆分出來的既有系統缺口，經 HUMAN-INPUT SDLCAIP2-25 確認獨立處理（Option 2）。現況：`src/export.py` 的 `/export/{job_id}` 只讀取 `jobstore`（以 `job_id` 為鍵、6 小時 TTL 的暫存 job 狀態）；「保留」流程操作的是完全獨立的 Meetings 表（`user_id`＋`meeting_id` 為鍵、14 天 TTL），`keep_meeting()` 保留時會產生全新的 `meeting_id`，與原始 `job_id` 無任何欄位保留對應關係。即使不編輯，單純保留後想匯出已保留的紀錄，現有系統也做不到——這個缺口獨立於「編輯」語意，從保留功能上線起就存在。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: 依 meeting_id 匯出已保留會議紀錄
+  Given 使用者已保留一筆會議紀錄（擁有 meeting_id）
+  When 使用者呼叫新的匯出端點（例如 GET /export/meetings/{meeting_id}?format=docx）
+  Then 回傳依該筆 Meetings 表資料產生的 docx/pdf 檔案；文件標題使用該筆紀錄的 title，
+       檔案名稱使用 {meeting_id}.docx/pdf（沿用既有 job_id 檔名慣例，避免 title 含特殊字元造成 Content-Disposition 問題）
+
+Scenario: 匯出不存在或非本人擁有的會議紀錄
+  Given meeting_id 不存在，或屬於另一位使用者
+  When 使用者呼叫匯出端點
+  Then 回傳 404（與既有 GET/DELETE/PATCH /meetings/{meeting_id} 一致，不使用 403）
+
+Scenario: 編輯後重新匯出反映最新內容（銜接 SDLCAIP2-19 AC3）
+  Given 使用者已透過 PATCH /meetings/{meeting_id}（SDLCAIP2-19）編輯過會議紀錄
+  When 使用者呼叫依 meeting_id 的匯出端點
+  Then 匯出檔案內容為編輯後的最新版本
+```
+
+### 範圍外
+
+* 依 job_id 匯出（`/export/{job_id}`）既有行為不變，本 Story 只新增依 meeting_id 的匯出路徑，不修改/移除既有端點
+* 匯出格式以外的功能（如批次匯出、匯出排程）
