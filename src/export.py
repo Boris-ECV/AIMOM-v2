@@ -5,6 +5,7 @@ Word (.docx) 與 PDF 由後端產生；純文字匯出由前端直接產生（�
 from __future__ import annotations
 
 import io
+import json
 
 from docx import Document
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,6 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfgen import canvas
 
+import db
 import jobstore
 from auth import CurrentUser, get_current_user
 
@@ -46,9 +48,9 @@ def _meeting_info_lines(minutes: dict) -> list[str]:
     ]
 
 
-def _build_docx(minutes: dict, job_id: str) -> bytes:
+def _build_docx(minutes: dict, heading: str) -> bytes:
     doc = Document()
-    doc.add_heading(f"會議紀錄 - {job_id}", level=1)
+    doc.add_heading(f"會議紀錄 - {heading}", level=1)
 
     doc.add_heading("會議資訊", level=2)
     for line in _meeting_info_lines(minutes):
@@ -91,7 +93,7 @@ def _build_docx(minutes: dict, job_id: str) -> bytes:
     return buf.read()
 
 
-def _build_pdf(minutes: dict, job_id: str) -> bytes:
+def _build_pdf(minutes: dict, heading: str) -> bytes:
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4
@@ -106,7 +108,7 @@ def _build_pdf(minutes: dict, job_id: str) -> bytes:
             c.showPage()
             y = height - 60
 
-    _line(f"會議紀錄 - {job_id}", size=16, gap=30)
+    _line(f"會議紀錄 - {heading}", size=16, gap=30)
 
     _line("會議資訊", size=14, gap=22)
     for line in _meeting_info_lines(minutes):
@@ -173,6 +175,38 @@ async def export_meeting(
         content = _build_pdf(minutes, job_id)
         media_type = "application/pdf"
         filename = f"{job_id}.pdf"
+    else:
+        raise HTTPException(status_code=400, detail="format 僅支援 docx 或 pdf")
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/export/meetings/{meeting_id}")
+async def export_kept_meeting(
+    meeting_id: str, format: str = "docx", user: CurrentUser = Depends(get_current_user)
+):
+    """匯出已保留的會議紀錄（依 meeting_id）。format 支援 docx / pdf。"""
+    item = db.get_meeting(user_id=user.email, meeting_id=meeting_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="找不到此會議紀錄")
+
+    minutes = json.loads(item["minutes_json"])
+    title = item["title"]
+
+    if format == "docx":
+        content = _build_docx(minutes, title)
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        filename = f"{meeting_id}.docx"
+    elif format == "pdf":
+        content = _build_pdf(minutes, title)
+        media_type = "application/pdf"
+        filename = f"{meeting_id}.pdf"
     else:
         raise HTTPException(status_code=400, detail="format 僅支援 docx 或 pdf")
 
