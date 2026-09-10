@@ -81,35 +81,25 @@ RANGE）。變更僅為覆寫既有 item 的 `minutes_json` attribute（string�
    `put_meeting()` 一致，不需要額外學習 DynamoDB `UpdateExpression` 語法。
 
 3. **PATCH 不更新 `expires_at`（TTL 不因編輯而重設／延長）。**
-   Spec 三個情境皆未提及編輯是否影響保留期限，依 CONSTITUTION 範圍紀律
-   「需求不明確時列為 open question，不可用合理猜測補上」——但這裡影響
-   範圍極小且有清楚的保守預設可循：既有 `keep_meeting` 建立時已依
-   `MEETING_RETENTION_DAYS` 設定到期時間，編輯屬於「使用者仍在使用這筆
-   紀錄」的訊號，若不確定，維持既有到期時間不變是風險最低的預設（不會
-   意外讓資料「續命」超出使用者原本認知的保留天數）。仍在下方列為開放
-   問題供人類確認，而非在本文件內單方面鎖定為最終產品行為。
+   人類已於 SDLCAIP2-26 回覆確認採用「維持不變」（Option 1），與本決策
+   原先的保守預設一致，正式定案：`PATCH` 僅覆寫 `minutes_json`，不動
+   `expires_at`。
+
+4. **AC3（編輯後重新匯出反映最新內容）範圍歸屬：另立獨立 Story。**
+   人類已於 SDLCAIP2-25 回覆確認採用 Option 2：依 `meeting_id` 匯出的
+   端點（目前系統完全不存在，見下方情境說明）不併入本 Story，另開獨立
+   Story 處理；本 Story 的 AC3 標注為依賴該獨立 Story，暫緩驗證，待匯出
+   Story 完成後再合併驗證 AC3 的完整行為。本 Story 僅交付 PATCH 端點
+   本身（AC1、AC2），不受此問題阻塞。
+
+   背景（供依賴的匯出 Story 參考）：`src/export.py` 的 `/export/{job_id}`
+   只讀取 `jobstore`（以 `job_id` 為鍵、6 小時 TTL 的暫存 job 狀態），而
+   「保留」流程操作的是完全獨立的 Meetings 表（`user_id`＋`meeting_id`
+   為鍵、14 天 TTL）；`keep_meeting()` 保留時會產生全新的 `meeting_id`，
+   與原始 `job_id` 沒有任何欄位保留對應關係——即使不編輯，單純保留後想
+   匯出也無法透過現有 `/export/{job_id}` 完成。匯出 Story 需新增一個以
+   `meeting_id` 為鍵的匯出路徑（例如 `GET /export/meetings/{meeting_id}`）。
 
 ## 開放設計問題（定稿時必須為空）
-
-1. **PATCH 是否應重設／延長 `expires_at`（TTL）？** 目前設計預設「不變」
-   （見決策 #3 的保守理由），但這是 spec 未明講的產品行為，需要人類確認
-   是否符合預期（例如：使用者編輯後期待保留期限從編輯當下重新起算 14
-   天，或維持原本的到期時間不變）。
-
-2. **AC3（編輯後重新匯出反映最新內容）與現有 `/export/{job_id}` 端點的
-   資料來源不相容，需要確認範圍歸屬。** 目前 `src/export.py` 的
-   `/export/{job_id}` 只讀取 `jobstore`（以 `job_id` 為鍵、6 小時 TTL 的
-   暫存 job 狀態），而本故事的 PATCH／既有的「保留」流程操作的是完全獨立
-   的 Meetings 表（以 `user_id`＋`meeting_id` 為鍵、14 天 TTL）；
-   `keep_meeting()` 保留時會產生**全新的** `meeting_id`（`uuid.uuid4()`），
-   與原始 `job_id` 沒有任何欄位保留對應關係。換言之，目前程式庫內**沒有
-   任何既有端點**可以「依 `meeting_id` 匯出 docx/pdf」——即使不做編輯，
-   單純保留後想匯出已保留的紀錄，現有 `/export/{job_id}` 也無法讀到
-   （job 6 小時後過期，且 job_id 與 meeting_id 是不同識別碼空間）。這是
-   PATCH 本身無法解決的既有缺口：要讓 AC3 成立，需要新增一個以
-   `meeting_id` 為鍵的匯出路徑（例如 `GET /export/meetings/{meeting_id}`），
-   但這已超出本 ticket 標題「編輯 API」界定的範圍，屬於一個需要人類確認
-   的範圍歸屬決策——是併入本故事一併實作，還是另立故事、由本故事的
-   G1b／後續排程明確標注「AC3 依賴一個目前不存在的匯出端點」。本設計文件
-   對 PATCH 端點本身（AC1、AC2）的設計已完整，不因此問題而阻塞；僅 AC3
-   的可驗證性受影響。
+無。以上兩項開放問題已由人類於 SDLCAIP2-25、SDLCAIP2-26 回覆定案（見
+決策 #3、#4）。
