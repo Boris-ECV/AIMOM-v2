@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from upload import router as upload_router
 from transcribe import router as transcribe_router
 from diarize import router as diarize_router
+from speaker_names import router as speaker_names_router
 from summarize import router as summarize_router
 from progress import router as progress_router
 from history import router as history_router
@@ -64,6 +65,7 @@ _auth_dep = [Depends(get_current_user)]
 app.include_router(upload_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(transcribe_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(diarize_router, prefix="/api", dependencies=_auth_dep)
+app.include_router(speaker_names_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(summarize_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(progress_router, prefix="/api", dependencies=_auth_dep)
 app.include_router(history_router, prefix="/api", dependencies=_auth_dep)

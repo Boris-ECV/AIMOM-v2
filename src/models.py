@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class UploadResponse(BaseModel):
@@ -56,6 +56,17 @@ class DiarizeRequest(BaseModel):
 
 
 class DiarizeResponse(BaseModel):
+    job_id: str
+    speakers: List[str]
+    segments: List[Segment]
+
+
+class SpeakerNamesRequest(BaseModel):
+    job_id: str
+    speaker_names: Dict[str, str]
+
+
+class SpeakerNamesResponse(BaseModel):
     job_id: str
     speakers: List[str]
     segments: List[Segment]
