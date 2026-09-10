@@ -76,6 +76,15 @@ def _build_docx(minutes: dict, job_id: str) -> bytes:
     else:
         doc.add_paragraph("（無）")
 
+    doc.add_heading("討論重點", level=2)
+    sections = minutes.get("sections", [])
+    if sections:
+        for s in sections:
+            doc.add_heading(s.get("title", ""), level=3)
+            doc.add_paragraph(s.get("content", "") or "（無）")
+    else:
+        doc.add_paragraph("（無）")
+
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
@@ -123,6 +132,16 @@ def _build_pdf(minutes: dict, job_id: str) -> bytes:
             task = item.get("task", "-")
             due = item.get("due", "-")
             _line(f"- [{owner}] {task}（期限：{due}）")
+    else:
+        _line("（無）")
+
+    _line("討論重點", size=14, gap=22)
+    sections = minutes.get("sections", [])
+    if sections:
+        for s in sections:
+            _line(s.get("title", ""), size=13, gap=18)
+            for chunk in _wrap(s.get("content", "") or "（無）", 40):
+                _line(chunk)
     else:
         _line("（無）")
 

@@ -52,3 +52,42 @@ def test_export_invalid_format_returns_400():
     _write_job_result("job-bad")
     resp = client.get("/api/export/job-bad?format=xml")
     assert resp.status_code == 400
+
+
+def test_export_docx_renders_sections():
+    jobstore.create_job(
+        "job-docx-sections",
+        stage="done",
+        progress=100,
+        message="done",
+        minutes={
+            "summary": "摘要",
+            "action_items": [],
+            "decisions": [],
+            "sections": [
+                {"title": "Keep", "content": "維持每週同步會議"},
+                {"title": "Problem", "content": "需求變動頻繁"},
+            ],
+        },
+    )
+    resp = client.get("/api/export/job-docx-sections?format=docx")
+    assert resp.status_code == 200
+    assert len(resp.content) > 0
+
+
+def test_export_pdf_renders_sections():
+    jobstore.create_job(
+        "job-pdf-sections",
+        stage="done",
+        progress=100,
+        message="done",
+        minutes={
+            "summary": "摘要",
+            "action_items": [],
+            "decisions": [],
+            "sections": [{"title": "Keep", "content": "維持每週同步會議"}],
+        },
+    )
+    resp = client.get("/api/export/job-pdf-sections?format=pdf")
+    assert resp.status_code == 200
+    assert resp.content.startswith(b"%PDF")
