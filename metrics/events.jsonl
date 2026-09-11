@@ -456,3 +456,4 @@
 {"ts": "2026-09-12T01:15:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-36", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Ready"}}
 {"ts": "2026-09-12T01:16:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-36", "agent": "orch-20260911-h6d4", "data": {"from": "Ready", "to": "In Progress"}}
 {"ts": "2026-09-12T01:25:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-36", "agent": "orch-20260911-h6d4", "data": {"from": "Testing", "to": "In Review"}}
+{"ts": "2026-09-12T01:51:52Z", "event": "reopen", "ticket": "SDLCAIP2-36", "agent": "orch-20260911-h6d4", "data": {"stage": "In Review", "reason_summary": "reviewer found getComputedStyle property list in e2e test omitted fontSize/padding, a real regression-coverage gap; fixed directly by orchestrator (one-line test fix), reopen_count=1", "pr": "https://github.com/Boris-ECV/AIMOM-v2/pull/207"}}
