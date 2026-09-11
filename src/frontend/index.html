@@ -298,10 +298,15 @@
           <select id="template-select"></select>
         </label>
         <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">🔄 重新產生</button>
-        <button class="btn btn-success btn-sm" onclick="exportMarkdown()">⬇ 匯出 Markdown</button>
-        <button class="btn btn-success btn-sm" onclick="exportPlainText()">⬇ 匯出純文字</button>
-        <button class="btn btn-success btn-sm" onclick="exportServerFile('docx')">⬇ 匯出 Word</button>
-        <button class="btn btn-success btn-sm" onclick="exportServerFile('pdf')">⬇ 匯出 PDF</button>
+        <label style="font-size:.8rem;color:var(--muted);">匯出格式
+          <select id="export-format-select">
+            <option value="markdown">Markdown</option>
+            <option value="plaintext">純文字</option>
+            <option value="docx">Word</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </label>
+        <button class="btn btn-success btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">⬇ 匯出</button>
         <button class="btn btn-outline btn-sm" onclick="cleanupAndReset()">🗑 清除暫存</button>
         <button class="btn btn-outline btn-sm" onclick="showView('view-upload')">+ 新錄音</button>
       </div>
@@ -1385,6 +1390,17 @@ async function exportServerFile(format) {
     toast(format === 'docx' ? '已匯出 Word 檔案' : '已匯出 PDF 檔案');
   } catch (e) {
     toast('匯出失敗，請稍後再試');
+  }
+}
+
+// ─── EXPORT（統一下拉選單分派）──────────────────────────
+function exportSelectedFormat() {
+  const format = document.getElementById('export-format-select').value;
+  switch (format) {
+    case 'markdown':  exportMarkdown(); break;
+    case 'plaintext': exportPlainText(); break;
+    case 'docx':      exportServerFile('docx'); break;
+    case 'pdf':       exportServerFile('pdf'); break;
   }
 }
 
