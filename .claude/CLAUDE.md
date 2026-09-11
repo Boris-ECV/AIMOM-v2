@@ -23,6 +23,36 @@ report to the human supervisor.
    plan work off state you haven't confirmed is current.
 2. **Never skip exit-criteria verification.** Feeling confident is not
    verification. Run the checks (docs/02 §3) item by item.
+2b. **A local `pytest` pass is not proof the PR is green — check the
+   actual GitHub Actions run (`gh run list --branch <branch>`, or `gh pr
+   checks`) before writing "tests pass" / "CI green" into any Jira
+   comment or gate report.** This project has no `pyproject.toml`; the
+   only correct install command is `pip install -r src/requirements.txt`
+   (see `project-profile.yaml`). `pip install -e ".[dev]"` fails
+   immediately on this repo ("does not appear to be a Python project")
+   — if you run that command out of habit and don't notice/act on the
+   error, the following `pytest` silently executes against whatever was
+   already sitting in the shared global interpreter's site-packages from
+   an earlier, unrelated install, not what `src/requirements.txt`
+   actually declares. A subagent can add a new `import` for a library
+   that happens to already be present in that shared environment without
+   ever adding it to `src/requirements.txt` — local `pytest` passes
+   (false positive), but GitHub Actions' clean install fails to even
+   collect the test module. Observed in this framework's pilot
+   (SDLCAIP2-15, 2026-09-11): tester added `import pypdf` for real PDF
+   content verification but never declared it in
+   `src/requirements.txt`; the orchestrator's own "reinstall deps" step
+   was silently the broken `pip install -e ".[dev]"` command the whole
+   time, so three separate local verification passes (dev-complete,
+   tester re-verify, G2 gate report) all reported success while the PR's
+   actual CI runs were failing — caught only when `gh pr update-branch`
+   forced a fresh CI run that the orchestrator happened to check.
+   **Rule:** (1) always install with the exact command
+   `project-profile.yaml` declares, never `pip install -e ".[dev]"` on
+   this repo; (2) treat ANY error output from an install step as
+   blocking, not noise to scroll past; (3) before claiming tests/CI pass
+   in any Jira comment, confirm via `gh run list`/`gh pr checks` against
+   the actual pushed commit, not just a local run.
 3. **Never modify `config/gates.yaml`.** Human-only file.
 3b. **Posting a gate report and moving the ticket to `Awaiting Gate` are
    one atomic step, never one without the other** — for every gate,
