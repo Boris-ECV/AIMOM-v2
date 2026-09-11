@@ -960,6 +960,7 @@ async function doUpload() {
     const data = await completeRes.json();
     if (!completeRes.ok) throw new Error(data.detail || '上傳失敗');
 
+    resetState();
     state.jobId = data.job_id;
     localStorage.setItem('meetingJobId', state.jobId);
     showView('view-progress');
