@@ -248,6 +248,34 @@ Scenario: 指定不存在的模板代碼
 
 ---
 
+## SDLCAIP2-17：已保留會議紀錄詳情頁編輯 UI
+
+### 使用者故事
+
+As a 已登入的系統使用者, I want 在已保留會議紀錄的詳情頁切換到編輯模式並儲存修改, so that 我可以在事後修正會議紀錄內容而不需重新上傳錄音。
+
+### 驗收條件（Gherkin，摘要）
+
+- 詳情頁提供編輯模式切換
+- 儲存成功後畫面顯示最新內容（呼叫 PATCH /api/meetings/{meeting_id}）
+- 儲存失敗時保留使用者輸入
+- 編輯時遇到 404 顯示錯誤
+
+### 範圍外
+
+* 編輯後立即重新匯出（依賴已完成的 SDLCAIP2-29，不阻塞本故事）
+* 逐字稿內容的編輯
+* 刪除會議紀錄
+* 歷史列表與唯讀詳情頁本身的實作（見依賴）
+* 多人同時編輯的衝突偵測
+
+### 依賴
+
+* SDLCAIP2-19（已完成，PATCH 端點）
+* SDLCAIP2-32（本故事在其詳情頁基礎上加入編輯模式）
+
+---
+
 ## SDLCAIP2-18：逐字稿分頁講者命名 UI（前端）
 
 ### 使用者故事
@@ -574,3 +602,31 @@ Scenario: Existing correctly-escaped renderings elsewhere are unaffected
 ### 依賴
 
 無（found during SDLCAIP2-18 code review, independently schedulable）
+
+---
+
+## SDLCAIP2-32：已保留會議紀錄歷史列表與詳情唯讀瀏覽 UI
+
+### 使用者故事
+
+As a 已登入的系統使用者, I want 瀏覽自己保留過的會議紀錄列表並點入查看完整內容, so that 我可以在不重新上傳錄音的情況下回顧過去的會議紀錄。
+
+### 驗收條件（Gherkin，摘要）
+
+- 歷史列表顯示已保留的會議紀錄（呼叫 GET /api/meetings）
+- 無任何已保留紀錄時顯示空狀態
+- 點擊列表項目導向該筆紀錄的詳情頁（呼叫 GET /api/meetings/{meeting_id}）
+- 詳情頁以唯讀方式顯示完整內容（標題、逐字稿、會議紀錄）
+- 詳情頁遇到 404 時顯示錯誤並可返回列表
+
+### 範圍外
+
+* 編輯會議紀錄內容（見 SDLCAIP2-17）
+* 刪除會議紀錄
+* 從詳情頁重新匯出
+* 歷史列表的分頁/排序/搜尋
+* 新增「保留此次紀錄」的觸發 UI
+
+### 依賴
+
+無（後端 GET /api/meetings、GET /api/meetings/{meeting_id} 已完成，見 SDLCAIP2-19）
