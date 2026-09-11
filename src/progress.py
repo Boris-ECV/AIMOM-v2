@@ -108,6 +108,18 @@ def _finalize_if_transcription_done(job: dict) -> dict:
     except Exception:  # noqa: BLE001 — 用量記錄失敗不應阻擋 /api/status 回應
         pass
 
+    low_language_confidence = False
+    try:
+        # SDLCAIP2-33：language_confidence 只能透過底層 json_response 存取
+        # （高階 Transcript 包裝類別不保證暴露這個欄位），讀取/比較失敗一律
+        # 視為「信心正常」，不可讓這個附帶判斷拖垮主流程（同構於上面
+        # usage.record_transcription_usage() 的 try/except Exception: pass）。
+        language_confidence = transcript.json_response.get("language_confidence")
+        if language_confidence is not None and language_confidence < 0.5:
+            low_language_confidence = True
+    except Exception:  # noqa: BLE001
+        low_language_confidence = False
+
     return jobstore.update_job(
         job["job_id"],
         stage="transcribed",
@@ -115,6 +127,7 @@ def _finalize_if_transcription_done(job: dict) -> dict:
         message=f"轉錄完成，共 {len(segments)} 段，{unique_speakers} 位說話者",
         segments=segments,
         full_text=full_text,
+        low_language_confidence=low_language_confidence,
     )
 
 
@@ -122,7 +135,13 @@ def _finalize_if_transcription_done(job: dict) -> dict:
 async def get_status(job_id: str):
     job = read_status(job_id)
     job = _finalize_if_transcription_done(job)
-    return StatusResponse(job_id=job_id, stage=job["stage"], progress=job["progress"], message=job["message"])
+    return StatusResponse(
+        job_id=job_id,
+        stage=job["stage"],
+        progress=job["progress"],
+        message=job["message"],
+        low_language_confidence=job.get("low_language_confidence", False),
+    )
 
 
 @router.delete("/cleanup/{job_id}", response_model=CleanupResponse)

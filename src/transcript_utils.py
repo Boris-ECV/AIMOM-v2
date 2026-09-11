@@ -19,7 +19,7 @@ def build_transcription_config():
 
     return aai.TranscriptionConfig(
         speech_models=[config.ASSEMBLYAI_MODEL],
-        language_code="zh",
+        language_detection=True,
         speaker_labels=config.ASSEMBLYAI_SPEAKER_DIARIZATION,
     )
 

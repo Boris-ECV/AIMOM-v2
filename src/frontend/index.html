@@ -159,6 +159,10 @@
   #modified-badge { display: none; padding: 4px 12px; border-radius: 999px;
                     background: #FEF3C7; color: var(--warning); font-size: .78rem; font-weight: 600; }
 
+  /* LOW LANGUAGE CONFIDENCE BADGE (SDLCAIP2-33) */
+  #low-confidence-badge { display: none; padding: 4px 12px; border-radius: 999px;
+                    background: #FEF3C7; color: var(--warning); font-size: .78rem; font-weight: 600; }
+
   /* TOAST */
   #toast { position: fixed; bottom: 32px; right: 32px; background: #1E293B; color: #fff;
            padding: 12px 20px; border-radius: 8px; font-size: .875rem; opacity: 0;
@@ -289,6 +293,7 @@
       </div>
       <div class="btn-row" style="align-items:center;">
         <span id="modified-badge">● 未儲存修改</span>
+        <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
         <label style="font-size:.8rem;color:var(--muted);">模板
           <select id="template-select"></select>
         </label>
@@ -469,6 +474,7 @@ const state = {
   summarizeTriggered: false,
   detail: null,        // SDLCAIP2-17：目前開啟的已保留會議紀錄詳情頁完整資料
   detailEditing: false, // SDLCAIP2-17：詳情頁是否處於編輯模式
+  lowLanguageConfidence: false, // SDLCAIP2-33：語言偵測信心是否過低
 };
 
 // 前端內建固定清單，鏡射 src/meeting_templates.py 5 種模板代碼
@@ -959,6 +965,7 @@ async function doUpload() {
     const data = await completeRes.json();
     if (!completeRes.ok) throw new Error(data.detail || '上傳失敗');
 
+    resetState();
     state.jobId = data.job_id;
     localStorage.setItem('meetingJobId', state.jobId);
     showView('view-progress');
@@ -1001,6 +1008,9 @@ async function pollStatus() {
     const res = await apiFetch(`/api/status/${state.jobId}`);
     const s = await res.json();
     updateProgressUI(s);
+    // SDLCAIP2-33：low_language_confidence 是持久化在 job 記錄裡的值，每次
+    // 輪詢都覆寫，而非只在偵測到 stage 轉換時讀一次
+    state.lowLanguageConfidence = !!s.low_language_confidence;
 
     // TASK-016：轉錄改為非同步，/api/status 每次輪詢時後端會順便向
     // AssemblyAI 查一次狀態；一旦第一次偵測到 stage 變成 'transcribed'，
@@ -1084,6 +1094,9 @@ async function loadResults() {
 function renderMinutes() {
   const m = state.minutes;
   if (!m) return;
+
+  document.getElementById('low-confidence-badge').style.display =
+    state.lowLanguageConfidence ? 'inline-block' : 'none';
 
   const info = m.meeting_info || {};
   document.getElementById('meeting-date').value = info.date || '';
