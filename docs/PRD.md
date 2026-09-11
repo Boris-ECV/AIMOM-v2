@@ -746,3 +746,39 @@ Scenario: 上傳失敗時按鈕狀態已正確重置
 * 修改上傳按鈕的 UI 樣式或文案
 
 ---
+
+## SDLCAIP2-36：會議模板選擇區塊的視覺風格與頁面不一致
+
+### 使用者故事
+
+As a AIMOM 使用者, I want 會議模板選擇下拉選單的視覺風格與結果頁面其他表單控制項保持一致, so that 整個頁面有統一的設計感，不會因為一個控制項突兀而影響使用體驗。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 下拉選單視覺風格一致性
+
+  Scenario: 下拉選單具有與輸入欄位一致的邊框與圓角
+    Given #template-select 下拉選單已套用 CSS 樣式
+    When 頁面在結果檢視中呈現
+    Then #template-select 的 border、border-radius、color、font-family 應與 .meeting-info-grid input 的設定相同
+
+  Scenario: 下拉選單在聚焦狀態表現一致
+    Given 使用者點擊下拉選單獲得焦點
+    When 下拉選單進入 :focus 狀態
+    Then 視覺效果應與其他表單控制項的聚焦狀態一致（包括 outline、box-shadow 等）
+
+  Scenario: 下拉選單選項值與功能不變
+    Given 下拉選單的現有功能（模板選擇、重新產生會議紀錄）
+    When 套用視覺風格調整後
+    Then 模板選擇邏輯、可選值、重新產生機制完全不變
+```
+
+### 範圍外
+
+* 變更下拉選單的模板選擇邏輯或功能
+* 修改其他下拉選單或表單控制項
+* 變更模板選項值或新增選項
+* 變更「重新產生」按鈕的行為
+
+---
