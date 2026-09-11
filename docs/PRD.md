@@ -662,3 +662,50 @@ As a 使用者, I want 系統自動偵測會議錄音的語言（不再寫死中
 ### 依賴
 
 無新增依賴，沿用既有 assemblyai SDK（已確認版本支援上述欄位）
+
+---
+
+## SDLCAIP2-35：匯出功能的四種格式應整合為單一選單
+
+### 使用者故事
+
+As a 使用本系統的使用者, I want 將匯出會議紀錄的四種格式（Markdown、純文字、Word、PDF）整合成單一選單, so that 匯出介面更簡潔，不需要一次看到四顆並排的匯出按鈕。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 匯出功能整合為單一選單
+
+  Scenario: 結果頁面的匯出控制項為單一下拉選單加確認按鈕
+    Given 會議紀錄已產生
+    When 使用者進入結果畫面
+    Then 匯出控制項為單一下拉選單加確認按鈕，不再顯示四顆並排按鈕
+
+  Scenario: 下拉選單選項與預設值
+    Given 使用者在結果畫面
+    When 查看匯出下拉選單
+    Then 選單含有 Markdown、純文字、Word、PDF 四個選項
+    And 預設選取為 Markdown
+
+  Scenario: 點擊匯出按鈕呼叫對應的既有匯出函式
+    Given 使用者選定某個匯出格式
+    When 使用者點擊「匯出」按鈕
+    Then 依選取的格式呼叫對應的既有匯出函式（exportMarkdown()/exportPlainText()/exportServerFile('docx')/exportServerFile('pdf')）
+    And 匯出檔案正確產生
+
+  Scenario: 既有四個匯出函式邏輯不變，僅改觸發方式
+    Given 既有的四個匯出函式（exportMarkdown/exportPlainText/exportServerFile）
+    When 本 Story 的變更合併
+    Then 四個函式本身的邏輯與內容格式完全不變，僅改變觸發方式（從直接點擊四顆按鈕改為選單後點確認）
+```
+
+### 範圍外
+
+* 不變更任何匯出檔案的產生邏輯或內容格式
+* 不新增任何新的匯出格式
+* 不處理歷史紀錄詳情頁（view-history-detail）的匯出功能——該頁面目前完全沒有匯出按鈕或邏輯，屬既有缺口
+* 不變更後端 /api/export/{jobId} API 介面
+
+### 依賴
+
+無強制依賴；SDLCAIP2-15（已完成）的模板選擇下拉選單為 UI 慣例參考來源
