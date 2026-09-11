@@ -525,3 +525,52 @@ Scenario: 編輯後重新匯出反映最新內容（銜接 SDLCAIP2-19 AC3）
 
 * 依 job_id 匯出（`/export/{job_id}`）既有行為不變，本 Story 只新增依 meeting_id 的匯出路徑，不修改/移除既有端點
 * 匯出格式以外的功能（如批次匯出、匯出排程）
+
+---
+
+## SDLCAIP2-31：[SECURITY] 講者重新命名輸入框渲染未轉義使用者輸入，DOM-based XSS 風險
+
+### 使用者故事
+
+As a user of the transcript editing page, I want the speaker-rename input rows to safely render any speaker label or previously-entered name — including ones containing special HTML/attribute characters — so that a malicious or unusual speaker label/name cannot break out of the HTML attribute context and execute arbitrary script in my browser.
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: Normal speaker label and name render unchanged
+  Given speaker label is "SPEAKER_A" and name is "Alice"
+  When rendering speaker-rename input row
+  Then speaker label displays as "SPEAKER_A" and name input value is "Alice", both unmodified
+
+---
+
+Scenario: Speaker label containing HTML/attribute special characters is neutralized
+  Given speaker label contains special characters like "<>\"&" or similar HTML/attribute delimiters
+  When rendering speaker-rename input row in HTML attribute context
+  Then characters are escaped/neutralized to prevent attribute-boundary breakout and script execution
+
+---
+
+Scenario: Previously-entered speaker name containing special characters is neutralized
+  Given previously-entered speaker name contains special characters like "<script>" or "test&oops" or 'break"out'
+  When rendering name input value and speaker labels in transcript body
+  Then characters are escaped to render as literal text, not markup or attribute delimiters
+
+---
+
+Scenario: Existing correctly-escaped renderings elsewhere are unaffected
+  Given transcript body rendering is already correctly escaped
+  When this fix is applied to speaker-rename input rows
+  Then no regression in other parts of the application — transcript body and other existing escaped content remain unaffected
+```
+
+### 範圍外
+
+* Changes to `esc()` escaping behavior beyond adding double-quote escaping needed to close this specific vector
+* Backend speaker-label generation/validation changes
+* Transcript body rendering changes (already correctly escaped)
+* Broader refactor of `renderTranscript()` beyond the two injection points
+
+### 依賴
+
+無（found during SDLCAIP2-18 code review, independently schedulable）
