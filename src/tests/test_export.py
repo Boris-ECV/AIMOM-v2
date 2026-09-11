@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import app
+from auth import CurrentUser, get_current_user
 import jobstore
 
 client = TestClient(app)
@@ -158,3 +159,103 @@ def test_export_pdf_renders_sections_placeholder_when_empty():
     text = _pdf_text(resp.content)
     assert "討論重點" in text
     assert "（無）" in text
+
+
+def _write_kept_meeting(job_id: str, filename: str = "weekly-sync.mp3") -> str:
+    """建立一筆 job 並保留，回傳 meeting_id。"""
+    jobstore.create_job(
+        job_id,
+        stage="done",
+        progress=100,
+        message="done",
+        filename=filename,
+        segments=[{"speaker": "A", "text": "hello"}],
+        minutes={
+            "summary": "本次會議討論了專案時程",
+            "action_items": [
+                {"owner": "Alice", "task": "整理需求文件", "due": "2026-08-01"}
+            ],
+            "decisions": ["採用 AWS Lambda 部署"],
+        },
+    )
+    resp = client.post(f"/api/meetings/{job_id}/keep")
+    assert resp.status_code == 200
+    return resp.json()["meeting_id"]
+
+
+def test_export_kept_meeting_docx_success():
+    meeting_id = _write_kept_meeting("job-kept-docx")
+    resp = client.get(f"/api/export/meetings/{meeting_id}?format=docx")
+    assert resp.status_code == 200
+    assert (
+        resp.headers["content-type"]
+        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert resp.headers["content-disposition"] == f'attachment; filename="{meeting_id}.docx"'
+    texts = _docx_paragraph_texts(resp.content)
+    assert "會議紀錄 - weekly-sync.mp3" in texts
+
+
+def test_export_kept_meeting_pdf_success():
+    meeting_id = _write_kept_meeting("job-kept-pdf")
+    resp = client.get(f"/api/export/meetings/{meeting_id}?format=pdf")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    assert resp.headers["content-disposition"] == f'attachment; filename="{meeting_id}.pdf"'
+    assert resp.content.startswith(b"%PDF")
+    text = _pdf_text(resp.content)
+    assert "weekly-sync.mp3" in text
+
+
+def test_export_kept_meeting_defaults_to_docx():
+    meeting_id = _write_kept_meeting("job-kept-default-format")
+    resp = client.get(f"/api/export/meetings/{meeting_id}")
+    assert resp.status_code == 200
+    assert (
+        resp.headers["content-type"]
+        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+
+def test_export_kept_meeting_invalid_format_returns_400():
+    meeting_id = _write_kept_meeting("job-kept-bad-format")
+    resp = client.get(f"/api/export/meetings/{meeting_id}?format=xml")
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "format 僅支援 docx 或 pdf"
+
+
+def test_export_nonexistent_meeting_returns_404():
+    resp = client.get("/api/export/meetings/does-not-exist?format=docx")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "找不到此會議紀錄"
+
+
+def test_export_other_users_meeting_returns_404():
+    meeting_id = _write_kept_meeting("job-kept-other-user")
+
+    def _other_user() -> CurrentUser:
+        return CurrentUser(email="other-user@example.com", role="user")
+
+    def _owner_user() -> CurrentUser:
+        return CurrentUser(email="test-user@example.com", role="user")
+
+    app.dependency_overrides[get_current_user] = _other_user
+    try:
+        resp = client.get(f"/api/export/meetings/{meeting_id}?format=docx")
+        assert resp.status_code == 404
+    finally:
+        app.dependency_overrides[get_current_user] = _owner_user
+
+
+def test_export_kept_meeting_reflects_latest_edit_after_patch():
+    """銜接 SDLCAIP2-19 AC3：PATCH 編輯後，匯出內容為最新版本。"""
+    meeting_id = _write_kept_meeting("job-kept-edited")
+
+    new_minutes = {"summary": "編輯後的摘要", "action_items": [], "decisions": []}
+    patch_resp = client.patch(f"/api/meetings/{meeting_id}", json=new_minutes)
+    assert patch_resp.status_code == 200
+
+    resp = client.get(f"/api/export/meetings/{meeting_id}?format=docx")
+    assert resp.status_code == 200
+    texts = _docx_paragraph_texts(resp.content)
+    assert "編輯後的摘要" in texts
