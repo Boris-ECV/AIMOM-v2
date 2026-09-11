@@ -52,7 +52,16 @@ test.describe("模板選擇下拉選單樣式一致性（SDLCAIP2-36）", () => 
     const templateSelect = page.locator("#template-select");
     await expect(templateSelect).toBeVisible();
 
-    const properties = ["borderWidth", "borderStyle", "borderColor", "borderRadius", "color", "fontFamily"];
+    const properties = [
+      "borderWidth",
+      "borderStyle",
+      "borderColor",
+      "borderRadius",
+      "color",
+      "fontFamily",
+      "fontSize",
+      "padding",
+    ];
 
     const referenceStyle = await infoInput.evaluate(
       (el, props: string[]) => {
