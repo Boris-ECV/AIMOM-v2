@@ -120,4 +120,27 @@ test.describe("上傳按鈕狀態還原（SDLCAIP2-34）", () => {
     await expect(btn).toHaveText(/開始處理/);
     await expect(btn).toBeEnabled();
   });
+
+  test("上傳失敗後 state.file 仍在（與 AC1 的「未選檔」情境不同），file-info 仍顯示、可直接重新送出", async ({
+    page,
+  }) => {
+    // 驗證設計文件根因分析點 1 所述的區別：catch 區塊的還原不是呼叫
+    // resetState()（那會連帶清掉 state.file、隱藏 file-info），而是手動只
+    // 復原按鈕本身，因此使用者已選檔的狀態必須維持，不需要重新選檔就能
+    // 再次點擊送出。
+    await page.unroute("**/api/upload/presign");
+    await page.route("**/api/upload/presign", (route) =>
+      route.fulfill({ status: 500, json: { detail: "模擬後端錯誤" } })
+    );
+
+    await page.locator("#upload-btn").click();
+
+    const btn = page.locator("#upload-btn");
+    await expect(btn).toHaveText(/開始處理/);
+    await expect(btn).toBeEnabled();
+    // 關鍵斷言：與 AC1（未選檔情境，file-info 應隱藏）相反，這裡
+    // file-info 應該仍然顯示，證明 state.file 沒有被清空。
+    await expect(page.locator("#file-info")).toBeVisible();
+    await expect(page.evaluate(() => (0, eval)("state").file !== null)).resolves.toBe(true);
+  });
 });
