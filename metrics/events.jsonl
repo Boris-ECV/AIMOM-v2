@@ -385,3 +385,4 @@
 {"ts": "2026-09-11T04:45:49Z", "event": "stage_transition", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-h6d4", "data": {"from": "Designing", "to": "Ready"}}
 {"ts": "2026-09-11T04:54:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"from": "Ready", "to": "In Progress"}}
 {"ts": "2026-09-11T04:54:50Z", "event": "stage_transition", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-11T05:00:13Z", "event": "stage_transition", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"from": "Testing", "to": "In Review"}}
