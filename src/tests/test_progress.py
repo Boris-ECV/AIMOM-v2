@@ -138,6 +138,53 @@ def test_status_no_low_confidence_flag_when_field_missing():
     assert data["low_language_confidence"] is False
 
 
+def test_status_no_low_confidence_flag_when_json_response_raises():
+    """SDLCAIP2-33 邊界情境：transcript.json_response 本身存取就丟例外（例如
+    格式非預期），依設計文件決策 3，這個附帶判斷失敗不可讓 /api/status 主流程
+    失敗，應視為信心正常（low_language_confidence=False）。"""
+    job_id = "progress-job-json-response-raises"
+    jobstore.create_job(job_id, stage="transcribing", progress=20,
+                         message="等待中", assemblyai_transcript_id="aai-raises")
+
+    mock_transcript = MagicMock()
+    mock_transcript.utterances = None
+    mock_transcript.words = []
+    mock_transcript.text = "hello world"
+    type(mock_transcript).json_response = property(
+        lambda self: (_ for _ in ()).throw(RuntimeError("malformed response"))
+    )
+
+    import assemblyai as aai
+    mock_transcript.status = aai.TranscriptStatus.completed
+
+    with patch("progress._fetch_transcript_status_once", return_value=mock_transcript):
+        response = client.get(f"/api/status/{job_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stage"] == "transcribed"
+    assert data["low_language_confidence"] is False
+
+    job = jobstore.get_job(job_id)
+    assert job["low_language_confidence"] is False
+
+
+def test_status_old_job_without_low_confidence_key_defaults_false():
+    """SDLCAIP2-33 邊界情境：本 story 上線前已完成的舊 job，資料裡沒有
+    low_language_confidence 欄位，讀取時應預設 False，不應噴例外。"""
+    job_id = "progress-job-legacy-no-key"
+    jobstore.create_job(job_id, stage="transcribed", progress=75,
+                         message="轉錄完成，共 1 段，1 位說話者",
+                         segments=[], full_text="legacy text")
+
+    job = jobstore.get_job(job_id)
+    assert "low_language_confidence" not in job
+
+    response = client.get(f"/api/status/{job_id}")
+    assert response.status_code == 200
+    assert response.json()["low_language_confidence"] is False
+
+
 def test_status_still_transcribing_when_assemblyai_not_done():
     job_id = "progress-job-003"
     jobstore.create_job(job_id, stage="transcribing", progress=20,
