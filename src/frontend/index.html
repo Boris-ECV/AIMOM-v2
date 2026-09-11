@@ -828,9 +828,9 @@ function renderTranscript() {
     uniqueSpeakers.forEach(sp => {
       rows.innerHTML += `
         <div class="rename-row">
-          <label>${sp}</label>
-          <input type="text" value="${state.speakers[sp] || sp}"
-            onchange="renameSpeaker('${sp}', this.value)" placeholder="輸入真實姓名">
+          <label>${esc(sp)}</label>
+          <input type="text" value="${esc(state.speakers[sp] || sp)}"
+            onchange="renameSpeaker('${esc(sp)}', this.value)" placeholder="輸入真實姓名">
         </div>`;
     });
   }
@@ -1137,7 +1137,7 @@ function showView(id) {
 
 // ─── HELPERS ─────────────────────────────────────────────
 function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function showError(id, msg) {
   document.getElementById(id).textContent = msg;
