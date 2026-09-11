@@ -112,6 +112,7 @@ class StatusResponse(BaseModel):
     stage: str
     progress: int
     message: str
+    low_language_confidence: bool = False
 
 
 class CleanupResponse(BaseModel):
