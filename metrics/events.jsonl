@@ -446,3 +446,7 @@
 {"ts": "2026-09-12T00:33:56Z", "event": "gate_review", "ticket": "SDLCAIP2-35", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "pending", "criteria_results": {"pr_exists": "PASS", "ci_green": "PASS", "reviewer_approve": "PASS", "checklist_complete": "PASS", "coverage_met": "PASS (96%)", "e2e_declared_and_honored": "PASS"}}}
 {"ts": "2026-09-11T16:56:16Z", "event": "gate_review", "ticket": "SDLCAIP2-33", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "approved"}}
 {"ts": "2026-09-11T16:56:16Z", "event": "stage_transition", "ticket": "SDLCAIP2-33", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Done", "pr_merged": "https://github.com/Boris-ECV/AIMOM-v2/pull/192"}}
+{"ts": "2026-09-11T16:59:32Z", "event": "gate_review", "ticket": "SDLCAIP2-34", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-11T16:59:32Z", "event": "stage_transition", "ticket": "SDLCAIP2-34", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Done", "pr_merged": "https://github.com/Boris-ECV/AIMOM-v2/pull/194"}}
+{"ts": "2026-09-11T17:03:53Z", "event": "gate_review", "ticket": "SDLCAIP2-35", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-11T17:03:53Z", "event": "stage_transition", "ticket": "SDLCAIP2-35", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Done", "pr_merged": "https://github.com/Boris-ECV/AIMOM-v2/pull/198"}}
