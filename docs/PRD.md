@@ -630,3 +630,35 @@ As a 已登入的系統使用者, I want 瀏覽自己保留過的會議紀錄列
 ### 依賴
 
 無（後端 GET /api/meetings、GET /api/meetings/{meeting_id} 已完成，見 SDLCAIP2-19）
+
+---
+
+## SDLCAIP2-33：轉錄語言改用 AssemblyAI 自動偵測，取代寫死的中文
+
+### 使用者故事
+
+As a 使用者, I want 系統自動偵測會議錄音的語言（不再寫死中文），並在偵測信心不足時看到明確提示, so that 我能處理非純中文（或中英夾雜）的會議錄音，同時知道何時該自行覆核逐字稿的準確度。
+
+### SDK 確認證據
+
+- `assemblyai==0.64.33`（已安裝版本）的 `TranscriptionConfig.language_detection: Optional[bool]` — 設為 True 啟用自動語言偵測，取代現行 `language_code="zh"`。
+- `TranscriptionConfig.language_confidence_threshold` — 若設定此值，AssemblyAI 會在低於門檻時讓整個轉錄失敗，因此本票不使用此參數。
+- `BaseTranscript.language_confidence: Optional[float]`（0.0～1.0）— 轉錄完成後回傳的信心分數，透過 `transcript.json_response.get("language_confidence")` 取得。
+
+### 驗收條件（Gherkin，摘要）
+
+- 啟用語言自動偵測（language_detection=True，不設定 language_confidence_threshold）
+- 既有 speech_models/speaker_labels 設定不受影響
+- 語言偵測信心過低（<0.5）時，job 狀態標記低信心旗標，前端以既有 #modified-badge 樣式的持續性警示顯示提示，不觸發重試
+- 信心正常時不顯示提示
+
+### 範圍外
+
+* 信心過低時的自動重試、換模型重試、或阻擋使用者繼續操作
+* 設定 AssemblyAI 端的 language_confidence_threshold 讓其直接回傳錯誤
+* 讓使用者手動指定轉錄語言
+* 對信心分數做趨勢分析/記錄到 metrics 儀表板
+
+### 依賴
+
+無新增依賴，沿用既有 assemblyai SDK（已確認版本支援上述欄位）
