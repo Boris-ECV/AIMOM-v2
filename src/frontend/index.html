@@ -193,6 +193,7 @@
   <h1>會議錄音轉紀錄系統</h1>
   <span>Meeting Minutes AI</span>
   <button id="admin-dashboard-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:auto;" onclick="openAdminDashboard()">📊 管理者儀表板</button>
+  <button id="history-nav-btn" class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="openHistoryList()">📜 歷史紀錄</button>
   <span id="current-user-email" style="font-size:.8rem;opacity:.85;margin-left:12px;"></span>
   <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="logout()">登出</button>
 </header>
@@ -358,6 +359,66 @@
       </div>
       <div class="card">
         <div id="transcript-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY LIST VIEW（SDLCAIP2-32） ============ -->
+  <div id="view-history" class="view">
+    <div class="card">
+      <div class="section-title">📜 歷史紀錄</div>
+      <table class="action-table" id="history-table" style="display:none;">
+        <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+      <div id="history-empty" class="empty-state" style="display:none;">
+        <p>尚無已保留的會議紀錄</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY DETAIL VIEW（SDLCAIP2-32，唯讀） ============ -->
+  <div id="view-history-detail" class="view">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 id="history-detail-title" style="font-size:1.2rem;"></h2>
+        <button class="btn btn-outline btn-sm" onclick="showView('view-history')">← 返回歷史列表</button>
+      </div>
+    </div>
+    <div id="history-detail-error" class="empty-state" style="display:none;">
+      <p id="history-detail-error-msg"></p>
+      <button class="btn btn-outline btn-sm" onclick="showView('view-history')">← 返回歷史列表</button>
+    </div>
+    <div id="history-detail-body" style="display:none;">
+      <div class="tabs">
+        <button class="tab active" id="history-tab-btn-minutes" onclick="switchHistoryTab('minutes')">📝 會議紀錄</button>
+        <button class="tab" id="history-tab-btn-transcript" onclick="switchHistoryTab('transcript')">🎙 逐字稿</button>
+      </div>
+      <div id="history-tab-minutes">
+        <div class="card">
+          <div class="section-title">摘要</div>
+          <p id="history-summary-text"></p>
+        </div>
+        <div class="card">
+          <div class="section-title">待辦事項</div>
+          <table class="action-table">
+            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+            <tbody id="history-action-tbody"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="section-title">決定事項</div>
+          <ul class="decision-list" id="history-decision-list"></ul>
+        </div>
+        <div class="card">
+          <div class="section-title">討論重點</div>
+          <div id="history-topics-container"></div>
+        </div>
+      </div>
+      <div id="history-tab-transcript" style="display:none;">
+        <div class="card">
+          <div id="history-transcript-container"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -558,6 +619,116 @@ async function openAdminDashboard() {
   } catch (e) {
     toast('讀取管理者儀表板失敗');
   }
+}
+
+// ─── HISTORY LIST/DETAIL（SDLCAIP2-32，已保留會議紀錄唯讀瀏覽）───
+async function openHistoryList() {
+  showView('view-history');
+  try {
+    const res = await apiFetch('/api/meetings');
+    if (!res.ok) throw new Error('讀取歷史紀錄失敗');
+    const data = await res.json();
+    const meetings = data.meetings || [];
+    const table = document.getElementById('history-table');
+    const empty = document.getElementById('history-empty');
+    if (meetings.length === 0) {
+      table.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = meetings.map(m => `
+      <tr onclick="openMeetingDetail('${esc(m.meeting_id)}')" style="cursor:pointer;">
+        <td>${esc(m.title)}</td><td>${fmtDateTime(m.created_at)}</td>
+      </tr>`).join('');
+    table.style.display = 'table';
+    empty.style.display = 'none';
+  } catch (e) {
+    toast('讀取歷史紀錄失敗');
+  }
+}
+
+async function openMeetingDetail(meetingId) {
+  showView('view-history-detail');
+  try {
+    const res = await apiFetch(`/api/meetings/${meetingId}`);
+    const data = await res.json();
+    if (res.status === 404) {
+      document.getElementById('history-detail-body').style.display = 'none';
+      document.getElementById('history-detail-error').style.display = 'block';
+      document.getElementById('history-detail-error-msg').textContent = data.detail || '找不到此會議紀錄';
+      return;
+    }
+    if (!res.ok) throw new Error(data.detail || '讀取會議紀錄失敗');
+    document.getElementById('history-detail-error').style.display = 'none';
+    document.getElementById('history-detail-body').style.display = 'block';
+    renderMinutesReadOnly(data);
+  } catch (e) {
+    document.getElementById('history-detail-body').style.display = 'none';
+    document.getElementById('history-detail-error').style.display = 'block';
+    document.getElementById('history-detail-error-msg').textContent = '找不到此會議紀錄';
+  }
+}
+
+function renderMinutesReadOnly(data) {
+  const m = data.minutes || {};
+  document.getElementById('history-detail-title').textContent = data.title || '';
+  document.getElementById('history-summary-text').textContent = m.summary || '';
+
+  const tbody = document.getElementById('history-action-tbody');
+  tbody.innerHTML = '';
+  (m.action_items || []).forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(a.owner)}</td><td>${esc(a.task)}</td><td>${esc(a.due)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const dl = document.getElementById('history-decision-list');
+  dl.innerHTML = '';
+  (m.decisions || []).forEach(d => {
+    const li = document.createElement('li');
+    li.textContent = d;
+    dl.appendChild(li);
+  });
+
+  const tc = document.getElementById('history-topics-container');
+  tc.innerHTML = '';
+  if (!(m.sections || []).length) {
+    tc.innerHTML = '<div class="empty-state"><p>無討論重點</p></div>';
+  } else {
+    m.sections.forEach((t, i) => {
+      tc.innerHTML += `
+        <div class="topic-item">
+          <div class="topic-header" onclick="toggleHistoryTopic(${i})">
+            ${esc(t.title)} <span id="history-topic-arrow-${i}">▼</span>
+          </div>
+          <div class="topic-body" id="history-topic-body-${i}">${esc(t.content)}</div>
+        </div>`;
+    });
+  }
+
+  const transcriptContainer = document.getElementById('history-transcript-container');
+  transcriptContainer.innerHTML = `<pre>${esc(data.transcript_text)}</pre>`;
+
+  switchHistoryTab('minutes');
+}
+
+function toggleHistoryTopic(i) {
+  const body = document.getElementById(`history-topic-body-${i}`);
+  const arrow = document.getElementById(`history-topic-arrow-${i}`);
+  const isOpen = body.classList.toggle('open');
+  arrow.textContent = isOpen ? '▲' : '▼';
+}
+
+function switchHistoryTab(tab) {
+  document.getElementById('history-tab-minutes').style.display = tab === 'minutes' ? 'block' : 'none';
+  document.getElementById('history-tab-transcript').style.display = tab === 'transcript' ? 'block' : 'none';
+  document.getElementById('history-tab-btn-minutes').classList.toggle('active', tab === 'minutes');
+  document.getElementById('history-tab-btn-transcript').classList.toggle('active', tab === 'transcript');
+}
+
+function fmtDateTime(epochSeconds) {
+  return new Date(epochSeconds * 1000).toLocaleString('zh-TW');
 }
 
 // ─── DROP ZONE ───────────────────────────────────────────
