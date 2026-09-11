@@ -377,3 +377,9 @@
 {"ts": "2026-09-11T04:22:37Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "Testing", "to": "In Review"}}
 {"ts": "2026-09-11T04:37:01Z", "event": "gate_review", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "pending", "criteria_results": {"pr_exists": "PASS", "ci_green": "PASS", "reviewer_approved": "PASS", "checklist_complete": "PASS", "coverage_met": "PASS", "e2e_declared_and_honored": "PASS"}}}
 {"ts": "2026-09-11T04:37:01Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "In Review", "to": "Awaiting Gate"}}
+{"ts": "2026-09-11T04:37:01Z", "event": "gate_review", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"gate": "G2", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-11T04:44:37Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Done"}}
+{"ts": "2026-09-11T04:29:58Z", "event": "gate_review", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"gate": "G1b", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-11T04:45:29Z", "event": "stage_transition", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"from": "Designing", "to": "Ready"}}
+{"ts": "2026-09-11T04:33:05Z", "event": "gate_review", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-h6d4", "data": {"gate": "G1b", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-11T04:45:49Z", "event": "stage_transition", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-h6d4", "data": {"from": "Designing", "to": "Ready"}}
