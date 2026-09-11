@@ -367,3 +367,8 @@
 {"ts": "2026-09-11T02:28:02Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Designing"}}
 {"ts": "2026-09-11T02:33:33Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "Designing", "to": "Awaiting Gate"}}
 {"ts": "2026-09-11T02:33:33Z", "event": "gate_review", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"gate": "G1b", "mode": "manual", "result": "pending", "criteria_results": {"design_doc_exists": "PASS", "interface_declared": "PASS", "data_model_declared": "PASS", "no_open_design_questions": "PASS"}}}
+{"ts": "2026-09-11T04:13:19Z", "event": "stage_transition", "ticket": "SDLCAIP2-17", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-11T04:13:20Z", "event": "stage_transition", "ticket": "SDLCAIP2-32", "agent": "orch-20260911-h6d4", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-11T04:14:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "Ready", "to": "In Progress"}}
+{"ts": "2026-09-11T04:15:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"from": "In Progress", "to": "Testing"}}
+{"ts": "2026-09-11T04:16:37Z", "event": "human_intervention", "ticket": "SDLCAIP2-31", "agent": "orch-20260911-h6d4", "data": {"kind": "manual_fix", "detail": "Corrected Scenario 3 wording in requirement spec after developer identified inaccuracy (label vs input value assertion target); no security-substance change."}}
