@@ -78,6 +78,30 @@ report to the human supervisor.
    did, not the granular "always re-check per-status" discipline, and
    reusing an ID that worked earlier in the (pre-compaction) session is
    a real observed failure mode, not hypothetical.
+3d. **A ticket-list-level "still Awaiting Gate" status check is NOT
+   sufficient grounds to tell the human a gate decision is still
+   pending.** The board-level JQL query (`status not in (Done,
+   Backlog)`) only proves the *status* hasn't changed — it does not
+   prove no `GATE APPROVED`/`GATE REJECTED` comment has been posted.
+   Jira does not auto-transition status on a gate-decision comment;
+   only the orchestrator's own subsequent transition call does that.
+   So after posting a gate report, the ticket correctly sits at
+   `Awaiting Gate` both before AND immediately after the human answers
+   it, until the orchestrator notices the comment and acts. **Rule:**
+   before asserting to the human that a specific ticket's gate is
+   "still awaiting your decision" — in a status update, a session
+   report, or anywhere else — re-fetch that ticket's own comment
+   thread (not just its status) and confirm the most recent comment
+   is still the gate report itself, not a `GATE APPROVED`/`REJECTED`
+   reply. Observed in this framework's pilot (2026-09-12,
+   SDLCAIP2-36): the human approved a G1b gate at 00:05; the
+   orchestrator's board-level status checks kept correctly reporting
+   `Awaiting Gate` (true) and repeatedly summarized this as "still
+   waiting on your decision" (false) across several turns, including
+   in a session wrap-up report, because it never re-read the ticket's
+   comments after the gate report was first posted. Caught only when
+   the human directly challenged the claim. Cost: one full story's
+   development sat idle for roughly 70 minutes for no reason.
 4. **Never push to main directly, never merge a PR that has not passed
    its gate, never force-push, never delete branches you did not create
    this session.**
