@@ -30,6 +30,26 @@ def _pdf_text(content: bytes) -> str:
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 
+def _pdf_font_descriptors(content: bytes) -> list:
+    """SDLCAIP2-38：走訪每頁 /Resources/Font，回傳所有字型的 FontDescriptor。"""
+    reader = pypdf.PdfReader(io.BytesIO(content))
+    descriptors = []
+    for page in reader.pages:
+        resources = page.get("/Resources") or {}
+        fonts = resources.get("/Font") or {}
+        for font_ref in fonts.values():
+            font_obj = font_ref.get_object()
+            descendant = font_obj.get("/DescendantFonts")
+            if descendant:
+                df = descendant[0].get_object()
+                fd = df.get("/FontDescriptor")
+            else:
+                fd = font_obj.get("/FontDescriptor")
+            if fd:
+                descriptors.append(fd.get_object())
+    return descriptors
+
+
 def _write_job_result(job_id: str):
     jobstore.create_job(
         job_id,
@@ -63,6 +83,20 @@ def test_export_pdf_success():
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "application/pdf"
     assert resp.content.startswith(b"%PDF")
+
+
+def test_export_pdf_embeds_cjk_font():
+    """SDLCAIP2-38 Scenario 1：PDF 中文字型須為內嵌字型（含 FontFile2），
+    而非僅依賴未內嵌的標準 CID 字型（不需檢視器本機安裝 CJK 字型套件）。"""
+    _write_job_result("job-pdf-font-embed")
+    resp = client.get("/api/export/job-pdf-font-embed?format=pdf")
+    assert resp.status_code == 200
+    descriptors = _pdf_font_descriptors(resp.content)
+    assert descriptors, "PDF 應至少含一個字型描述子"
+    assert any("/FontFile2" in d for d in descriptors), (
+        "字型描述子須含 FontFile2（TrueType 內嵌字形程式），"
+        "而非僅有未內嵌的標準 CID 字型"
+    )
 
 
 def test_export_missing_job_returns_404():
