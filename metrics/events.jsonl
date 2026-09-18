@@ -469,3 +469,9 @@
 {"ts": "2026-09-18T08:01:04Z", "event": "gate_review", "ticket": "SDLCAIP2-37", "agent": "orch-20260918-s31", "data": {"gate": "G1", "mode": "manual", "result": "pending", "criteria_results": {"gherkin_present": "PASS", "out_of_scope_declared": "PASS", "no_open_questions": "PASS", "size_ok": "PASS"}}}
 {"ts": "2026-09-18T07:55:00Z", "event": "session_start", "ticket": "N/A", "agent": "orch-20260918-s31", "data": {"note": "session31 bootstrap"}}
 {"ts": "2026-09-18T08:10:00Z", "event": "session_end", "ticket": "N/A", "agent": "orch-20260918-s31", "data": {"tickets_touched": ["SDLCAIP2-38", "SDLCAIP2-37"], "tokens_estimate": "medium", "summary": "Refined 2 backlog bugs to Awaiting Gate (G1); no further actionable work, both gates await human decision"}}
+{"ts": "2026-09-18T08:11:01Z", "event": "gate_review", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"gate": "G1", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-18T08:11:02Z", "event": "stage_transition", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-18T08:11:34Z", "event": "gate_review", "ticket": "SDLCAIP2-37", "agent": "orch-20260918-s31", "data": {"gate": "G1", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-18T08:11:35Z", "event": "stage_transition", "ticket": "SDLCAIP2-37", "agent": "orch-20260918-s31", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-18T08:16:00Z", "event": "design_completed", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"design_doc": "docs/design/SDLCAIP2-38.md"}}
+{"ts": "2026-09-18T08:16:08Z", "event": "gate_review", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"gate": "G1b", "mode": "manual", "result": "pending", "criteria_results": {"design_doc_exists": "PASS", "interface_declared": "PASS", "data_model_declared": "PASS", "no_open_design_questions": "PASS"}}}
