@@ -782,3 +782,55 @@ Feature: 下拉選單視覺風格一致性
 * 變更「重新產生」按鈕的行為
 
 ---
+
+## SDLCAIP2-39：會議紀錄結果頁操作按鈕排列在特定寬度下會換行，且部分按鈕圖示與文字混雜
+
+### 使用者故事
+
+As a 使用中的會議紀錄使用者, I want 結果頁上方的操作列（模板選單、重新產生、匯出格式、匯出、清除暫存、新錄音）在任何合理畫面寬度下都維持同一排、不換行，且「重新產生」「匯出」「清除暫存」三顆按鈕只顯示文字, so that 我能快速找到並點擊正確的操作按鈕，不被凌亂的換行版面或圖示/文字混雜干擾。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: AC1 寬螢幕下操作列維持單排不換行
+  Given 使用者已進入 view-result（會議紀錄結果頁）
+  And 瀏覽器視窗寬度為 1280px（桌面常見寬度）
+  When 觀察 #result-action-group-content 與 #result-action-group-reset 內所有元素
+  Then 所有元素的 bounding box top 座標相同（同一排），沒有任何元素換到第二排
+
+Scenario: AC2 窄螢幕下操作列仍維持單排（改為可橫向捲動，不換行）
+  Given 使用者已進入 view-result（會議紀錄結果頁）
+  And 瀏覽器視窗寬度縮小至 480px
+  When 觀察外層容器（第 293 行 flex 容器）與其內所有按鈕/選單元素
+  Then 所有元素的 top 座標仍相同（沒有任何元素換到第二排）
+  And 外層容器可透過水平捲動（overflow-x）看到超出可視範圍的元素
+
+Scenario: AC3 清除暫存／新錄音靠右對齊，其餘控制項靠左
+  Given 使用者已進入 view-result 且視窗寬度足以容納整排不觸發橫向捲動（例如 1280px）
+  When 比較 #result-action-group-reset（內含 #cleanup-btn、#new-recording-btn）與 #result-action-group-content 的水平位置
+  Then #result-action-group-reset 位於容器最右側（與 SDLCAIP2-37 既有 margin-left:auto 行為一致）
+  And #result-action-group-content 內的模板選單、#regenerate-btn、匯出格式選單、#export-confirm-btn 維持靠左、原有相對順序不變
+
+Scenario: AC4 重新產生／匯出／清除暫存三顆按鈕只顯示文字，不顯示圖示
+  Given 使用者已進入 view-result
+  When 讀取 #regenerate-btn、#export-confirm-btn、#cleanup-btn 的按鈕文字內容
+  Then #regenerate-btn 文字為「重新產生」（不含「🔄」）
+  And #export-confirm-btn 文字為「匯出」（不含「⬇」）
+  And #cleanup-btn 文字為「清除暫存」（不含「🗑」）
+
+Scenario: AC5 既有匯出／重新產生／清除暫存行為不受影響（回歸測試）
+  Given 使用者已進入 view-result 且已有轉錄結果
+  When 使用者點擊 #regenerate-btn、選擇匯出格式後點擊 #export-confirm-btn、或點擊 #cleanup-btn
+  Then 對應的既有 JS 行為（regenerateSummary()、exportSelectedFormat()、cleanupAndReset()）與呼叫參數維持不變，功能不因本次純視覺變更而改變
+```
+
+### 範圍外
+
+* 新增 CSS class
+* 新增媒體查詢（media query）斷點
+* 變更 #new-recording-btn 的「+」字首
+* 變更按鈕的 onclick 行為或後端呼叫
+* 僅限於 #view-result 操作列，不涉及其他頁面元素
+* 新增專為 <375px 行動裝置的版面配置
+
+---
