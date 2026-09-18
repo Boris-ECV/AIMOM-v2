@@ -129,3 +129,15 @@ developer 直接依循）：
 無。字型選擇（Noto Sans TC / OFL-1.1 / TTF）、檔案放置路徑
 （`src/fonts/NotoSansTC-Regular.ttf`）、註冊方式改動、字型內嵌驗證測試手法
 均已在本設計中具體決定，developer 可直接依此實作。
+
+## 實作偏離附註（開發階段回填，2026-09-18）
+本設計原預期下載靜態「Regular」單一字重的 TTF（見上方「關鍵技術決策」第 2
+項），但 developer 實作時發現 Google Fonts 目前對 Noto Sans TC **只提供
+可變字重（variable-weight）字型檔**，已無獨立靜態 Regular 版本可下載。
+developer 將此可變字重檔案沿用 `NotoSansTC-Regular.ttf` 檔名內嵌（與本設
+計文件路徑保持一致，而非誤植）。已由獨立 tester 子代理在乾淨環境驗證：
+檔案為合法、未損壞的 TrueType（sfnt magic bytes 正確），reportlab 的
+`TTFont` 可正常載入，PDF 字型描述子確實含 `FontFile2`，文字擷取結果正
+確——僅內部 face name 顯示為 `NotoSansTC-Thin`（可變字重中繼資料的產
+物），純屬命名巧合，不影響任一 Gherkin 驗收情境。此偏離於 code review
+（PR #229）中被要求補充記錄，故回填於此。

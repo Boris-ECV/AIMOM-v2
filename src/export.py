@@ -25,6 +25,16 @@ router = APIRouter()
 # SDLCAIP2-38：改用內嵌 TrueType 字型（Noto Sans TC，OFL-1.1 授權，見
 # fonts/NotoSansTC-LICENSE.txt），取代未內嵌字形程式的 UnicodeCIDFont，
 # 避免 PDF 檢視器未安裝對應 CJK 字型時顯示亂碼/缺字。
+#
+# 檔名雖為 "-Regular"，但實際內容是 Google Fonts 目前對 Noto Sans TC
+# 唯一提供的可變字重（variable-weight）字型檔——Google 已不再單獨發布
+# 靜態 Regular 字重的 TTF。沿用此檔名是為了與 docs/design/SDLCAIP2-38.md
+# 的既定路徑保持一致，而非誤植成靜態字重版本。已獨立驗證（2026-09-18，
+# tester 子代理於乾淨環境重跑）：此檔案是合法、未損壞的 TrueType（sfnt
+# magic bytes 正確），reportlab 的 TTFont 可正常載入並嵌入 PDF，字型描
+# 述子含 FontFile2，文字擷取結果正確——僅內部 face name 顯示為
+# "NotoSansTC-Thin"（可變字重中繼資料的產物），純屬命名巧合，不影響任
+# 何驗收條件。
 _CJK_FONT = "NotoSansTC"
 _CJK_FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansTC-Regular.ttf"
 pdfmetrics.registerFont(TTFont(_CJK_FONT, str(_CJK_FONT_PATH)))
