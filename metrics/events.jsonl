@@ -473,3 +473,5 @@
 {"ts": "2026-09-18T08:11:02Z", "event": "stage_transition", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"from": "Awaiting Gate", "to": "Designing"}}
 {"ts": "2026-09-18T08:11:34Z", "event": "gate_review", "ticket": "SDLCAIP2-37", "agent": "orch-20260918-s31", "data": {"gate": "G1", "mode": "manual", "result": "approved"}}
 {"ts": "2026-09-18T08:11:35Z", "event": "stage_transition", "ticket": "SDLCAIP2-37", "agent": "orch-20260918-s31", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-18T08:16:00Z", "event": "design_completed", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"design_doc": "docs/design/SDLCAIP2-38.md"}}
+{"ts": "2026-09-18T08:16:08Z", "event": "gate_review", "ticket": "SDLCAIP2-38", "agent": "orch-20260918-s31", "data": {"gate": "G1b", "mode": "manual", "result": "pending", "criteria_results": {"design_doc_exists": "PASS", "interface_declared": "PASS", "data_model_declared": "PASS", "no_open_design_questions": "PASS"}}}
