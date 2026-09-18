@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import io
 import json
+from pathlib import Path
 
 from docx import Document
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 import db
@@ -21,8 +22,12 @@ from auth import CurrentUser, get_current_user
 
 router = APIRouter()
 
-_CJK_FONT = "MSung-Light"
-pdfmetrics.registerFont(UnicodeCIDFont(_CJK_FONT))
+# SDLCAIP2-38：改用內嵌 TrueType 字型（Noto Sans TC，OFL-1.1 授權，見
+# fonts/NotoSansTC-LICENSE.txt），取代未內嵌字形程式的 UnicodeCIDFont，
+# 避免 PDF 檢視器未安裝對應 CJK 字型時顯示亂碼/缺字。
+_CJK_FONT = "NotoSansTC"
+_CJK_FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansTC-Regular.ttf"
+pdfmetrics.registerFont(TTFont(_CJK_FONT, str(_CJK_FONT_PATH)))
 
 
 def _load_minutes(job_id: str) -> dict:
