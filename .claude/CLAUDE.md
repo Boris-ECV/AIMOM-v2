@@ -238,6 +238,36 @@ report to the human supervisor.
    and correctly reapplied on `main` after an explicit `cd` + `pwd`
    check — no corruption, but it cost an extra recovery pass that this
    rule would have prevented.
+7d. **Do not cut a second `metrics/events.jsonl` housekeeping branch (rule
+   7/4c) before the previous one has actually merged to `main`.** Each
+   such branch's diff is "append N lines at end of file" computed
+   against whatever `main` looked like at branch-creation time. If two
+   such branches are both cut before either merges, their diffs target
+   the same end-of-file anchor line, and the second one to merge will
+   show as `CONFLICTING`/`DIRTY` on GitHub even though semantically both
+   sets of lines just need to coexist — this is a real, mechanical git
+   limitation (concurrent pure-appends still conflict when the anchor
+   context overlaps), not a bug in the events themselves. **If it
+   happens anyway** (e.g. because a subagent delegation forced you to
+   queue several housekeeping commits before circling back to merge
+   them): `git fetch origin`, `git checkout <the-conflicting-branch>`,
+   `git rebase origin/main`, resolve by keeping both sets of JSON lines
+   in chronological `ts` order (delete only the conflict markers, never
+   a real event line), confirm `git diff main <branch> --stat` shows
+   only the intended file with only the expected added-line count, then
+   `git push --force-with-lease` and merge — force-pushing your own
+   just-created, not-yet-merged housekeeping branch this way is safe
+   (rule 4's force-push restriction is about shared/published branches
+   other people build on, not a same-session scratch branch you alone
+   created and are about to squash-merge). **Preferred**: avoid the
+   situation up front by merging each metrics housekeeping PR before
+   cutting the next one, even if that means slightly more back-and-forth
+   during a busy session. Observed in this framework's pilot
+   (2026-09-18, session31): three separate metrics-append branches were
+   cut in quick succession around G1/G1b gate processing for
+   SDLCAIP2-37/38 before the earlier ones merged; two of the three later
+   PRs conflicted exactly this way and were resolved via the rebase
+   procedure above with no data loss.
 8. **Respect token discipline** (config/limits.yaml): WIP limit, story cap
    per session, clean wrap-up when context gets heavy.
 9. **A lesson learned beyond this single session must be promoted into a
