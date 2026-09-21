@@ -39,6 +39,14 @@ You do not write production code and you do not touch tests.
      why this error-handling approach) with a one-line rationale each —
      not a full ADR document, just enough for a future reader to know
      WHY, not just WHAT
+   - UI prototype: if the story adds or changes frontend UI, create a
+     static, browser-openable HTML/CSS prototype file at
+     `docs/design/<JIRA-KEY>-prototype.html` approximating the final
+     rendered result (layout, button placement/alignment, presence or
+     absence of icons, etc.) and reference it in this section — this is
+     what the human reviews at G1b instead of imagining the result from
+     text. If the story does not touch frontend UI, state so explicitly
+     with a reason.
    - Open design questions: things you could not resolve from the spec
      or existing codebase alone
 3. **Never invent product requirements.** If the design forces a product
