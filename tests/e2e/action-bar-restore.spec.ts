@@ -13,7 +13,9 @@ import { test, expect } from "@playwright/test";
 //       flex-wrap 行為回復為共用 .btn-row class 的 wrap
 // AC2 - #result-action-group-content inline style 不含 flex-wrap:nowrap
 // AC3 - #result-action-group-reset inline style 不含 flex-wrap:nowrap
-// AC4 - 三顆按鈕文字恢復 emoji 前綴
+// AC4 - 三顆按鈕文字不含 emoji 前綴
+//       （SDLCAIP2-42 起，此按鈕不再顯示 emoji（人類於 G1b 明確要求），
+//       原斷言已由 SDLCAIP2-42 推翻，此處改為驗證新的正確行為）
 // AC5（回歸）- 按鈕 id/class/onclick 與元素順序、對應函式皆不受影響
 
 function fakeIdToken(email: string): string {
@@ -84,10 +86,12 @@ test.describe("結果頁面操作區塊回復 SDLCAIP2-39 合併前呈現方式�
     expect(inlineStyle ?? "").not.toMatch(/flex-wrap\s*:\s*nowrap/);
   });
 
-  test("AC4: 三顆按鈕的 emoji 圖示恢復顯示", async ({ page }) => {
-    await expect(page.locator("#regenerate-btn")).toHaveText("🔄 重新產生");
-    await expect(page.locator("#export-confirm-btn")).toHaveText("⬇ 匯出");
-    await expect(page.locator("#cleanup-btn")).toHaveText("🗑 清除暫存");
+  // SDLCAIP2-42 起，此按鈕不再顯示 emoji（人類於 G1b 明確要求），
+  // 原斷言已由 SDLCAIP2-42 推翻，此測試改為驗證新的正確行為（無 emoji）。
+  test("AC4: 三顆按鈕文字不含 emoji 前綴（SDLCAIP2-42 起恢復無 emoji 顯示）", async ({ page }) => {
+    await expect(page.locator("#regenerate-btn")).toHaveText("重新產生");
+    await expect(page.locator("#export-confirm-btn")).toHaveText("匯出");
+    await expect(page.locator("#cleanup-btn")).toHaveText("清除暫存");
   });
 
   test("AC5（回歸）: 按鈕 id/class/onclick 屬性與元素順序不受影響，對應函式仍存在", async ({ page }) => {

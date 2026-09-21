@@ -289,33 +289,29 @@
 
   <!-- ============ RESULT VIEW ============ -->
   <div id="view-result" class="view">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
-      <div>
-        <h2 style="font-size:1.2rem;">📋 會議紀錄</h2>
-        <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-top:4px;"></p>
+    <h2 style="font-size:1.2rem;margin-bottom:4px;">📋 會議紀錄</h2>
+    <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-bottom:16px;"></p>
+    <div class="btn-row" style="align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div class="btn-row" id="result-action-group-content" style="align-items:center;">
+        <span id="modified-badge">● 未儲存修改</span>
+        <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
+        <label style="font-size:.8rem;color:var(--muted);">模板
+          <select id="template-select"></select>
+        </label>
+        <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
+        <label style="font-size:.8rem;color:var(--muted);">匯出格式
+          <select id="export-format-select">
+            <option value="markdown">Markdown</option>
+            <option value="plaintext">純文字</option>
+            <option value="docx">Word</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </label>
+        <button class="btn btn-outline btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">匯出</button>
       </div>
-      <div class="btn-row" style="align-items:center;justify-content:space-between;flex:1;">
-        <div class="btn-row" id="result-action-group-content" style="align-items:center;">
-          <span id="modified-badge">● 未儲存修改</span>
-          <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
-          <label style="font-size:.8rem;color:var(--muted);">模板
-            <select id="template-select"></select>
-          </label>
-          <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">🔄 重新產生</button>
-          <label style="font-size:.8rem;color:var(--muted);">匯出格式
-            <select id="export-format-select">
-              <option value="markdown">Markdown</option>
-              <option value="plaintext">純文字</option>
-              <option value="docx">Word</option>
-              <option value="pdf">PDF</option>
-            </select>
-          </label>
-          <button class="btn btn-outline btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">⬇ 匯出</button>
-        </div>
-        <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
-          <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="cleanupAndReset()">🗑 清除暫存</button>
-          <button class="btn btn-outline btn-sm" id="new-recording-btn" onclick="showView('view-upload')">+ 新錄音</button>
-        </div>
+      <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
+        <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="cleanupAndReset()">清除暫存</button>
+        <button class="btn btn-outline btn-sm" id="new-recording-btn" onclick="showView('view-upload')">+ 新錄音</button>
       </div>
     </div>
 
