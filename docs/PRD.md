@@ -834,3 +834,51 @@ Scenario: AC5 既有匯出／重新產生／清除暫存行為不受影響（回
 * 新增專為 <375px 行動裝置的版面配置
 
 ---
+
+## SDLCAIP2-40：會議紀錄結果頁操作區塊應回復至 SDLCAIP2-39 合併前的呈現方式
+
+### 使用者故事
+
+As a 使用中「會議紀錄」結果頁的使用者, I want 操作區塊（模板／重新產生／匯出格式／匯出／清除暫存／新錄音）的排版與按鈕圖示回復到 SDLCAIP2-39 合併前（SDLCAIP2-37 完成後）的樣式, so that 畫面呈現符合先前已驗收、被 SDLCAIP2-39 意外改動的預期外觀。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Scenario: AC1 外層操作列容器不再強制單行（移除 flex-wrap:nowrap）
+  Given 會議紀錄已產生，使用者進入結果頁
+  When 檢視結果頁上方的操作列容器（#result-action-group 及其直接子元素）
+  Then 容器應無 flex-wrap:nowrap 內聯樣式，允許內容自然換行（恢復 SDLCAIP2-37 後的預設行為）
+
+Scenario: AC2 操作列容器不再有強制橫向捲動（移除 overflow-x:auto）
+  Given 會議紀錄已產生，使用者進入結果頁
+  When 檢視結果頁操作列容器的樣式
+  Then 容器應無 overflow-x:auto 內聯樣式（不再有水平捲軸）
+
+Scenario: AC3 重新產生按鈕恢復顯示「🔄」emoji 前綴
+  Given 使用者進入結果頁，操作列內含重新產生按鈕
+  When 讀取該按鈕的渲染文字內容
+  Then 按鈕文字應包含「🔄」字符，完整文字為「🔄 重新產生」
+
+Scenario: AC4 匯出按鈕恢復顯示「⬇」emoji 前綴
+  Given 使用者進入結果頁，操作列內含匯出按鈕
+  When 讀取該按鈕的渲染文字內容
+  Then 按鈕文字應包含「⬇」字符，完整文字為「⬇ 匯出」或等效表示
+
+Scenario: AC5 清除暫存按鈕恢復顯示「🗑」emoji 前綴
+  Given 使用者進入結果頁，操作列內含清除暫存按鈕
+  When 讀取該按鈕的渲染文字內容
+  Then 按鈕文字應包含「🗑」字符，完整文字為「🗑 清除暫存」
+
+Scenario: AC6 測試檔案刪除與核心功能迴歸
+  Given SDLCAIP2-39 建立的 tests/e2e/action-bar-nowrap.spec.ts 檔案
+  When 本 Story 的變更合併且 CI 執行全套測試（pytest + playwright）
+  Then 該檔案應已被 git revert 刪除；全套測試（pytest + playwright）應在 CI 通過
+```
+
+### 範圍外
+
+* `src/export.py` 與字型檔案的任何修改（屬 SDLCAIP2-38 範圍）
+* 手動重寫操作列佈局邏輯（必須使用 `git revert` 提交回復 SDLCAIP2-39 的 commit）
+* 修改按鈕的 onclick、id、class 或 JS 事件處理（僅限視覺回復，功能不變）
+
+---
