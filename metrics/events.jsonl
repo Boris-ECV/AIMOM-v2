@@ -531,3 +531,5 @@
 {"ts":"2026-09-21T08:01:00Z","event":"stage_transition","ticket":"SDLCAIP2-40","from":"In Progress","to":"Testing","branch":"story/SDLCAIP2-40-revert-action-bar-nowrap-icons","commit":"adc44a7","session":"session34"}
 {"ts":"2026-09-21T08:10:28Z","event":"stage_transition","ticket":"SDLCAIP2-40","from":"Testing","to":"In Review","pr":"258","session":"session34"}
 {"ts":"2026-09-21T08:16:40Z","event":"gate_report_posted","ticket":"SDLCAIP2-40","gate":"G2","stage":"In Review","pr":"258","result":"awaiting_human","session":"session34"}
+{"ts":"2026-09-21T08:21:10Z","event":"gate_approved","ticket":"SDLCAIP2-40","gate":"G2","transition":"In Review->Done","pr":"258","session":"session34"}
+{"ts":"2026-09-21T08:24:43Z","event":"stage_transition","ticket":"SDLCAIP2-40","from":"In Review","to":"Done","merge_commit":"b2be512","session":"session34"}
