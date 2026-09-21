@@ -61,6 +61,13 @@ gates:
         check: "Data model section is non-empty (or explicitly 'no new data model')"
       - id: no_open_design_questions
         check: "Open design questions section is empty"
+      - id: ui_prototype_present
+        check: |
+          If the story adds or changes frontend UI, the design doc's
+          "UI 原型" section references a static, browser-openable
+          prototype file (e.g. docs/design/<JIRA-KEY>-prototype.html)
+          that exists in the PR/branch. If the story does not touch
+          frontend UI, this section explicitly states so with a reason.
 
 # Module-provided gates are appended below by the module enablement
 # procedure (docs/05 §3). Example:
