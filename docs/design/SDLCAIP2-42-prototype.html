@@ -2,119 +2,119 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>SDLCAIP2-42 UI 原型 — 會議紀錄結果頁操作列（after 狀態）</title>
+<title>SDLCAIP2-42 原型（G1b 駁回後修訂版）— 三行堆疊，無橫向捲動</title>
 <style>
-  body { font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif; background:#f4f5f7; margin:0; padding:24px; }
-  :root {
-    --muted:#6b7280;
-    --btn-border:#c9ccd1;
+  body { font-family: -apple-system, "Segoe UI", "Noto Sans TC", sans-serif; background:#f4f5f7; margin:0; padding:24px; }
+  h1 { font-size:1rem; }
+  .note { font-size:.85rem; color:#555; max-width:900px; margin-bottom:24px; }
+  .note code { background:#eee; padding:1px 4px; border-radius:3px; }
+  .frame-label { font-size:.75rem; color:#888; margin-bottom:6px; }
+  .frame {
+    border: 2px dashed #bbb;
+    margin-bottom: 40px;
+    background: #fff;
+    overflow: hidden; /* demonstrates NO horizontal scrollbar is needed/used inside .view */
   }
-  h1 { font-size:1.1rem; }
-  .note { font-size:.85rem; color:var(--muted); max-width:900px; line-height:1.6; margin-bottom:24px; }
-  .frame-label { font-size:.85rem; font-weight:bold; margin:24px 0 8px; }
-  .viewport {
-    border:2px dashed #9aa0a8;
-    background:#fff;
-    padding:16px;
-    box-sizing:border-box;
-    overflow:hidden; /* simulate the browser window edge itself */
-  }
-  #wide-frame { width:1280px; max-width:100%; }
-  #narrow-frame { width:480px; }
+  .frame-wide { width: 1280px; max-width: 100%; }
+  .frame-narrow { width: 375px; }
 
-  /* ---- below: markup + styling mirrors src/frontend/index.html #view-result action row, "after" state ---- */
-  .btn-row { display:flex; gap:10px; flex-wrap:wrap; } /* shared class, unchanged */
-  .btn { padding:6px 12px; border:1px solid var(--btn-border); border-radius:6px; background:#fff; cursor:pointer; font-size:.85rem; white-space:nowrap; }
+  /* ---- styles copied from src/frontend/index.html, unchanged ---- */
+  :root { --muted: #6b7280; }
+  .btn { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:6px; border:1px solid #d0d5dd; background:#fff; cursor:pointer; font-size:.85rem; }
   .btn-outline { background:#fff; }
   .btn-sm { padding:4px 10px; font-size:.8rem; }
-  select { font-size:.8rem; }
-  label { font-size:.8rem; color:var(--muted); white-space:nowrap; }
-  #modified-badge, #low-confidence-badge { font-size:.75rem; color:var(--muted); white-space:nowrap; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; } /* shared class, untouched by this story */
+  #modified-badge, #low-confidence-badge { display:none; } /* default-hidden in real app, shown here for illustration only via .demo-show */
+  .demo-show { display:inline-block !important; padding:4px 12px; border-radius:999px; background:#fef3c7; font-size:.75rem; }
+  .view { padding: 20px; }
 </style>
 </head>
 <body>
-<h1>SDLCAIP2-42 — 結果頁操作列 UI 原型（after 狀態）</h1>
-<p class="note">
-  本檔案是純靜態原型，重現 <code>src/frontend/index.html</code> 的
-  <code>#view-result</code> 操作列在本 story 變更後的呈現方式：模板、重新產生、
-  匯出格式、匯出、清除暫存、新錄音六個元素維持同一列不換行；清除暫存／新錄音靠
-  右對齊；重新產生／匯出／清除暫存三顆按鈕僅顯示文字（不含 emoji）；新錄音維持
-  「+ 新錄音」不變。下方分別以「寬版（1280px）」與「窄版（480px）」兩個固定寬度
-  容器並排展示，對應 AC1（寬螢幕同排）與 AC2（窄螢幕同排、允許水平捲動）。
-  按鈕上的 <code>onclick</code> 屬性僅為呈現參考、不綁定真實函式，本原型不含任何
-  JS 邏輯或後端呼叫。若想另外用瀏覽器實際縮放視窗驗證，可直接開啟本檔案後手動調
-  整瀏覽器寬度觀察 <code>overflow-x:auto</code> 的水平捲動行為。
-</p>
+  <h1>SDLCAIP2-42 原型 — G1b 駁回後修訂版（三行堆疊，無橫向捲動）</h1>
+  <div class="note">
+    此為 <strong>G1b 駁回後修訂版</strong>原型，對應 <code>docs/design/SDLCAIP2-42.md</code>。
+    人類明確駁回 SDLCAIP2-39 的排版方案與橫向捲動 fallback；本原型改為
+    「標題列 / meta 列 / 操作列」三個獨立堆疊區塊，操作列內部
+    模板／重新產生／匯出格式／匯出 維持原樣靠左、清除暫存／新錄音 並排
+    靠右對齊，三顆按鈕（重新產生／匯出／清除暫存）僅顯示文字。<br>
+    下方分別以「寬版（1280px 容器）」與「窄版（375px 容器，模擬窄螢
+    幕）」並排展示，兩者皆使用<strong>完全相同</strong>的 inline
+    style（即設計文件中「變更後」的 markup），刻意<strong>不</strong>加入
+    <code>overflow-x:auto</code> 或任何橫向捲動樣式 —— 可直接觀察窄版容
+    器本身是否出現水平捲動軸（預期：不會）。若操作列內容在窄版換行，僅
+    會自然折到第二行（依賴 <code>.btn-row</code> 共用 class 既有的
+    <code>flex-wrap:wrap</code>），非捲動。<br>
+    純靜態展示，`onclick` 保留原文字但未綁定真實函式，不含任何後端呼叫
+    或 JS 邏輯，不得用於功能驗證。
+  </div>
 
-<div class="frame-label">寬版（模擬 1280px 寬視窗，AC1）</div>
-<div class="viewport" id="wide-frame">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
-    <div>
-      <h2 style="font-size:1.2rem;">📋 會議紀錄</h2>
-      <p style="color:var(--muted);font-size:.8rem;margin-top:4px;">2026-09-21 14:30 · 逐字稿長度 12,340 字</p>
-    </div>
-    <div class="btn-row" style="align-items:center;justify-content:space-between;flex:1;flex-wrap:nowrap;overflow-x:auto;">
-      <div class="btn-row" id="result-action-group-content" style="align-items:center;flex-wrap:nowrap;">
-        <span id="modified-badge">● 未儲存修改</span>
-        <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
-        <label>模板
-          <select id="template-select"><option>標準會議紀錄</option></select>
-        </label>
-        <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
-        <label>匯出格式
-          <select id="export-format-select">
-            <option value="markdown">Markdown</option>
-            <option value="plaintext">純文字</option>
-            <option value="docx">Word</option>
-            <option value="pdf">PDF</option>
-          </select>
-        </label>
-        <button class="btn btn-outline btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">匯出</button>
-      </div>
-      <div class="btn-row" id="result-action-group-reset" style="align-items:center;flex-wrap:nowrap;">
-        <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="cleanupAndReset()">清除暫存</button>
-        <button class="btn btn-outline btn-sm" id="new-recording-btn" onclick="showView('view-upload')">+ 新錄音</button>
+  <div class="frame-label">寬版（1280px 容器，模擬桌面寬螢幕，AC1）</div>
+  <div class="frame frame-wide">
+    <div id="view-result" class="view">
+      <h2 style="font-size:1.2rem;margin-bottom:4px;">📋 會議紀錄</h2>
+      <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-bottom:16px;">job id: 20260921-ab12cd34</p>
+      <div class="btn-row" style="align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="btn-row" id="result-action-group-content" style="align-items:center;">
+          <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+          <label style="font-size:.8rem;color:var(--muted);">模板
+            <select id="template-select"><option>標準會議紀錄</option></select>
+          </label>
+          <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
+          <label style="font-size:.8rem;color:var(--muted);">匯出格式
+            <select id="export-format-select">
+              <option value="markdown">Markdown</option>
+              <option value="plaintext">純文字</option>
+              <option value="docx">Word</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <button class="btn btn-outline btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">匯出</button>
+        </div>
+        <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
+          <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="cleanupAndReset()">清除暫存</button>
+          <button class="btn btn-outline btn-sm" id="new-recording-btn" onclick="showView('view-upload')">+ 新錄音</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="frame-label">窄版（模擬 480px 寬視窗，AC2 — 若空間不足會出現水平捲動）</div>
-<div class="viewport" id="narrow-frame">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
-    <div>
-      <h2 style="font-size:1.2rem;">📋 會議紀錄</h2>
-      <p style="color:var(--muted);font-size:.8rem;margin-top:4px;">2026-09-21 14:30</p>
-    </div>
-    <div class="btn-row" style="align-items:center;justify-content:space-between;flex:1;flex-wrap:nowrap;overflow-x:auto;">
-      <div class="btn-row" id="result-action-group-content-narrow" style="align-items:center;flex-wrap:nowrap;">
-        <span>● 未儲存修改</span>
-        <label>模板
-          <select><option>標準會議紀錄</option></select>
-        </label>
-        <button class="btn btn-outline btn-sm" onclick="regenerateSummary()">重新產生</button>
-        <label>匯出格式
-          <select>
-            <option value="markdown">Markdown</option>
-          </select>
-        </label>
-        <button class="btn btn-outline btn-sm" onclick="exportSelectedFormat()">匯出</button>
-      </div>
-      <div class="btn-row" id="result-action-group-reset-narrow" style="align-items:center;flex-wrap:nowrap;">
-        <button class="btn btn-outline btn-sm" onclick="cleanupAndReset()">清除暫存</button>
-        <button class="btn btn-outline btn-sm" onclick="showView('view-upload')">+ 新錄音</button>
+  <div class="frame-label">窄版（375px 容器，模擬窄螢幕，AC2 — 觀察是否出現橫向捲動軸，預期：不會）</div>
+  <div class="frame frame-narrow">
+    <div id="view-result" class="view">
+      <h2 style="font-size:1.2rem;margin-bottom:4px;">📋 會議紀錄</h2>
+      <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-bottom:16px;">job id: 20260921-ab12cd34</p>
+      <div class="btn-row" style="align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="btn-row" id="result-action-group-content" style="align-items:center;">
+          <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+          <label style="font-size:.8rem;color:var(--muted);">模板
+            <select id="template-select"><option>標準會議紀錄</option></select>
+          </label>
+          <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
+          <label style="font-size:.8rem;color:var(--muted);">匯出格式
+            <select id="export-format-select">
+              <option value="markdown">Markdown</option>
+              <option value="plaintext">純文字</option>
+              <option value="docx">Word</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <button class="btn btn-outline btn-sm" id="export-confirm-btn" onclick="exportSelectedFormat()">匯出</button>
+        </div>
+        <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
+          <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="cleanupAndReset()">清除暫存</button>
+          <button class="btn btn-outline btn-sm" id="new-recording-btn" onclick="showView('view-upload')">+ 新錄音</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<p class="note">
-  參考：三顆按鈕（重新產生／匯出／清除暫存）文字已移除 emoji 前綴（AC4）；
-  新錄音按鈕維持「+ 新錄音」不變。清除暫存／新錄音因外層容器
-  <code>justify-content:space-between</code> 而靠右對齊，模板到匯出區塊靠左
-  （AC3）。實際實作見 <code>docs/design/SDLCAIP2-42.md</code>「介面/API 契約」段
-  落中對 <code>src/frontend/index.html</code> 第 298/299/316 行與三顆按鈕文字的
-  具體 inline style／文字變更。
-</p>
+  <div class="note">
+    註：<code>#modified-badge</code> 在實際頁面預設為 <code>display:none</code>，
+    此原型加上 <code>.demo-show</code> class 僅為展示排版效果之用，非真實預設樣式；
+    此原型檔案本身不修改、也不影響 <code>src/frontend/index.html</code> 中該元素的既有
+    <code>display:none</code> 預設規則。若要進一步驗證任意其他寬度，可用瀏覽器
+    DevTools 的裝置模擬工具縮放 <code>.frame-wide</code>/<code>.frame-narrow</code>
+    容器所在視窗寬度，觀察是否於任何寬度下出現橫向捲動軸（預期：不會出現）。
+  </div>
 </body>
 </html>
