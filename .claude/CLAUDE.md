@@ -329,6 +329,23 @@ Do NOT read docs/03/04/05/07 at bootstrap; read them only when needed.
 - Verify subagent output yourself against the stage exit criteria
   before advancing state. Reopen (state back + Reopen Count +1) on
   failure.
+- **Transition the ticket's Jira status to match the stage you are about
+  to delegate BEFORE making the delegation call, not after the subagent
+  reports back.** Concretely: `Ready` → `In Progress` happens before
+  delegating developer, `In Progress`/`Testing-entry` happens before
+  delegating tester, etc. — not retroactively once the subagent's work is
+  already done. Observed in this framework's pilot (SDLCAIP2-39,
+  2026-09-19): after G1b was approved and the ticket sat in `Ready`, the
+  orchestrator delegated developer directly without transitioning to
+  `In Progress` first; the gap was only caught when verifying the
+  developer's output afterward, at which point Jira had been silently
+  wrong (still showing `Ready` while code was already being written) for
+  the full duration of that delegation. No data was lost — Jira is the
+  source of truth per rule 1, so a session dying mid-delegation with the
+  status not yet updated means a future session/human reading the board
+  would see stale state that doesn't reflect the in-flight work. Fix
+  cost nothing (one extra transition call before the Agent call), so
+  there is no reason to defer it to "verify afterward."
 - **When delegating more than one ticket's work in parallel (within the
   WIP limit), each parallel delegation MUST run in an isolated git
   worktree (Agent tool `isolation: "worktree"`).** A shared working
