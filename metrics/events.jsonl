@@ -586,3 +586,7 @@
 {"ts": "2026-09-23T12:00:00Z", "event": "session_end", "ticket": null, "agent": "orch-20260923-a1f3", "data": {"session": "session37-final", "tickets_touched": ["SDLCAIP2-43", "SDLCAIP2-51"], "tickets_done": ["SDLCAIP2-43"], "tokens_estimate": "medium-high"}}
 {"ts": "2026-09-23T13:10:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"from": "Backlog", "to": "Refining"}}
 {"ts": "2026-09-23T13:12:20Z", "event": "blocked", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"reason": "open question: .input shared class referenced in ticket description does not exist in current code; scope decision needed", "human_input_ticket": "SDLCAIP2-52"}}
+{"ts": "2026-09-23T13:15:12Z", "event": "unblocked", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"reason": "SDLCAIP2-52 answered (option 2)"}}
+{"ts": "2026-09-23T13:15:38Z", "event": "stage_transition", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"from": "Blocked", "to": "Refining"}}
+{"ts": "2026-09-23T13:16:04Z", "event": "stage_transition", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"from": "Refining", "to": "Awaiting Gate"}}
+{"ts": "2026-09-23T13:16:10Z", "event": "gate_review", "ticket": "SDLCAIP2-44", "agent": "orch-20260923-b7e2", "data": {"gate": "G1", "mode": "manual", "result": "pending_human", "criteria_results": {"gherkin_present": "pass", "out_of_scope_declared": "pass", "no_open_questions": "pass", "size_ok": "pass"}}}
