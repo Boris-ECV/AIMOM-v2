@@ -386,6 +386,41 @@ def test_build_pdf_wraps_long_decision_and_action_item_within_width():
     assert len(lines) > 5
 
 
+def test_build_pdf_wraps_long_meeting_info_participants_within_width():
+    """Scenario 5：會議資訊之參與者清單過長時，須換行顯示在多行，且每一
+    行渲染寬度皆不超過頁面可用內容寬度。修正前 _build_pdf 對會議資訊直
+    接呼叫 _line()，完全未換行，長參與者清單會超出頁面邊界。"""
+    many_participants = [f"參與者姓名{i:03d}" for i in range(40)]
+    minutes = {
+        "meeting_info": {
+            "date": "2026-09-23",
+            "time": "14:00",
+            "location": "會議室 A",
+            "participants": many_participants,
+        },
+        "summary": "摘要",
+        "decisions": [],
+        "action_items": [],
+    }
+    content = _build_pdf(minutes, "job-long-participants")
+    text = _pdf_text(content)
+    lines = [line for line in text.split("\n") if line.strip()]
+
+    over_width_lines = [
+        line
+        for line in lines
+        if pdfmetrics.stringWidth(line, _CJK_FONT, 12) > _CONTENT_WIDTH
+    ]
+    assert not over_width_lines, (
+        f"會議資訊換行後仍有行寬超出頁面可用內容寬度：{over_width_lines!r}"
+    )
+
+    participant_lines = [line for line in lines if "參與者" in line or "參與者姓名" in line]
+    assert len(participant_lines) > 1, "參與者清單應被拆成多行顯示，而非單行超出頁面邊界"
+    assert any("參與者姓名000" in l for l in lines)
+    assert any("參與者姓名039" in l for l in lines)
+
+
 def test_export_pdf_short_cjk_and_english_content_roundtrips_unchanged():
     """Scenario 4（迴歸）：摘要、決定事項、待辦事項、討論重點皆為單行寬
     度以內的短文字時，PDF 文字層擷取結果仍與原始內容一致，換行邏輯調整

@@ -138,7 +138,8 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
 
     _line("會議資訊", size=14, gap=22)
     for line in _meeting_info_lines(minutes):
-        _line(line)
+        for chunk in _wrap_by_width(line):
+            _line(chunk)
 
     _line("摘要", size=14, gap=22)
     for chunk in _wrap_by_width(minutes.get("summary", "")):
