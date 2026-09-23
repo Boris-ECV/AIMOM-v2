@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDLCAIP2-44 原型 — Design System 基礎建設</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ===== 說明（僅原型頁面使用，不會進 index.html） ===== */
+  .proto-note { font-family: sans-serif; font-size: 13px; color: #6B6A64; background: #FFFBEB;
+                border: 1px solid #FDE68A; padding: 12px 16px; margin-bottom: 24px; }
+
+  /* =====================================================================
+     以下 :root 區塊即為設計文件建議「加進 src/frontend/index.html 既有
+     :root 區塊內」的新增內容（--ds- 前綴，不覆寫既有 --bg/--border 等變數）。
+     ===================================================================== */
+  :root {
+    /* 既有 index.html 變數（原型頁面模擬，維持不變，證明不衝突） */
+    --primary: #2563EB; --bg: #F8FAFC; --card: #FFFFFF; --border: #E2E8F0; --text: #1E293B;
+
+    /* 新增：design-system token，全部加 --ds- 前綴 */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-ink-200: #2C2B28;
+    --ds-ink-300: #3D3C38;
+    --ds-ink-400: #141413;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px; --ds-space-7: 40px; --ds-space-8: 56px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+    --ds-header-h-desktop: 72px; --ds-header-h-mobile: 56px;
+    --ds-container-max: 1200px; --ds-breakpoint-mobile: 480px;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--ds-font-sans); background: var(--ds-bg); color: var(--ds-text-primary); }
+  main { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+  /* =====================================================================
+     HEADER — 全站共用，改用 token；RWD 拆列規則
+     ===================================================================== */
+  header {
+    background: var(--ds-ink-100);
+    color: var(--ds-bg);
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    height: var(--ds-header-h-desktop);
+    padding: 0 var(--ds-space-6);
+    box-sizing: border-box;
+  }
+  header h1 { font-size: 1.15rem; font-weight: 600; margin: 0; cursor: pointer; }
+  .header-subtitle { font-size: .8rem; opacity: .75; }
+  .header-secondary { display: contents; } /* 桌面：讓子元素直接參與 header 的 flex 排版，維持單列 */
+  #admin-dashboard-btn { margin-left: auto; }
+  #current-user-email { font-size: .8rem; opacity: .85; }
+  header .btn { width: auto; flex: 0 0 auto; } /* header 內按鈕永遠不套用全域手機版 width:100% 規則 */
+
+  @media (max-width: 479px) {
+    header {
+      flex-wrap: wrap;
+      height: auto;
+      padding: 0 var(--ds-space-3);
+    }
+    header h1 { order: 1; height: var(--ds-header-h-mobile); display: flex; align-items: center; }
+    .header-subtitle { display: none; } /* 手機第一列僅標題＋登出，副標隱藏 */
+    header > .btn { order: 2; height: var(--ds-header-h-mobile); } /* 登出按鈕，留在第一列 */
+    .header-secondary {
+      display: flex;
+      order: 3;
+      flex-basis: 100%;
+      width: 100%;
+      align-items: center;
+      gap: var(--ds-space-2);
+      overflow-x: auto;
+      background: rgba(0,0,0,0.14);
+      padding: var(--ds-space-2) var(--ds-space-3);
+    }
+    .header-secondary #current-user-email { white-space: nowrap; }
+  }
+
+  /* =====================================================================
+     .btn / .btn-primary / .btn-outline / .btn-sm — 改用 token
+     ===================================================================== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: var(--ds-control-h-desktop);
+    padding: 0 20px;
+    border-radius: var(--ds-radius-sm);
+    border: 1px solid var(--ds-border-strong);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  .btn-primary { background: var(--ds-ink-100); border-color: var(--ds-ink-100); color: var(--ds-bg); }
+  .btn-outline { background: var(--ds-surface); color: var(--ds-text-primary); border: 1px solid var(--ds-border-strong); }
+  .btn-sm { padding: 0 14px; font-size: .8rem; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; color: var(--ds-text-placeholder); }
+  @media (max-width: 479px) {
+    .btn { height: var(--ds-control-h-mobile); width: 100%; }
+  }
+
+  /* =====================================================================
+     .card — 改用 token
+     ===================================================================== */
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    box-sizing: border-box;
+    margin-bottom: var(--ds-space-5);
+  }
+  @media (max-width: 479px) {
+    .card { padding: var(--ds-space-5); }
+  }
+
+  /* =====================================================================
+     .section-title .badge — 改用 token
+     ===================================================================== */
+  .section-title { font-size: 1rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title .badge {
+    display: inline-block;
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg);
+    border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text);
+    font-weight: 400;
+  }
+  @media (max-width: 479px) {
+    .section-title .badge { font-size: 12px; padding: 4px 10px; }
+  }
+
+  /* =====================================================================
+     .input — 新增，本工單不套用到任何現有元素（SDLCAIP2-52 決議）
+     ===================================================================== */
+  .input, select.input {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .input::placeholder { color: var(--ds-text-placeholder); }
+  .input:focus-visible, select.input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  @media (max-width: 479px) {
+    .input, select.input { height: var(--ds-control-h-mobile); width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-note">
+  這是 SDLCAIP2-44 的靜態原型，示範 token 導入後 header／.btn／.card／.badge／.input 的實際渲染結果。
+  <strong>請將瀏覽器視窗縮到 480px 以下</strong>（或用開發者工具的裝置模擬），可看到 header 由單列拆成兩列
+  （第一列標題＋登出、第二列可橫向捲動的次要導覽），以及按鈕/卡片/輸入框切到手機版尺寸。
+  桌面版（≥480px）維持單列 header，高度 72px。
+</div>
+
+<header>
+  <h1>會議錄音轉紀錄系統</h1>
+  <span class="header-subtitle">Meeting Minutes AI</span>
+  <div class="header-secondary">
+    <button id="admin-dashboard-btn" class="btn btn-outline btn-sm">管理者儀表板</button>
+    <button id="history-nav-btn" class="btn btn-outline btn-sm">歷史紀錄</button>
+    <span id="current-user-email">demo@example.com</span>
+  </div>
+  <button class="btn btn-outline btn-sm">登出</button>
+</header>
+
+<main>
+  <div class="card">
+    <div class="section-title">會議資訊 <span class="badge">未提及可手動填寫</span></div>
+    <p style="font-size:14px;color:var(--ds-text-secondary);margin:0 0 16px;">
+      卡片背景／邊框／圓角／內距（桌面 32px、手機 24px）皆改用 token。
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary">主要按鈕</button>
+      <button class="btn btn-outline">次要按鈕</button>
+      <button class="btn btn-outline btn-sm">小按鈕</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">.input（新增，未套用到現有元素）</div>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ds-text-secondary);max-width:280px;">
+      範例欄位（僅供原型展示）
+      <input class="input" placeholder="尚未套用到任何現有畫面">
+    </label>
+  </div>
+</main>
+
+</body>
+</html>
