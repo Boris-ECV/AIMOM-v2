@@ -1,0 +1,248 @@
+/*
+  會議紀錄系統設計系統 — tokens.css
+  由 tokens.json 編譯而成，可直接在專案裡 @import 或 <link> 使用。
+  修改 tokens.json 後，請同步更新這份檔案（或請開發環境的建置流程自動產生）。
+*/
+
+:root {
+  /* 色彩（灰階） */
+  --bg: #F6F5F3;               /* 頁面背景 */
+  --surface: #FFFFFF;          /* 卡片、輸入框背景 */
+  --border: #E4E3DF;           /* 分隔線、卡片邊框、標籤邊框 */
+  --border-strong: #D2D0CA;    /* 輸入框、下拉選單、次要按鈕邊框 */
+  --text-primary: #1F1E1C;     /* 標題、內文主要文字 */
+  --text-secondary: #6B6A64;   /* 欄位標籤、次要說明、標籤文字 */
+  --text-placeholder: #B6B4AC; /* 輸入框 placeholder */
+
+  /* 主色（4 種深淺，預設 ink-100） */
+  --ink-100: #1F1E1C;
+  --ink-200: #2C2B28;
+  --ink-300: #3D3C38;
+  --ink-400: #141413;
+
+  /* 別名 token */
+  --badge-bg: #EFEEEA;
+  --badge-border: var(--border);
+  --badge-text: var(--text-secondary);
+  --focus-ring: var(--ink-100);
+
+  /* 字體 */
+  --font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* 間距（8px 基準） */
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 56px;
+
+  /* 圓角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-pill: 999px;
+
+  /* 尺寸 */
+  --control-h-desktop: 40px;
+  --control-h-mobile: 44px;
+  --header-h-desktop: 72px;
+  --header-h-mobile: 56px;
+  --container-max: 1200px;
+  --breakpoint-mobile: 480px;
+}
+
+/* 需要載入的 Google Fonts（記得在 <head> 加對應的 <link>）：
+   https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap
+*/
+
+/* 文字樣式 */
+.h1 {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+}
+@media (max-width: 480px) {
+  .h1 {
+    font-size: 21px;
+    line-height: 27px;
+  }
+}
+
+.h2 {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .h2 {
+    font-size: 17px;
+    line-height: 24px;
+  }
+}
+
+.body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 28px;
+  font-weight: 400;
+}
+@media (max-width: 480px) {
+  .body {
+    font-size: 14px;
+    line-height: 26px;
+  }
+}
+
+.caption {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+@media (max-width: 480px) {
+  .caption {
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
+
+.label-button {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+@media (max-width: 480px) {
+  .code {
+    font-size: 11px;
+    line-height: 17px;
+  }
+}
+
+/* 基本元件樣式（可依專案需要調整為 class 或元件庫實作） */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.btn {
+  height: var(--control-h-desktop);
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.btn-primary {
+  background: var(--ink-100);
+  border-color: var(--ink-100);
+  color: var(--bg);
+}
+.btn-tertiary {
+  color: var(--text-secondary);
+}
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .btn {
+    height: var(--control-h-mobile);
+    width: 100%;
+  }
+}
+
+.input,
+select.input {
+  height: var(--control-h-desktop);
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.input::placeholder {
+  color: var(--text-placeholder);
+}
+@media (max-width: 480px) {
+  .input,
+  select.input {
+    height: var(--control-h-mobile);
+    width: 100%;
+  }
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--badge-text);
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  box-sizing: border-box;
+}
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-5);
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 0 14px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.tab.active {
+  border-bottom-color: var(--ink-100);
+  color: var(--ink-100);
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .tab {
+    flex: 1;
+    font-size: 14px;
+  }
+}
