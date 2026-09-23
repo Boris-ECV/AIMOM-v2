@@ -980,3 +980,58 @@ Feature: 會議紀錄匯出 PDF 版面修正
     When 將該筆會議紀錄匯出為 PDF
     Then PDF 內容文字層（以 pypdf 抽取）仍可正確擷取到與原始內容一致的文字，不因換行邏輯調整而遺漏或重複文字
 ```
+
+---
+
+## SDLCAIP2-44：Design System｜基礎建設
+
+### 使用者故事
+
+As a 產品負責人, I want 全站導入 design-system 的色彩／字體／間距／圓角／尺寸 token，並將現有全站共用樣式（`<style>` 區塊中的 .btn、.card、.badge 共用 class）與全站共用 `<header>`（含移除裝飾性 icon、RWD 拆列規則）改用這些 token，同時新增一份可重用的 `.input` class 定義供後續工單沿用, so that 之後逐一調整各畫面時，都能直接沿用同一套已落地的視覺基礎，不必每張票各自重複定義。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System 基礎建設
+
+  Scenario: tokens 已導入頁面
+    Given 開啟 src/frontend/index.html
+    Then 頁面載入 docs/design-system/tokens.css 所定義的完整 token 集合（色彩、字體、8px 間距尺、圓角、控制項/頁首尺寸、breakpoint-mobile）
+    And <head> 內已加入 Noto Sans TC 與 JetBrains Mono 的 Google Fonts 連結
+
+  Scenario: 共用 .btn 樣式改用 token
+    Given 檢視 index.html 現有 <style> 區塊中的 .btn / .btn-primary / .btn-outline / .btn-sm 規則
+    Then 其顏色、高度（40px/44px）、圓角、字級等數值改為引用對應 token 變數
+    And 手機版（<480px）維持/補上與 Button 元件規格一致的行為（高度改用 control-h-mobile）
+
+  Scenario: 共用 .card 樣式改用 token
+    Given 檢視 index.html 現有 .card 規則
+    Then 背景、邊框、圓角、內距改為引用 surface / border / radius-md / space-6 token
+    And 新增手機版（<480px）內距改用 space-5（24px）的媒體查詢規則
+
+  Scenario: 共用 badge 樣式改用 token
+    Given 檢視 index.html 現有 .section-title .badge 規則
+    Then 其背景、邊框、文字色改為引用 badge-bg / badge-border / badge-text token
+    And 圓角改為 radius-pill、字級對齊 caption token
+
+  Scenario: 新增可重用的 .input class（不套用到現有元素）
+    Given 檢視 docs/design-system/tokens.css 已定義的 .input 規則
+    Then index.html 的 <style> 區塊新增對應的 .input class 定義
+    And 不修改任何現有的畫面專屬 input/select 選取器，留給後續工單各自視情況改用
+
+  Scenario: 頁首移除裝飾性 icon
+    Given 開啟已登入畫面，檢視全站共用 <header>
+    Then 「管理者儀表板」「歷史紀錄」按鈕文字不再含裝飾性 icon 前綴
+
+  Scenario: 頁首 RWD — 桌面版（≥480px）
+    Given 瀏覽器視窗寬度 ≥480px
+    Then 頁首維持單列，高度對應 header-h-desktop（72px）
+
+  Scenario: 頁首 RWD — 手機版（<480px）
+    Given 瀏覽器視窗寬度 <480px
+    Then 頁首拆成兩列，第一列僅保留標題與登出按鈕，第二列為可橫向捲動的次要導覽列
+
+  Scenario: 範圍外畫面視覺不受影響
+    Given 本工單完成後，其餘畫面尚未被後續工單調整
+    Then 這些畫面的視覺呈現與施工前相比不得有非預期改變
+```
