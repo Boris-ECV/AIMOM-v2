@@ -12,9 +12,12 @@ import docx
 import pypdf
 import pytest
 from fastapi.testclient import TestClient
+from reportlab.pdfbase import pdfmetrics
 
 from app import app
 from auth import CurrentUser, get_current_user
+import export as export_module
+from export import _CJK_FONT, _CONTENT_WIDTH, _build_pdf, _wrap_by_width
 import jobstore
 
 client = TestClient(app)
@@ -293,3 +296,120 @@ def test_export_kept_meeting_reflects_latest_edit_after_patch():
     assert resp.status_code == 200
     texts = _docx_paragraph_texts(resp.content)
     assert "編輯後的摘要" in texts
+
+
+# --- SDLCAIP2-43：PDF 匯出寬度感知換行 ---------------------------------
+
+
+def test_wrap_by_width_mixed_cjk_english_lines_never_exceed_content_width():
+    """Scenario 1：中英文混合內容換行後，每一行以 NotoSansTC 字型、12pt
+    量測的渲染寬度皆不超過 _CONTENT_WIDTH（頁寬扣除左右邊界）。"""
+    text = (
+        "本次會議討論了 ProjectRoadmapAndDeliverySchedule 相關議題，"
+        "並確認 ContinuousIntegrationPipeline 的建置時程，同時檢討了"
+        "MicroserviceArchitectureMigrationPlan 的風險與因應對策，"
+        "希望能在下一季完成主要里程碑並持續追蹤進度。"
+    )
+    lines = _wrap_by_width(text)
+    assert len(lines) > 1, "測試內容應足以觸發換行"
+    for line in lines:
+        assert pdfmetrics.stringWidth(line, _CJK_FONT, 12) <= _CONTENT_WIDTH, (
+            f"換行後該行渲染寬度超出頁面可用內容寬度：{line!r}"
+        )
+    # 換行不應遺漏或重複文字：所有片段接回應與原字串一致
+    assert "".join(lines) == text
+
+
+def test_wrap_by_width_does_not_split_english_word_mid_token():
+    """Scenario 2：接近換行邊界的完整英文單字/專有名詞，換行後必須完整
+    出現在同一行，不得被拆成兩個片段分散在相鄰兩行。"""
+    long_word = "ConfigurationManagementSystem"
+    # 前置中文文字刻意填到接近單行寬度上限，讓該英文單字落在換行邊界附近。
+    filler = "中文填充文字內容" * 6
+    text = f"{filler}{long_word}後續補充說明文字"
+    lines = _wrap_by_width(text)
+
+    assert long_word in "".join(lines)  # 內容不遺漏
+    matches = [line for line in lines if long_word in line]
+    assert len(matches) == 1, (
+        f"英文單字應完整落在單一行內，不應被拆成片段分散在多行：{lines!r}"
+    )
+    # 確認沒有任何一行只含該單字的片段（例如被截斷成 "Configuration" 與
+    # "ManagementSystem" 分屬兩行）
+    for i in range(len(lines) - 1):
+        joined_boundary = lines[i] + lines[i + 1]
+        if long_word in joined_boundary and long_word not in lines[i] and long_word not in lines[i + 1]:
+            pytest.fail(f"英文單字被硬拆到相鄰兩行：{lines[i]!r} / {lines[i + 1]!r}")
+
+
+def test_build_pdf_wraps_long_decision_and_action_item_within_width():
+    """Scenario 3：決定事項／待辦事項（含前綴）長度超出單行寬度時，須換
+    行顯示在多行，且每一行渲染寬度皆不超過頁面可用內容寬度。修正前
+    _build_pdf 對這兩個欄位直接呼叫 _line()，完全未換行。"""
+    long_decision = (
+        "採用 AmazonWebServicesElasticComputeCloudLambdaFunctionsServerless "
+        "作為主要部署平台，並導入自動擴展與容錯移轉機制以確保服務穩定性"
+    )
+    minutes = {
+        "summary": "摘要",
+        "decisions": [long_decision],
+        "action_items": [
+            {
+                "owner": "Alice",
+                "task": (
+                    "完成 ContinuousIntegrationAndContinuousDeploymentPipeline "
+                    "的建置與相關文件撰寫，並與各團隊同步時程安排"
+                ),
+                "due": "2026-08-01",
+            }
+        ],
+    }
+    content = _build_pdf(minutes, "job-long-items")
+    text = _pdf_text(content)
+    lines = [line for line in text.split("\n") if line.strip()]
+
+    over_width_lines = [
+        line
+        for line in lines
+        if pdfmetrics.stringWidth(line, _CJK_FONT, 12) > _CONTENT_WIDTH
+    ]
+    assert not over_width_lines, (
+        f"決定事項/待辦事項換行後仍有行寬超出頁面可用內容寬度：{over_width_lines!r}"
+    )
+
+    decision_lines = [line for line in lines if line.startswith("- 採用")]
+    action_lines = [line for line in lines if "Alice" in line]
+    assert len(decision_lines) >= 1
+    assert any("AmazonWebServicesElasticComputeCloudLambdaFunctionsServerless" in l for l in lines)
+    assert any("ContinuousIntegrationAndContinuousDeploymentPipeline" in l for l in lines)
+    # 內容須被拆成多行顯示（而非單行超出頁面邊界）
+    assert len(lines) > 5
+
+
+def test_export_pdf_short_cjk_and_english_content_roundtrips_unchanged():
+    """Scenario 4（迴歸）：摘要、決定事項、待辦事項、討論重點皆為單行寬
+    度以內的短文字時，PDF 文字層擷取結果仍與原始內容一致，換行邏輯調整
+    不應造成文字遺漏或重複。"""
+    jobstore.create_job(
+        "job-pdf-short-regression",
+        stage="done",
+        progress=100,
+        message="done",
+        minutes={
+            "summary": "本次會議討論了專案時程",
+            "decisions": ["採用 AWS Lambda 部署"],
+            "action_items": [
+                {"owner": "Alice", "task": "整理需求文件", "due": "2026-08-01"}
+            ],
+            "sections": [{"title": "Keep", "content": "維持每週同步會議"}],
+        },
+    )
+    resp = client.get("/api/export/job-pdf-short-regression?format=pdf")
+    assert resp.status_code == 200
+    text = _pdf_text(resp.content)
+
+    assert text.count("本次會議討論了專案時程") == 1
+    assert text.count("採用 AWS Lambda 部署") == 1
+    assert "Alice" in text
+    assert text.count("整理需求文件") == 1
+    assert text.count("維持每週同步會議") == 1
