@@ -1035,3 +1035,42 @@ Feature: Design System 基礎建設
     Given 本工單完成後，其餘畫面尚未被後續工單調整
     Then 這些畫面的視覺呈現與施工前相比不得有非預期改變
 ```
+
+---
+
+## SDLCAIP2-45：Design System｜管理者儀表板頁 view-admin
+
+### 使用者故事
+
+As a 使用管理者儀表板（view-admin）的管理者, I want 這個畫面的版面、字體、色彩、表格樣式套用 design-system 規範（沿用 SDLCAIP2-44 已建立的 `--ds-*` token）, so that 我看到的管理介面與系統其他畫面呈現一致的視覺語言，且在手機上也能正常操作。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜管理者儀表板頁 view-admin
+
+  Scenario: view-admin 卡片延續既有 .card token
+    Given 使用者以管理者身份開啟 view-admin
+    Then .card 容器的背景/邊框/圓角與其他畫面一致（沿用 SDLCAIP2-44 既有規則）
+
+  Scenario: view-admin 內的表格改用 design-system token，且不影響其他畫面
+    Given view-admin 內「依日期」「依使用者」兩個表格使用共用 class .action-table
+    Then 這兩個表格的背景/邊框/文字色改為 design-system token，透過限定在 view-admin 範圍內的選取器實作
+    And .action-table 共用 class 本身的定義不被修改，view-result 與 view-history 的表格外觀不變
+
+  Scenario: 子標題套用 design-system 字體規則
+    Given view-admin 內的「依日期」「依使用者」子標題目前為瀏覽器預設樣式
+    Then 改為套用 design-system 字體與文字顏色 token
+
+  Scenario: 窄螢幕（<480px）下表格不發生橫向溢出跑版
+    Given 使用者以小於 480px 寬度檢視 view-admin
+    Then 頁面不出現橫向捲軸，表格文字/欄位可完整閱讀
+
+  Scenario: view-admin 內無殘留裝飾性 icon
+    Given design-system 規則不使用裝飾性圖示
+    Then view-admin 的卡片標題、按鈕、表格欄位皆無裝飾性 icon/emoji
+
+  Scenario: 範圍外畫面視覺不受非預期影響
+    Given view-upload/view-progress/view-result/view-history 等其他畫面
+    Then 本票變更合併後，除 .action-table 共用定義保持不變所保障的表格外觀外，其餘既有樣式不受本票影響
+```
