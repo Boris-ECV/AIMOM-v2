@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>會議錄音轉紀錄系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --primary: #2563EB;
@@ -17,16 +20,78 @@
     --text: #1E293B;
     --muted: #64748B;
     --radius: 10px;
+
+    /* ===== SDLCAIP2-44: Design System tokens（--ds- 前綴，不覆寫上方既有變數）=====
+       數值來源：docs/design-system/tokens.json／tokens.css，變更請兩邊同步更新。 */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-ink-200: #2C2B28;
+    --ds-ink-300: #3D3C38;
+    --ds-ink-400: #141413;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px; --ds-space-7: 40px; --ds-space-8: 56px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+    --ds-header-h-desktop: 72px; --ds-header-h-mobile: 56px;
+    --ds-container-max: 1200px; --ds-breakpoint-mobile: 480px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
          background: var(--bg); color: var(--text); min-height: 100vh; }
 
-  /* HEADER */
-  header { background: var(--primary); color: #fff; padding: 16px 32px;
-           display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
-  header h1 { font-size: 1.25rem; font-weight: 600; }
+  /* HEADER — SDLCAIP2-44：改用 --ds-* token，RWD 拆列（桌面單列／手機兩列） */
+  header {
+    background: var(--ds-ink-100);
+    color: var(--ds-bg);
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    height: var(--ds-header-h-desktop);
+    padding: 0 var(--ds-space-6);
+    box-sizing: border-box;
+  }
+  header h1 { font-size: 1.15rem; font-weight: 600; margin: 0; cursor: pointer; }
   header span { font-size: .85rem; opacity: .75; }
+  .header-subtitle { font-size: .8rem; opacity: .75; }
+  .header-secondary { display: contents; } /* 桌面：讓子元素直接參與 header 的 flex 排版，維持單列 */
+  #admin-dashboard-btn { margin-left: auto; }
+  #current-user-email { font-size: .8rem; opacity: .85; }
+  header .btn { width: auto; flex: 0 0 auto; } /* header 內按鈕永遠不套用全域手機版 width:100% 規則 */
+
+  @media (max-width: 479px) {
+    header {
+      flex-wrap: wrap;
+      height: auto;
+      padding: 0 var(--ds-space-3);
+    }
+    header h1 { order: 1; height: var(--ds-header-h-mobile); display: flex; align-items: center; }
+    .header-subtitle { display: none; } /* 手機第一列僅標題＋登出，副標隱藏 */
+    header > .btn { order: 2; height: var(--ds-header-h-mobile); } /* 登出按鈕，留在第一列 */
+    .header-secondary {
+      display: flex;
+      order: 3;
+      flex-basis: 100%;
+      width: 100%;
+      align-items: center;
+      gap: var(--ds-space-2);
+      overflow-x: auto;
+      background: rgba(0,0,0,0.14);
+      padding: var(--ds-space-2) var(--ds-space-3);
+    }
+    .header-secondary #current-user-email { white-space: nowrap; }
+  }
 
   /* LAYOUT */
   main { max-width: 900px; margin: 40px auto; padding: 0 24px; }
@@ -35,10 +100,19 @@
   .view { display: none; }
   .view.active { display: block; }
 
-  /* CARD */
-  .card { background: var(--card); border: 1px solid var(--border);
-          border-radius: var(--radius); padding: 32px; margin-bottom: 24px;
-          box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  /* CARD — SDLCAIP2-44：改用 --ds-* token（此 class 為全站共用，套用到範圍外頁面時
+     外觀改變是刻意的，見 docs/design/SDLCAIP2-44.md 關鍵技術決策 8） */
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    box-sizing: border-box;
+    margin-bottom: var(--ds-space-5);
+  }
+  @media (max-width: 479px) {
+    .card { padding: var(--ds-space-5); }
+  }
 
   /* UPLOAD VIEW */
   #drop-zone { border: 2px dashed var(--border); border-radius: var(--radius);
@@ -53,21 +127,35 @@
                border-radius: 6px; display: none; font-size: .875rem; }
   #file-info .fname { font-weight: 600; color: var(--primary); }
 
-  /* BUTTONS */
-  .btn { display: inline-flex; align-items: center; gap: 8px;
-         padding: 10px 22px; border-radius: 7px; border: none;
-         cursor: pointer; font-size: .9rem; font-weight: 500;
-         transition: background .15s, transform .1s; }
+  /* BUTTONS — SDLCAIP2-44：.btn/.btn-primary/.btn-outline/.btn-sm 改用 --ds-* token
+     （既有結構屬性 display:inline-flex/gap 與 :active transform 維持不變，見設計文件決策 4/8） */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: var(--ds-control-h-desktop);
+    padding: 0 20px;
+    border-radius: var(--ds-radius-sm);
+    border: 1px solid var(--ds-border-strong);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
   .btn:active { transform: scale(.97); }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-primary:hover { background: var(--primary-hover); }
-  .btn-primary:disabled { background: #93C5FD; cursor: not-allowed; transform: none; }
-  .btn-outline { background: #fff; color: var(--primary);
-                 border: 1px solid var(--primary); }
-  .btn-outline:hover { background: #EFF6FF; }
+  .btn:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  .btn-primary { background: var(--ds-ink-100); border-color: var(--ds-ink-100); color: var(--ds-bg); }
+  .btn-primary:hover { background: var(--ds-ink-200); border-color: var(--ds-ink-200); }
+  .btn-outline { background: var(--ds-surface); color: var(--ds-text-primary);
+                 border: 1px solid var(--ds-border-strong); }
+  .btn-outline:hover { background: var(--ds-badge-bg); }
   .btn-success { background: var(--success); color: #fff; }
-  .btn-sm { padding: 6px 14px; font-size: .8rem; }
+  .btn-sm { padding: 0 14px; font-size: .8rem; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; color: var(--ds-text-placeholder); }
+  @media (max-width: 479px) {
+    .btn { height: var(--ds-control-h-mobile); width: 100%; }
+  }
 
   /* PROGRESS VIEW */
   .stage-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
@@ -97,8 +185,39 @@
   /* RESULT: MINUTES */
   .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
                    margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .section-title .badge { font-size: .7rem; padding: 2px 8px; border-radius: 999px;
-                           background: #DBEAFE; color: var(--primary); font-weight: 500; }
+  /* SDLCAIP2-44：.section-title .badge 改用 --ds-* 中性 token（原藍色強調改為灰階） */
+  .section-title .badge {
+    display: inline-block;
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg);
+    border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text);
+    font-weight: 400;
+  }
+  @media (max-width: 479px) {
+    .section-title .badge { font-size: 12px; padding: 4px 10px; }
+  }
+
+  /* SDLCAIP2-44：.input — 新增，本工單不套用到任何現有元素（SDLCAIP2-52 決議） */
+  .input, select.input {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .input::placeholder { color: var(--ds-text-placeholder); }
+  .input:focus-visible, select.input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  @media (max-width: 479px) {
+    .input, select.input { height: var(--ds-control-h-mobile); width: 100%; }
+  }
 
   #summary-text { line-height: 1.7; color: var(--text); min-height: 48px; }
   #summary-text[contenteditable="true"] { outline: 2px solid var(--primary);
@@ -197,12 +316,14 @@
 
 <div id="app-shell" style="display:none;">
 <header>
-  <h1 onclick="showView('view-upload')" style="cursor:pointer;">會議錄音轉紀錄系統</h1>
-  <span>Meeting Minutes AI</span>
-  <button id="admin-dashboard-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:auto;" onclick="openAdminDashboard()">📊 管理者儀表板</button>
-  <button id="history-nav-btn" class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="openHistoryList()">📜 歷史紀錄</button>
-  <span id="current-user-email" style="font-size:.8rem;opacity:.85;margin-left:12px;"></span>
-  <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="logout()">登出</button>
+  <h1 onclick="showView('view-upload')">會議錄音轉紀錄系統</h1>
+  <span class="header-subtitle">Meeting Minutes AI</span>
+  <div class="header-secondary">
+    <button id="admin-dashboard-btn" class="btn btn-outline btn-sm" style="display:none;" onclick="openAdminDashboard()">管理者儀表板</button>
+    <button id="history-nav-btn" class="btn btn-outline btn-sm" onclick="openHistoryList()">歷史紀錄</button>
+    <span id="current-user-email"></span>
+  </div>
+  <button class="btn btn-outline btn-sm" onclick="logout()">登出</button>
 </header>
 
 <main>
