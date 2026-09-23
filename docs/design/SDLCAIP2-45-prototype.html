@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>SDLCAIP2-45 Prototype — view-admin design-system 套用</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* 舊版既有變數（index.html 現況，.action-table 本體目前用這組） */
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+
+    /* --ds-* token，數值照抄 src/frontend/index.html 現有 :root（SDLCAIP2-44 已建立） */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-breakpoint-mobile: 480px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--ds-font-sans);
+    background: #EDEBE6;
+    color: var(--ds-text-primary);
+    margin: 0;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .note { font-size: 13px; color: var(--ds-text-secondary); margin-bottom: 28px; max-width: 900px; line-height: 1.6; }
+  .note code { font-family: 'JetBrains Mono', monospace; background: var(--ds-badge-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .preview-row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+  .preview-block { }
+  .preview-label { font-size: 13px; font-weight: 600; color: var(--ds-text-secondary); margin-bottom: 8px; }
+
+  /* ===== 以下是 index.html 的既有共用規則，直接複製過來以求原型逼真（.card / .section-title / .btn-outline） ===== */
+  .frame-desktop { width: 900px; max-width: 900px; padding: 24px; background: var(--ds-bg); border-radius: 8px; }
+  .frame-mobile { width: 360px; padding: 16px; background: var(--ds-bg); border-radius: 8px; }
+
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    margin-bottom: var(--ds-space-5);
+  }
+  .frame-mobile .card { padding: var(--ds-space-5); }
+
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
+                    margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px;
+         border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-strong);
+         background: var(--ds-surface); color: var(--ds-text-primary); font-family: var(--ds-font-sans);
+         font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-sm { padding: 0 14px; font-size: .8rem; }
+
+  /* ===== .action-table 共用本體（現況，未改動——與 index.html 第 238-244 行一致） ===== */
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
+                     font-weight: 600; font-size: .8rem; color: var(--muted);
+                     border-bottom: 1px solid var(--border); }
+  .action-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .action-table tr:last-child td { border-bottom: none; }
+
+  /* ===== SDLCAIP2-45 新增：僅限 #view-admin 範圍的 .action-table 覆寫（決策 1） ===== */
+  #view-admin .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-admin .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+
+  /* ===== SDLCAIP2-45 新增：<h4> 子標題套用 label-button 樣式（決策 3） ===== */
+  #view-admin h4 {
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    margin: var(--ds-space-3) 0 var(--ds-space-2);
+  }
+
+  /* ===== SDLCAIP2-45 新增：手機表格捲動容器（決策 4） ===== */
+  .ds-table-scroll { width: 100%; overflow-x: auto; }
+  .frame-mobile .action-table { min-width: 560px; }
+
+  #admin-total { margin-top: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-45 — view-admin design-system 套用原型</h1>
+<p class="note">
+  左：桌面寬度（900px 容器，對應 ≥480px 桌面版）。右：手機寬度（360px 容器，模擬 &lt;480px 斷點）。<br>
+  表頭底色／文字色使用 <code>--ds-badge-bg</code> / <code>--ds-text-secondary</code>；儲存格文字色
+  <code>--ds-text-primary</code>；邊框統一 <code>--ds-border</code>（決策 1）。<br>
+  <code>&lt;h4&gt;</code> 子標題套用 <code>tokens.json</code> Body 群組 <code>label-button</code>
+  樣式（14px / 20px / 字重 500，色 <code>--ds-text-secondary</code>，決策 3）。<br>
+  手機版每個表格外包 <code>.ds-table-scroll</code>（<code>overflow-x:auto</code>）並設
+  <code>min-width: 560px</code>，欄位保留可讀寬度、超出部分用橫向捲動而非硬縮文字（決策 4）——
+  可在下方右側「手機寬度」區塊內左右滑動表格驗證。<br>
+  <code>.action-table</code> 共用本體（灰底部分之外的基礎規則）維持原樣未修改，
+  view-result／view-history 兩頁不受影響（AC2/AC9）。
+</p>
+
+<div class="preview-row">
+
+  <div class="preview-block">
+    <div class="preview-label">桌面版（900px）</div>
+    <div class="frame-desktop">
+      <div id="view-admin">
+        <div class="card">
+          <div class="section-title">LLM 用量與成本彙總 <button class="btn btn-outline btn-sm">← 返回</button></div>
+          <h4>依日期</h4>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>日期</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+              <tbody>
+                <tr><td>2026-09-20</td><td>128</td><td>452,300</td><td>88,120</td><td>3.42</td></tr>
+                <tr><td>2026-09-21</td><td>96</td><td>301,900</td><td>60,540</td><td>2.31</td></tr>
+                <tr><td>2026-09-22</td><td>210</td><td>689,200</td><td>142,880</td><td>5.77</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>依使用者</h4>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>使用者</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+              <tbody>
+                <tr><td>alice@example.com</td><td>150</td><td>512,000</td><td>99,300</td><td>4.02</td></tr>
+                <tr><td>bob@example.com</td><td>284</td><td>931,400</td><td>192,240</td><td>7.48</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="admin-total">總計：434 次呼叫，估算成本 $11.50 USD</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-block">
+    <div class="preview-label">手機版（360px，模擬 &lt;480px）</div>
+    <div class="frame-mobile">
+      <div id="view-admin">
+        <div class="card">
+          <div class="section-title">LLM 用量與成本彙總 <button class="btn btn-outline btn-sm">← 返回</button></div>
+          <h4>依日期</h4>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>日期</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+              <tbody>
+                <tr><td>2026-09-20</td><td>128</td><td>452,300</td><td>88,120</td><td>3.42</td></tr>
+                <tr><td>2026-09-21</td><td>96</td><td>301,900</td><td>60,540</td><td>2.31</td></tr>
+                <tr><td>2026-09-22</td><td>210</td><td>689,200</td><td>142,880</td><td>5.77</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>依使用者</h4>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>使用者</th><th>呼叫次數</th><th>Input Tokens</th><th>Output Tokens</th><th>估算成本 (USD)</th></tr></thead>
+              <tbody>
+                <tr><td>alice@example.com</td><td>150</td><td>512,000</td><td>99,300</td><td>4.02</td></tr>
+                <tr><td>bob@example.com</td><td>284</td><td>931,400</td><td>192,240</td><td>7.48</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="admin-total">總計：434 次呼叫，估算成本 $11.50 USD</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
