@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 from pathlib import Path
 
 from docx import Document
@@ -38,6 +39,16 @@ router = APIRouter()
 _CJK_FONT = "NotoSansTC"
 _CJK_FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansTC-Regular.ttf"
 pdfmetrics.registerFont(TTFont(_CJK_FONT, str(_CJK_FONT_PATH)))
+
+# SDLCAIP2-43：可用內容寬度＝頁寬扣除左右邊界（右邊界比照既有左邊界同為
+# 50pt，詳見 docs/design/SDLCAIP2-43.md 技術決策 2）。
+_PAGE_MARGIN_L = 50
+_PAGE_MARGIN_R = 50
+_CONTENT_WIDTH = A4[0] - _PAGE_MARGIN_L - _PAGE_MARGIN_R
+
+# ASCII 英數字連續片段視為一個不可切割的 token（英文單字/專有名詞不被硬
+# 拆），其餘字元（CJK 字、標點、空白）各自成一個 token，詳見技術決策 3。
+_WORD_TOKEN_RE = re.compile(r"[A-Za-z0-9]+|[^A-Za-z0-9]")
 
 
 def _load_minutes(job_id: str) -> dict:
@@ -117,7 +128,7 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
     def _line(text: str, size: int = 12, gap: int = 20):
         nonlocal y
         c.setFont(_CJK_FONT, size)
-        c.drawString(50, y, text)
+        c.drawString(_PAGE_MARGIN_L, y, text)
         y -= gap
         if y < 60:
             c.showPage()
@@ -130,14 +141,15 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
         _line(line)
 
     _line("摘要", size=14, gap=22)
-    for chunk in _wrap(minutes.get("summary", ""), 40):
+    for chunk in _wrap_by_width(minutes.get("summary", "")):
         _line(chunk)
 
     _line("決定事項", size=14, gap=22)
     decisions = minutes.get("decisions", [])
     if decisions:
         for d in decisions:
-            _line(f"- {d}")
+            for chunk in _wrap_by_width(f"- {d}"):
+                _line(chunk)
     else:
         _line("（無）")
 
@@ -148,7 +160,8 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
             owner = item.get("owner", "-")
             task = item.get("task", "-")
             due = item.get("due", "-")
-            _line(f"- [{owner}] {task}（期限：{due}）")
+            for chunk in _wrap_by_width(f"- [{owner}] {task}（期限：{due}）"):
+                _line(chunk)
     else:
         _line("（無）")
 
@@ -156,8 +169,9 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
     sections = minutes.get("sections", [])
     if sections:
         for s in sections:
-            _line(s.get("title", ""), size=13, gap=18)
-            for chunk in _wrap(s.get("content", "") or "（無）", 40):
+            for chunk in _wrap_by_width(s.get("title", ""), size=13):
+                _line(chunk, size=13, gap=18)
+            for chunk in _wrap_by_width(s.get("content", "") or "（無）"):
                 _line(chunk)
     else:
         _line("（無）")
@@ -167,10 +181,29 @@ def _build_pdf(minutes: dict, heading: str) -> bytes:
     return buf.read()
 
 
-def _wrap(text: str, width: int) -> list[str]:
+def _wrap_by_width(
+    text: str,
+    max_width: float = _CONTENT_WIDTH,
+    font: str = _CJK_FONT,
+    size: int = 12,
+) -> list[str]:
+    """依實際渲染寬度換行，ASCII 英數字連續片段（英文單字/專有名詞）不被
+    從中間拆開，詳見 docs/design/SDLCAIP2-43.md。"""
     if not text:
         return [""]
-    return [text[i : i + width] for i in range(0, len(text), width)]
+    tokens = _WORD_TOKEN_RE.findall(text)
+    lines: list[str] = []
+    current = ""
+    for tok in tokens:
+        candidate = current + tok
+        if current and pdfmetrics.stringWidth(candidate, font, size) > max_width:
+            lines.append(current)
+            current = "" if tok.isspace() else tok
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines or [""]
 
 
 @router.get("/export/{job_id}")
