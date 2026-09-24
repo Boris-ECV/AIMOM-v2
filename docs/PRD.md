@@ -1315,4 +1315,143 @@ Feature: view-result 會議紀錄分頁卡片群套用 design-system
 
 ### 狀態
 
+G1 approved 2026-09-24 → Designing → G1b approved 2026-09-24 → Ready → In Progress 2026-09-25
+
+## SDLCAIP2-54：Design System｜會議紀錄結果頁 view-result — 標題／操作列／分頁 Tabs（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁（view-result）的使用者, I want 頁面標題、操作列與「會議紀錄／逐字稿」分頁切換套用 design-system 的色彩／字體／間距／圓角規則, so that 畫面最上方的視覺與系統其他畫面一致，且既有的操作排列、按鈕行為不受影響。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 標題／操作列／Tabs 套用 design-system
+
+  Scenario: AC1 標題移除「📋」並套用 Heading h2 token
+    Then 「會議紀錄」為 h2 18px/26px/600（手機 17px/24px/600）、--ds-text-primary
+
+  Scenario: AC2 #result-meta 套用 caption token
+    Then 13px/18px/400、--ds-text-secondary
+
+  Scenario: AC3 操作列排列不受影響（回歸，SDLCAIP2-39/40/42 鎖定）
+    Then 六個元素順序與同排不換行維持現況；不套用 design-system「手機版工具列垂直堆疊」通則
+
+  Scenario: AC4 操作列按鈕行為不受影響（回歸）
+
+  Scenario: AC5 #template-select／#export-format-select 套用 .input class
+    Then 高度、邊框、圓角、focus 與設計系統輸入框一致；選項與 onchange 不變
+
+  Scenario: AC6 Tabs 套用 token（詳情頁 Tabs 連帶變更）
+    Then 目前分頁 --ds-ink-100／600；非目前分頁 --ds-text-secondary；分頁列底線 --ds-border；分頁文字移除 📝／🎙
+
+  Scenario: AC7 窄螢幕（<480px）Tabs 不換行、不溢出
+
+  Scenario: AC8 「●」「⚠」狀態符號保留（SDLCAIP2-57 決議：選項 A）
+```
+
+### 範圍外
+
+* 五張內容卡片（SDLCAIP2-55）；逐字稿分頁（SDLCAIP2-56）
+* `.btn` 系列共用本體；`#modified-badge`／`#low-confidence-badge` 的符號與琥珀色配色
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；SDLCAIP2-42（操作列排列 AC 不得變更）；SDLCAIP2-57（已回答：選項 A）
+* 與 SDLCAIP2-55／56 修改同一檔案，建議不同時合併（非阻塞）
+
+### 狀態
+
 G1 approved 2026-09-24 → Designing
+
+## SDLCAIP2-56：Design System｜會議紀錄結果頁 view-result — 逐字稿分頁（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁「逐字稿」分頁的使用者, I want 發言人重命名區塊與逐字稿列表套用 design-system 規範, so that 我在核對逐字稿與重新命名發言人時，視覺與系統其他畫面一致。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 逐字稿分頁套用 design-system
+
+  Scenario: AC1 發言人重命名區塊標題移除「🎤」
+
+  Scenario: AC2 發言人重命名區塊改為灰階（G1 第 1 輪駁回後改寫）
+    Then #speaker-rename-area 背景／邊框改 --ds-* 灰階 token，不再使用綠色；h4 文字改 --ds-text-primary 或 --ds-text-secondary
+    And .rename-row input 改 --ds-border-strong／--ds-radius-sm／--ds-control-h-*；送出按鈕沿用 .btn 系列
+
+  Scenario: AC3 逐字稿列表套用 token
+    Then .seg-row 邊框 --ds-border；.seg-time --ds-text-secondary＋--ds-font-mono；.seg-text --ds-text-primary
+
+  Scenario: AC4 發言人色塊配色邏輯不變，只套用 --ds-radius-pill 與 caption 字級（回歸）
+
+  Scenario: AC5 窄螢幕（<480px）逐字稿列不重疊、不截斷
+
+  Scenario: AC6 發言人重命名與逐字稿既有行為不受影響（回歸）
+```
+
+### 範圍外
+
+* 標題、操作列、Tabs（SDLCAIP2-54）；五張內容卡片（SDLCAIP2-55）
+* `.card`／`.btn` 系列共用本體；speaker-chip 動態配色邏輯（資料識別色，非裝飾）
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；與 SDLCAIP2-54／55 修改同一檔案，建議不同時合併（非阻塞）
+
+### 狀態
+
+G1 approved 2026-09-24（第 2 輪）→ Designing
+
+## SDLCAIP2-48：Design System｜歷史紀錄詳情頁 view-history-detail
+
+### 使用者故事
+
+As a 查看歷史紀錄詳情（view-history-detail）的使用者, I want 這個畫面的版面、字體、色彩與內容樣式套用 design-system 規範, so that 我在查看單一筆歷史會議紀錄的完整內容時，有與結果頁一致、清楚易讀的視覺呈現。
+
+### 範圍說明（SDLCAIP2-58 決議：選項 1，與結果頁視覺一致）
+
+* 由 SDLCAIP2-54／55 修改的共用本體（`.tabs`、`.meeting-info-grid`、`.decision-list`、`.topic-*`）會連帶套用到詳情頁，本票只做回歸確認
+* 55 只以 `#view-result` 前綴覆寫的 `.section-title`／`.action-table`，本票比照相同數值新增 `#view-history-detail` 前綴覆寫
+* 詳情頁專屬項目：emoji 移除、空狀態文字色、標題列間距
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜歷史紀錄詳情頁 view-history-detail
+
+  Scenario: AC1 編輯／儲存按鈕移除「✏️」「💾」；saveHistoryEdit() 文字還原行為不變
+
+  Scenario: AC2 分頁按鈕移除「📝」「🎙」；switchHistoryTab() 行為不變
+
+  Scenario: AC3 卡片標題與結果頁一致（#view-history-detail 前綴覆寫）
+    Then 與 SDLCAIP2-55 的 #view-result .section-title 數值完全相同；共用 .section-title 本體不變
+
+  Scenario: AC4 待辦表格與結果頁一致（#view-history-detail 前綴覆寫）
+    Then 與 SDLCAIP2-55 的 #view-result .action-table th/td 數值完全相同；<480px 不造成頁面級橫向捲軸
+
+  Scenario: AC5 空狀態文字色改 --ds-text-secondary（#view-history-detail 前綴覆寫）
+
+  Scenario: AC6 標題列按鈕群組間距改 var(--ds-space-2)
+
+  Scenario: AC7 SDLCAIP2-54／55 連帶變更的共用樣式與結果頁一致（回歸確認）
+
+  Scenario: AC8 開啟詳情、404、編輯／儲存／取消、返回列表行為不變（回歸）
+```
+
+### 範圍外
+
+* `.tabs`／`.meeting-info-grid`／`.decision-list`／`.topic-*` 共用本體（SDLCAIP2-54／55 負責）
+* `.card`／`.btn`／`.btn-row`／`.section-title`／`.action-table`／`.empty-state` 共用本體（只新增前綴覆寫）
+* 全站共用樣式與頁首（SDLCAIP2-44）；詳情頁匯出功能；新功能；JS 邏輯變更
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；**SDLCAIP2-55（須先合併）**；SDLCAIP2-54（AC7 驗證 Tabs 連帶效果）；SDLCAIP2-58（已回答：選項 1）
+
+### 狀態
+
+G1 approved 2026-09-25 → Designing
