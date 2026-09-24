@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDLCAIP2-46 原型 — view-progress design-system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+    --radius: 10px;
+
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-ink-200: #2C2B28;
+    --ds-ink-300: #3D3C38;
+    --ds-ink-400: #141413;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px; --ds-space-7: 40px; --ds-space-8: 56px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #EDEBE7; color: var(--text); margin: 0; padding: 32px;
+  }
+  h1 { font-family: var(--ds-font-sans); font-size: 20px; margin: 0 0 8px; }
+  .intro { font-family: var(--ds-font-sans); font-size: 13px; color: #444; max-width: 900px;
+           margin: 0 0 28px; line-height: 1.7; }
+  .intro code { font-family: var(--ds-font-mono); background: #fff; padding: 1px 5px; border-radius: 4px; }
+  .row-title { font-family: var(--ds-font-sans); font-size: 15px; font-weight: 700;
+               margin: 36px 0 12px; padding-top: 20px; border-top: 2px solid #cfcdc8; }
+  .row-title:first-of-type { border-top: none; padding-top: 0; }
+  .group-label { font-family: var(--ds-font-sans); font-size: 12px; font-weight: 600;
+                 color: #666; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .frames { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .frame-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .frame { border: 1px solid #cfcdc8; background: #fff; }
+  .frame.desktop { width: 460px; }
+  .frame.mobile { width: 360px; }
+  .frame-inner { padding: 24px; background: var(--bg); }
+  .caption { font-family: var(--ds-font-sans); font-size: 11px; color: #777; }
+
+  /* ===================== BEFORE (現況) ===================== */
+  .before .card {
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; box-sizing: border-box;
+  }
+  .before .stage-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+  .before .stage-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+                border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+  .before .stage-icon { width: 32px; height: 32px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1rem; flex-shrink: 0; }
+  .before .stage-icon.done { background: #DCFCE7; color: var(--success); }
+  .before .stage-icon.active { background: #DBEAFE; color: var(--primary); }
+  .before .stage-icon.waiting { background: var(--bg); color: var(--muted); }
+  .before .stage-label { flex: 1; font-weight: 500; }
+  .before .stage-msg { font-size: .8rem; color: var(--muted); }
+  .before .progress-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .before .progress-bar { height: 100%; background: var(--primary); border-radius: 4px; }
+  .before .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right; }
+  .before #progress-message { font-size: .9rem; color: var(--muted); margin-top: 0; margin-bottom: 20px; }
+  .before .btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px;
+                border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text);
+                font-size: .8rem; font-weight: 500; cursor: pointer; margin-top: 8px; }
+
+  /* ===================== AFTER (套用本票變更) ===================== */
+  .after .card {
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md);
+    padding: 24px; box-sizing: border-box;
+  }
+  .after h2.stage-title {
+    font-family: var(--ds-font-sans); font-size: 1.2rem; margin: 0 0 8px; font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  /* AC6: #progress-message -> Badge 樣式（決策 4） */
+  .after #progress-message {
+    display: inline-block;
+    font-family: var(--ds-font-sans);
+    font-size: .875rem;
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg);
+    border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text);
+    margin: 0 0 var(--ds-space-4);
+  }
+  .after #progress-message:empty { display: none; }
+
+  .after .progress-bar-wrap { height: 8px; background: var(--ds-border); border-radius: 4px; overflow: hidden; }
+  .after .progress-bar { height: 100%; background: var(--ds-ink-100); border-radius: 4px; }
+  .after .progress-pct {
+    font-family: var(--ds-font-sans); font-size: .85rem; color: var(--muted);
+    margin-top: 6px; text-align: right;
+  }
+
+  /* AC5: 間距 token 化（決策 2） */
+  .after .stage-list { display: flex; flex-direction: column; gap: var(--ds-space-2); margin: var(--ds-space-5) 0; }
+  .after .stage-item {
+    display: flex; align-items: center; gap: var(--ds-space-3);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border-radius: 8px; border: 1px solid var(--ds-border); background: var(--ds-surface);
+  }
+  .after .stage-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  /* AC2/AC3: 三態灰階分辨（決策 1），icon 內容維持空白，不放任何 emoji 或替代符號 */
+  .after .stage-icon.waiting { background: var(--ds-surface); color: var(--ds-text-secondary);
+                                border: 1px solid var(--ds-border-strong); }
+  .after .stage-icon.active { background: var(--ds-ink-100); color: var(--ds-bg);
+                               border: 1px solid var(--ds-ink-100); }
+  .after .stage-icon.done { background: var(--ds-badge-bg); color: var(--ds-badge-text);
+                             border: 1px solid var(--ds-badge-border); }
+  .after .stage-label {
+    flex: 1; font-weight: 500; font-family: var(--ds-font-sans); color: var(--ds-text-primary);
+  }
+  .after .stage-msg {
+    font-size: .8rem; color: var(--muted); font-family: var(--ds-font-sans);
+  }
+  .after .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: var(--ds-control-h-desktop); padding: 0 20px;
+    border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-strong);
+    background: var(--ds-surface); color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans); font-size: 14px; font-weight: 500;
+    cursor: pointer; margin-top: 8px;
+  }
+  .after .btn-sm { height: 32px; padding: 0 14px; font-size: .8rem; }
+
+  @media (max-width: 479px) {
+    .after .card { padding: var(--ds-space-5); }
+    .after .btn { height: var(--ds-control-h-mobile); }
+  }
+
+  .legend {
+    font-family: var(--ds-font-sans); font-size: 12px; color: #333; max-width: 900px;
+    background: #fff; border: 1px solid #cfcdc8; border-radius: 8px; padding: 14px 18px;
+    margin: 10px 0 24px; line-height: 1.8;
+  }
+  .legend b { font-weight: 700; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+            vertical-align: middle; margin-right: 4px; border: 1px solid #cfcdc8; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-46 — view-progress design-system 套用（原型）</h1>
+<p class="intro">
+  對照現況（Before，實際複製自 <code>src/frontend/index.html</code> 第 161–176 / 407–440 行既有樣式）
+  與套用本票設計決策後（After）的畫面。每組再各自提供桌面（460px 容器）與手機（360px 容器，
+  模擬 &lt;480px 斷點）版型。After 區塊額外展示三種進度快照（全部 waiting／中間 active／全部 done）
+  與 <code>#progress-message</code> 有文字／空字串（驗證 <code>:empty</code> 規則）兩種狀態。
+</p>
+
+<div class="legend">
+  <b>三態 icon 灰階對照</b>（決策 1）：
+  <span class="swatch" style="background:#FFFFFF;"></span>waiting = <code>--ds-surface</code> 空心
+  &nbsp;&nbsp;
+  <span class="swatch" style="background:#1F1E1C;"></span>active = <code>--ds-ink-100</code> 實心深色（與進度條填色同一 token）
+  &nbsp;&nbsp;
+  <span class="swatch" style="background:#EFEEEA;"></span>done = <code>--ds-badge-bg</code> 安靜淺灰
+</div>
+
+<!-- ============ 現況 vs 全部 waiting（初始狀態） ============ -->
+<div class="row-title">Before（現況，含 emoji／舊 token） vs After（初始狀態：三階皆 waiting）</div>
+<div class="frames">
+  <div class="frame-wrap">
+    <div class="group-label">Before · 桌面</div>
+    <div class="frame desktop before">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 style="font-size:1.2rem;margin-bottom:8px;">⚙️ 處理中...</h2>
+          <p id="progress-message">正在準備上傳檔案...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:5%"></div></div>
+          <div class="progress-pct">5%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon waiting">📤</div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting">🎙️</div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting">✨</div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">emoji 圖示、舊 --primary/--success/--muted/--border 色碼、無間距 token</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="group-label">After · 桌面（waiting）</div>
+    <div class="frame desktop after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message">正在準備上傳檔案...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:5%"></div></div>
+          <div class="progress-pct">5%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">無 emoji；三個 icon 皆 waiting（空心）；badge 樣式的 progress-message</div>
+  </div>
+</div>
+
+<div class="frames" style="margin-top:16px;">
+  <div class="frame-wrap">
+    <div class="group-label">Before · 手機 (&lt;480px)</div>
+    <div class="frame mobile before">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 style="font-size:1.2rem;margin-bottom:8px;">⚙️ 處理中...</h2>
+          <p id="progress-message">正在準備上傳檔案...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:5%"></div></div>
+          <div class="progress-pct">5%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon waiting">📤</div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting">🎙️</div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting">✨</div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">360px 容器模擬手機斷點</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="group-label">After · 手機 (&lt;480px, waiting)</div>
+    <div class="frame mobile after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message">正在準備上傳檔案...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:5%"></div></div>
+          <div class="progress-pct">5%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">卡片 padding 改用 --ds-space-5（手機斷點）；取消按鈕沿用全域 .btn（回歸）</div>
+  </div>
+</div>
+
+<!-- ============ After: active 進行中 ============ -->
+<div class="row-title">After — 進行中（第二階段 active，第一階段 done）</div>
+<div class="frames">
+  <div class="frame-wrap">
+    <div class="group-label">桌面</div>
+    <div class="frame desktop after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message">正在進行語音轉文字，請稍候...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:48%"></div></div>
+          <div class="progress-pct">48%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon active"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">done = 安靜淺灰；active = 深色實心（與進度條同一 token --ds-ink-100）；waiting = 空心</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="group-label">手機 (&lt;480px)</div>
+    <div class="frame mobile after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message">正在進行語音轉文字，請稍候...</p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:48%"></div></div>
+          <div class="progress-pct">48%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon active"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon waiting"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">stage-item 間距：gap --ds-space-3、padding --ds-space-3 --ds-space-4</div>
+  </div>
+</div>
+
+<!-- ============ After: 全部 done + progress-message 空字串 ============ -->
+<div class="row-title">After — 全部完成（三階皆 done），並示範 #progress-message 空字串（:empty 隱藏）</div>
+<div class="frames">
+  <div class="frame-wrap">
+    <div class="group-label">桌面</div>
+    <div class="frame desktop after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message"></p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+          <div class="progress-pct">100%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">#progress-message textContent = ''（s.message 為空字串時的真實情境）→ :empty 規則使 badge 不渲染，不留空殼</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="group-label">手機 (&lt;480px)</div>
+    <div class="frame mobile after">
+      <div class="frame-inner">
+        <div class="card">
+          <h2 class="stage-title">處理中...</h2>
+          <p id="progress-message"></p>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+          <div class="progress-pct">100%</div>
+          <div class="stage-list">
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">上傳完成</div><div class="stage-msg">驗證格式與時長</div></div></div>
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">語音轉文字 + 說話者識別</div><div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div></div></div>
+            <div class="stage-item"><div class="stage-icon done"></div>
+              <div><div class="stage-label">AI 整理會議紀錄</div><div class="stage-msg">摘要與整理</div></div></div>
+          </div>
+          <button class="btn btn-sm">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">取消按鈕（方形、有邊框）與 progress-message badge（圓角膠囊）形狀明確不同，符合 AC7</div>
+  </div>
+</div>
+
+</body>
+</html>
