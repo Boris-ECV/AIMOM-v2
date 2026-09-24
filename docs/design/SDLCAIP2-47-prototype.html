@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>SDLCAIP2-47 Prototype — view-upload design-system 套用</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* 舊版既有變數（index.html 現況，Before 區塊沿用） */
+    --primary: #2563EB;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+    --radius: 10px;
+
+    /* --ds-* token，數值照抄 src/frontend/index.html 現有 :root（SDLCAIP2-44 已建立） */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+    --ds-breakpoint-mobile: 480px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--ds-font-sans);
+    background: #EDEBE6;
+    color: var(--ds-text-primary);
+    margin: 0;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  h2.section { font-size: 15px; font-weight: 700; margin: 36px 0 4px; padding-top: 20px;
+               border-top: 1px solid var(--ds-border-strong); }
+  .note { font-size: 13px; color: var(--ds-text-secondary); margin-bottom: 20px; max-width: 980px; line-height: 1.6; }
+  .note code { font-family: 'JetBrains Mono', monospace; background: var(--ds-badge-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .preview-row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+  .preview-label { font-size: 13px; font-weight: 600; color: var(--ds-text-secondary); margin-bottom: 8px; }
+
+  .frame-desktop { width: 620px; max-width: 620px; padding: 24px; background: var(--ds-bg); border-radius: 8px; }
+  .frame-mobile { width: 340px; padding: 16px; background: var(--ds-bg); border-radius: 8px; }
+
+  /* ===== index.html 既有共用規則（.card 已是 SDLCAIP2-44 token 版，兩邊 Before/After 皆繼承） ===== */
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    margin-bottom: var(--ds-space-5);
+  }
+  .frame-mobile .card { padding: var(--ds-space-5); }
+
+  /* ===== BUTTONS（SDLCAIP2-44 既有，#upload-btn 直接繼承，AC6 回歸） ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: var(--ds-control-h-desktop);
+    padding: 0 20px;
+    border-radius: var(--ds-radius-sm);
+    border: 1px solid var(--ds-border-strong);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--ds-ink-100); border-color: var(--ds-ink-100); color: var(--ds-bg); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; color: var(--ds-text-placeholder); }
+  .frame-mobile .btn { height: var(--ds-control-h-mobile); width: 100%; }
+
+  /* ===== BEFORE：現況 #drop-zone / #file-info / .fname（未改動，照抄 index.html 現行值） ===== */
+  .before #drop-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 40px 24px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .before #drop-zone:hover, .before #drop-zone.dragover {
+    border-color: var(--primary); background: #EFF6FF;
+  }
+  .before #drop-zone svg { width: 40px; height: 40px; color: var(--muted); margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto; }
+  .before #drop-zone p { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  .before #drop-zone strong { font-size: 1.05rem; color: var(--text); }
+  .before #file-info { margin-top: 16px; padding: 12px 16px; background: #EFF6FF; border-radius: 6px; font-size: .875rem; }
+  .before #file-info .fname { font-weight: 600; color: var(--primary); }
+  .before .upload-btn-icon { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; }
+
+  /* ===== AFTER：SDLCAIP2-47 新增（決策 1：#drop-zone / #file-info / .fname 屬性級 --ds-* 覆寫） ===== */
+  .after #drop-zone {
+    border: 2px dashed var(--ds-border-strong); border-radius: var(--ds-radius-md);
+    padding: 40px 24px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .after #drop-zone:hover, .after #drop-zone.dragover {
+    border-color: var(--ds-ink-100); background: var(--ds-badge-bg);
+  }
+  /* 決策 2：#drop-zone svg 規則已隨 <svg> 標記一併刪除，不移植進 After（此處刻意留白示意） */
+  .after #drop-zone p { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  .after #drop-zone strong { font-size: 1.05rem; color: var(--text); }
+  .after #file-info { margin-top: 16px; padding: 12px 16px; background: var(--ds-badge-bg); border-radius: 6px; font-size: .875rem; }
+  .after #file-info .fname { font-weight: 600; color: var(--ds-text-primary); }
+
+  #file-meta { color: var(--muted); margin-top: 4px; }
+  #upload-error { color: var(--danger); font-size: .85rem; margin-left: 14px; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-47 — view-upload design-system 套用原型</h1>
+<p class="note">
+  上排 <strong>Before</strong>：目前 <code>src/frontend/index.html</code> 現況（<code>📤</code> emoji、
+  <code>&lt;svg&gt;</code> icon、<code>var(--border)</code>／<code>var(--radius)</code>／
+  <code>var(--primary)</code>／<code>#EFF6FF</code> 皆未改動）。
+  下排 <strong>After</strong>：套用本票變更後——<code>&lt;h2&gt;</code> 移除 emoji（AC2）；
+  <code>#drop-zone</code>／<code>#upload-btn</code> 內 <code>&lt;svg&gt;</code> 移除，僅留文字（AC3，
+  且 <code>#drop-zone svg</code> 這條死 CSS 規則已一併刪除，見設計文件決策 2）；
+  <code>#drop-zone</code> 邊框色 → <code>--ds-border-strong</code>、圓角 → <code>--ds-radius-md</code>、
+  hover/dragover 邊框 → <code>--ds-ink-100</code>、背景 → <code>--ds-badge-bg</code>（AC4）；
+  <code>#file-info</code> 背景 → <code>--ds-badge-bg</code>、<code>.fname</code> 文字色 →
+  <code>--ds-text-primary</code>（AC5）。
+  每排各自並排「桌面寬度」（620px 容器，對應 ≥480px）與「手機寬度」（340px 容器，模擬 &lt;480px
+  斷點）。<code>.card</code>／<code>#upload-btn</code>（<code>.btn.btn-primary</code>）／手機版控制項
+  高度與卡片內距／<code>#upload-error</code> 紅色，四排皆維持 SDLCAIP2-44 既有全域規則，無變化
+  （AC1/AC6/AC7/AC8 回歸）。也可另外用瀏覽器 DevTools 縮窄視窗驗證真實斷點行為。
+</p>
+
+<h2 class="section">Before（現況，未改動）</h2>
+<div class="preview-row before">
+
+  <div>
+    <div class="preview-label">桌面寬度（620px）</div>
+    <div class="frame-desktop">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">📤 上傳錄音檔</h2>
+        <div id="drop-zone">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          <strong>拖放錄音檔至此，或點擊選取</strong>
+          <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+        </div>
+        <div id="file-info">
+          <div class="fname">meeting_2026-09-24.mp3</div>
+          <div id="file-meta">大小：18.42 MB</div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" id="upload-btn">
+            <svg class="upload-btn-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M2 20h20"/></svg>
+            開始處理
+          </button>
+          <span id="upload-error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">手機寬度（340px，模擬 &lt;480px）</div>
+    <div class="frame-mobile">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">📤 上傳錄音檔</h2>
+        <div id="drop-zone">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          <strong>拖放錄音檔至此，或點擊選取</strong>
+          <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+        </div>
+        <div id="file-info">
+          <div class="fname">meeting_2026-09-24.mp3</div>
+          <div id="file-meta">大小：18.42 MB</div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" id="upload-btn">
+            <svg class="upload-btn-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M2 20h20"/></svg>
+            開始處理
+          </button>
+          <span id="upload-error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section">After（套用 SDLCAIP2-47 變更後）</h2>
+<div class="preview-row after">
+
+  <div>
+    <div class="preview-label">桌面寬度（620px）</div>
+    <div class="frame-desktop">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">上傳錄音檔</h2>
+        <div id="drop-zone">
+          <strong>拖放錄音檔至此，或點擊選取</strong>
+          <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+        </div>
+        <div id="file-info">
+          <div class="fname">meeting_2026-09-24.mp3</div>
+          <div id="file-meta">大小：18.42 MB</div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" id="upload-btn">開始處理</button>
+          <span id="upload-error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">手機寬度（340px，模擬 &lt;480px）</div>
+    <div class="frame-mobile">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">上傳錄音檔</h2>
+        <div id="drop-zone">
+          <strong>拖放錄音檔至此，或點擊選取</strong>
+          <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+        </div>
+        <div id="file-info">
+          <div class="fname">meeting_2026-09-24.mp3</div>
+          <div id="file-meta">大小：18.42 MB</div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" id="upload-btn">開始處理</button>
+          <span id="upload-error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section">狀態變化：dragover / disabled（After，桌面）</h2>
+<div class="preview-row after">
+  <div>
+    <div class="preview-label">dragover（拖放中）</div>
+    <div class="frame-desktop">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">上傳錄音檔</h2>
+        <div id="drop-zone" class="dragover">
+          <strong>拖放錄音檔至此，或點擊選取</strong>
+          <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="preview-label">上傳中（disabled，doUpload() 以 textContent 覆寫）</div>
+    <div class="frame-desktop">
+      <div class="card">
+        <h2 style="font-size:1.2rem;margin-bottom:24px;">上傳錄音檔</h2>
+        <div style="margin-top:4px;">
+          <button class="btn btn-primary" id="upload-btn" disabled>上傳中...</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
