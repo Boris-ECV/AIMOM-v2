@@ -3,7 +3,7 @@
 AI 會議轉錄與摘要系統。後端為 Python（AWS Lambda handler），前端為靜態 HTML/JS，
 資料儲存於 DynamoDB，認證採 AWS Cognito，基礎設施以 Terraform 管理。
 
-> 本 repo 是從既有專案 `AIMOM`（`Boris-ECV/AIMOM`）延續而來，套用了
+> 本 repo 是從既有專案 `AIMOM`（`ECV/AIMOM`）延續而來，套用了
 > sdlc-agent-framework 多代理 SDLC 框架繼續開發。舊 repo 已標記為
 > deprecated，往後開發統一在此 repo 進行。
 
