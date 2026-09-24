@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>SDLCAIP2-50 Prototype — view-history design-system 套用</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* 舊版既有變數（index.html 現況，.action-table/.empty-state 本體目前用這組） */
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+
+    /* --ds-* token，數值照抄 src/frontend/index.html 現有 :root（SDLCAIP2-44 已建立） */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-breakpoint-mobile: 480px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--ds-font-sans);
+    background: #EDEBE6;
+    color: var(--ds-text-primary);
+    margin: 0;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  h2.section-heading { font-size: 15px; font-weight: 600; margin: 36px 0 12px; color: var(--ds-text-primary); }
+  .note { font-size: 13px; color: var(--ds-text-secondary); margin-bottom: 28px; max-width: 940px; line-height: 1.6; }
+  .note code { font-family: 'JetBrains Mono', monospace; background: var(--ds-badge-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .preview-row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+  .preview-block { }
+  .preview-label { font-size: 13px; font-weight: 600; color: var(--ds-text-secondary); margin-bottom: 8px; }
+
+  /* ===== 以下是 index.html 的既有共用規則，直接複製過來以求原型逼真（.card / .section-title） ===== */
+  .frame-desktop { width: 900px; max-width: 900px; padding: 24px; background: var(--ds-bg); border-radius: 8px; }
+  .frame-mobile { width: 360px; padding: 16px; background: var(--ds-bg); border-radius: 8px; }
+
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    margin-bottom: var(--ds-space-5);
+  }
+  .frame-mobile .card { padding: var(--ds-space-5); }
+
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
+                    margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* ===== .action-table 共用本體（現況，未改動——與 index.html 第 238-244 行一致） ===== */
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
+                     font-weight: 600; font-size: .8rem; color: var(--muted);
+                     border-bottom: 1px solid var(--border); }
+  .action-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .action-table tr:last-child td { border-bottom: none; }
+
+  /* ===== .empty-state 共用本體（現況，未改動——與 index.html 第 323-324 行一致） ===== */
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-state p { margin-top: 8px; font-size: .9rem; }
+
+  /* ===== SDLCAIP2-50 新增：僅限 #view-history 範圍的 .action-table 覆寫（決策 1） ===== */
+  #view-history .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+
+  /* ===== SDLCAIP2-50 新增：#history-empty 文字色覆寫（決策 3） ===== */
+  #view-history .empty-state { color: var(--ds-text-secondary); }
+
+  /* ===== SDLCAIP2-45 既有、SDLCAIP2-50 重用：手機表格捲動容器（決策 2） ===== */
+  .ds-table-scroll { width: 100%; overflow-x: auto; }
+  .frame-mobile #view-history .action-table { min-width: 420px; }
+
+  .tag-before { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+                border-radius: var(--ds-radius-pill); background: #FEE2E2; color: #991B1B; margin-left: 8px; }
+  .tag-after { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+               border-radius: var(--ds-radius-pill); background: #DCFCE7; color: #166534; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-50 — view-history design-system 套用原型</h1>
+<p class="note">
+  左：桌面寬度（900px 容器，對應 ≥480px 桌面版）。右：手機寬度（360px 容器，模擬 &lt;480px 斷點）。<br>
+  表頭底色／文字色使用 <code>--ds-badge-bg</code> / <code>--ds-text-secondary</code>；儲存格文字色
+  <code>--ds-text-primary</code>；邊框統一 <code>--ds-border</code>（決策 1，比照 SDLCAIP2-45
+  對 <code>#view-admin .action-table</code> 的既有模式）。<br>
+  空清單提示文字（<code>#history-empty</code>）改用 <code>--ds-text-secondary</code>（決策 3）。<br>
+  <code>.section-title</code> 移除裝飾性 emoji「📜」，只留「歷史紀錄」（決策 4）。<br>
+  手機版表格外包 <code>.ds-table-scroll</code>（<code>overflow-x:auto</code>，SDLCAIP2-45 既有
+  全站共用 class，本票重用）並設 <code>min-width: 420px</code>，欄位保留可讀寬度、超出部分用
+  橫向捲動而非硬縮文字（決策 2）——可在下方右側「手機寬度」區塊內左右滑動表格驗證。<br>
+  <code>.action-table</code>／<code>.empty-state</code> 共用本體（灰底部分之外的基礎規則）維持
+  原樣未修改，view-result／view-admin 等其他頁面不受影響（AC8）。
+</p>
+
+<h2 class="section-heading">Before / After 對照（有資料列）</h2>
+<div class="preview-row">
+
+  <div class="preview-block">
+    <div class="preview-label">Before：舊版變數<span class="tag-before">現況</span></div>
+    <div class="frame-desktop">
+      <div class="card">
+        <div class="section-title">📜 歷史紀錄</div>
+        <table class="action-table">
+          <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+          <tbody>
+            <tr><td>2026-09 產品規劃會議</td><td>2026-09-20 10:30</td></tr>
+            <tr><td>Q3 進度檢討</td><td>2026-09-18 14:00</td></tr>
+            <tr><td>客戶需求訪談紀錄</td><td>2026-09-15 09:15</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-block">
+    <div class="preview-label">After：design-system token<span class="tag-after">本票</span></div>
+    <div class="frame-desktop">
+      <div id="view-history">
+        <div class="card">
+          <div class="section-title">歷史紀錄</div>
+          <div class="ds-table-scroll">
+            <table class="action-table" id="history-table">
+              <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+              <tbody id="history-tbody">
+                <tr><td>2026-09 產品規劃會議</td><td>2026-09-20 10:30</td></tr>
+                <tr><td>Q3 進度檢討</td><td>2026-09-18 14:00</td></tr>
+                <tr><td>客戶需求訪談紀錄</td><td>2026-09-15 09:15</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section-heading">手機版（360px，模擬 &lt;480px）—— After 版本</h2>
+<div class="preview-row">
+
+  <div class="preview-block">
+    <div class="preview-label">有資料列</div>
+    <div class="frame-mobile">
+      <div id="view-history">
+        <div class="card">
+          <div class="section-title">歷史紀錄</div>
+          <div class="ds-table-scroll">
+            <table class="action-table" id="history-table">
+              <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+              <tbody id="history-tbody">
+                <tr><td>2026-09 產品規劃會議</td><td>2026-09-20 10:30</td></tr>
+                <tr><td>Q3 進度檢討</td><td>2026-09-18 14:00</td></tr>
+                <tr><td>客戶需求訪談紀錄</td><td>2026-09-15 09:15</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-block">
+    <div class="preview-label">空清單狀態（AC7 回歸：#history-table 隱藏、#history-empty 顯示）</div>
+    <div class="frame-mobile">
+      <div id="view-history">
+        <div class="card">
+          <div class="section-title">歷史紀錄</div>
+          <table class="action-table" id="history-table" style="display:none;">
+            <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+          <div id="history-empty" class="empty-state" style="display:block;">
+            <p>尚無已保留的會議紀錄</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section-heading">桌面版 —— 空清單狀態</h2>
+<div class="preview-row">
+  <div class="preview-block">
+    <div class="frame-desktop">
+      <div id="view-history">
+        <div class="card">
+          <div class="section-title">歷史紀錄</div>
+          <table class="action-table" id="history-table" style="display:none;">
+            <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+          <div id="history-empty" class="empty-state" style="display:block;">
+            <p>尚無已保留的會議紀錄</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
