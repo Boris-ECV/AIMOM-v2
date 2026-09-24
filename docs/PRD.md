@@ -1182,3 +1182,86 @@ As a 查看歷史紀錄列表的使用者, I want 畫面的版面、字體、色
 ### 狀態
 
 G1 approved 2026-09-24 → Designing
+
+---
+
+## SDLCAIP2-46：Design System｜轉錄進度頁 view-progress
+
+### 使用者故事
+
+As a 等待轉錄進度的使用者, I want 進度頁的版面、字體、色彩與狀態提示樣式套用 design-system 規範，等待期間畫面風格與其他頁面一致，狀態提示清楚、不會誤認為可點擊按鈕, so that 我能清楚了解轉錄進度狀況且不被誤導操作。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜轉錄進度頁 view-progress
+
+  Scenario: 卡片標題移除 emoji
+    Given 使用者進入 view-progress（轉錄進度頁）
+    When 檢視頁面標題
+    Then 卡片標題應顯示「處理中...」，不含裝飾性 emoji（移除「⚙️」）
+
+  Scenario: 階段圖示移除 emoji，狀態仍靠底色深淺分辨
+    Given 使用者檢視 .stage-icon 元素（#icon-uploaded/#icon-transcribed/#icon-done）
+    When 觀察三種狀態（waiting/active/done）的呈現方式
+    Then 三個圖示不應顯示 emoji（移除「📤」「🎙️」「✨」）
+    And JS 仍可設定 stage-icon 的 waiting/active/done 狀態
+    And 三種狀態仍可靠底色深淺分辨，不因移除 emoji 而改變狀態識別能力
+
+  Scenario: 進度視覺元素改用 design-system token
+    Given 使用者檢視進度頁的進度條與狀態圖示
+    When 檢視其 CSS 屬性
+    Then .stage-icon 三種狀態、.progress-bar、.progress-bar-wrap 改用 --ds-* 灰階 token
+    And 不使用 --primary/--success/--warning/--danger 或寫死色碼
+
+  Scenario: 文字字體套用 design-system 字體規則
+    Given 使用者檢視 view-progress 內的所有文字
+    When 檢視其 CSS 屬性
+    Then view-progress 的文字應套用 var(--ds-font-sans)
+
+  Scenario: 間距對應 design-system token
+    Given 使用者檢視 .stage-list 與 .stage-item 的間距
+    When 檢視其 CSS 屬性
+    Then .stage-list/.stage-item 間距改用 --ds-space-1~8 token
+
+  Scenario: 狀態提示套用 Badge 樣式
+    Given 使用者檢視 #progress-message（狀態提示區塊）
+    When 檢視其視覺呈現與 CSS 屬性
+    Then #progress-message 套用 Badge 樣式（--ds-badge-bg、1px solid --ds-badge-border、--ds-badge-text、--ds-radius-pill）
+    And 無 cursor:pointer 與 hover 樣式
+    And 不改 .section-title .badge 共用規則（依 SDLCAIP2-53 人類決策：選項 A）
+
+  Scenario: 取消按鈕視覺明確不同於狀態提示
+    Given 使用者檢視取消按鈕
+    When 檢視其視覺呈現
+    Then 取消按鈕沿用 .btn.btn-outline.btn-sm，與狀態提示視覺明確不同
+    And onclick 行為不變
+
+  Scenario: 輪詢行為與 JS 命名不變（回歸）
+    Given 使用者進入 view-progress 並等待轉錄進度更新
+    When 輪詢 updateProgressUI() 行為執行
+    Then updateProgressUI() 行為、JS/id/class 命名維持現況不變
+
+  Scenario: 其他畫面不受影響（回歸）
+    Given view-upload/view-result/view-history/view-admin 等其他畫面
+    When 本 Story 的變更合併後
+    Then 其他畫面的視覺呈現不受本票影響，僅 view-progress 使用的選取器被改變
+```
+
+### 範圍外
+
+* 共用樣式與頁首（.card/.btn，SDLCAIP2-44）
+* 輪詢邏輯與 API
+* 新增各階段狀態文案（SDLCAIP2-53 已決定採選項 A）
+* 其他畫面專屬樣式與 .action-table
+* docs/design-system/ 文件
+
+### 依賴
+
+* SDLCAIP2-44（已合併）
+* SDLCAIP2-53（HUMAN-INPUT，已回答選項 A）
+* docs/design-system/
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
