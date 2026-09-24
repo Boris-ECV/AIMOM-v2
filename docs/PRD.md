@@ -1182,3 +1182,226 @@ As a 查看歷史紀錄列表的使用者, I want 畫面的版面、字體、色
 ### 狀態
 
 G1 approved 2026-09-24 → Designing
+
+---
+
+## SDLCAIP2-46：Design System｜轉錄進度頁 view-progress
+
+### 使用者故事
+
+As a 等待轉錄進度的使用者, I want 進度頁的版面、字體、色彩與狀態提示樣式套用 design-system 規範，等待期間畫面風格與其他頁面一致，狀態提示清楚、不會誤認為可點擊按鈕, so that 我能清楚了解轉錄進度狀況且不被誤導操作。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜轉錄進度頁 view-progress
+
+  Scenario: 卡片標題移除 emoji
+    Given 使用者進入 view-progress（轉錄進度頁）
+    When 檢視頁面標題
+    Then 卡片標題應顯示「處理中...」，不含裝飾性 emoji（移除「⚙️」）
+
+  Scenario: 階段圖示移除 emoji，狀態仍靠底色深淺分辨
+    Given 使用者檢視 .stage-icon 元素（#icon-uploaded/#icon-transcribed/#icon-done）
+    When 觀察三種狀態（waiting/active/done）的呈現方式
+    Then 三個圖示不應顯示 emoji（移除「📤」「🎙️」「✨」）
+    And JS 仍可設定 stage-icon 的 waiting/active/done 狀態
+    And 三種狀態仍可靠底色深淺分辨，不因移除 emoji 而改變狀態識別能力
+
+  Scenario: 進度視覺元素改用 design-system token
+    Given 使用者檢視進度頁的進度條與狀態圖示
+    When 檢視其 CSS 屬性
+    Then .stage-icon 三種狀態、.progress-bar、.progress-bar-wrap 改用 --ds-* 灰階 token
+    And 不使用 --primary/--success/--warning/--danger 或寫死色碼
+
+  Scenario: 文字字體套用 design-system 字體規則
+    Given 使用者檢視 view-progress 內的所有文字
+    When 檢視其 CSS 屬性
+    Then view-progress 的文字應套用 var(--ds-font-sans)
+
+  Scenario: 間距對應 design-system token
+    Given 使用者檢視 .stage-list 與 .stage-item 的間距
+    When 檢視其 CSS 屬性
+    Then .stage-list/.stage-item 間距改用 --ds-space-1~8 token
+
+  Scenario: 狀態提示套用 Badge 樣式
+    Given 使用者檢視 #progress-message（狀態提示區塊）
+    When 檢視其視覺呈現與 CSS 屬性
+    Then #progress-message 套用 Badge 樣式（--ds-badge-bg、1px solid --ds-badge-border、--ds-badge-text、--ds-radius-pill）
+    And 無 cursor:pointer 與 hover 樣式
+    And 不改 .section-title .badge 共用規則（依 SDLCAIP2-53 人類決策：選項 A）
+
+  Scenario: 取消按鈕視覺明確不同於狀態提示
+    Given 使用者檢視取消按鈕
+    When 檢視其視覺呈現
+    Then 取消按鈕沿用 .btn.btn-outline.btn-sm，與狀態提示視覺明確不同
+    And onclick 行為不變
+
+  Scenario: 輪詢行為與 JS 命名不變（回歸）
+    Given 使用者進入 view-progress 並等待轉錄進度更新
+    When 輪詢 updateProgressUI() 行為執行
+    Then updateProgressUI() 行為、JS/id/class 命名維持現況不變
+
+  Scenario: 其他畫面不受影響（回歸）
+    Given view-upload/view-result/view-history/view-admin 等其他畫面
+    When 本 Story 的變更合併後
+    Then 其他畫面的視覺呈現不受本票影響，僅 view-progress 使用的選取器被改變
+```
+
+### 範圍外
+
+* 共用樣式與頁首（.card/.btn，SDLCAIP2-44）
+* 輪詢邏輯與 API
+* 新增各階段狀態文案（SDLCAIP2-53 已決定採選項 A）
+* 其他畫面專屬樣式與 .action-table
+* docs/design-system/ 文件
+
+### 依賴
+
+* SDLCAIP2-44（已合併）
+* SDLCAIP2-53（HUMAN-INPUT，已回答選項 A）
+* docs/design-system/
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
+
+---
+
+## SDLCAIP2-55：Design System｜會議紀錄結果頁 view-result — 會議紀錄分頁卡片群（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁「會議紀錄」分頁的使用者, I want 會議資訊、摘要、待辦事項、決定事項、討論重點五張卡片的標題、文字、表格、清單樣式套用 design-system 規範, so that 我在瀏覽與編輯會議紀錄內容時，視覺與系統其他畫面一致、清楚易讀。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 會議紀錄分頁卡片群套用 design-system
+
+  Scenario: AC1 卡片標題套用 Heading h2 token（#view-result 前綴覆寫）
+    Then #view-result .section-title 為 h2 18px/26px/600（手機 17px/24px/600）、--ds-text-primary；共用 .section-title 本體不變
+
+  Scenario: AC2 會議資訊欄位套用 Input 元件樣式（詳情頁連帶變更）
+    Then .meeting-info-grid label/input 改用 --ds-* token；<480px 單欄堆疊；onchange 綁定不變
+
+  Scenario: AC3 摘要文字套用 Body token
+    Then #summary-text 行高／顏色對應 body token；雙擊編輯提示邏輯不變
+
+  Scenario: AC4 待辦事項表格套用 token（#view-result 前綴覆寫）
+    Then #view-result .action-table th/td 比照 #view-admin；共用 .action-table 本體與 contenteditable 樣式不變
+
+  Scenario: AC5 決定事項清單套用 token（詳情頁連帶變更）
+    Then .decision-list 邊框 --ds-border；「✓」改 --ds-text-primary（原綠色）
+
+  Scenario: AC6 討論重點手風琴套用 token（詳情頁連帶變更）
+    Then .topic-item/.topic-header/.topic-body 改用 --ds-* 灰階 token；toggleTopic() 行為不變
+
+  Scenario: AC7 窄螢幕（<480px）待辦表格不造成頁面級橫向捲軸
+
+  Scenario: AC8 既有編輯／儲存 JS 行為不受影響（回歸）
+```
+
+### 範圍外
+
+* 標題、操作列、Tabs（SDLCAIP2-54）；逐字稿分頁（SDLCAIP2-56）
+* `.card` 共用本體；`.action-table`／`.empty-state`／`.section-title` 共用本體（只新增 `#view-result` 前綴覆寫）
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；SDLCAIP2-45（已合併，前綴覆寫先例）
+* SDLCAIP2-48 將沿用本票 `#view-result .section-title`／`.action-table` 的數值（SDLCAIP2-58 決議）
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing → G1b approved 2026-09-24 → Ready → In Progress 2026-09-25
+
+## SDLCAIP2-54：Design System｜會議紀錄結果頁 view-result — 標題／操作列／分頁 Tabs（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁（view-result）的使用者, I want 頁面標題、操作列與「會議紀錄／逐字稿」分頁切換套用 design-system 的色彩／字體／間距／圓角規則, so that 畫面最上方的視覺與系統其他畫面一致，且既有的操作排列、按鈕行為不受影響。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 標題／操作列／Tabs 套用 design-system
+
+  Scenario: AC1 標題移除「📋」並套用 Heading h2 token
+    Then 「會議紀錄」為 h2 18px/26px/600（手機 17px/24px/600）、--ds-text-primary
+
+  Scenario: AC2 #result-meta 套用 caption token
+    Then 13px/18px/400、--ds-text-secondary
+
+  Scenario: AC3 操作列排列不受影響（回歸，SDLCAIP2-39/40/42 鎖定）
+    Then 六個元素順序與同排不換行維持現況；不套用 design-system「手機版工具列垂直堆疊」通則
+
+  Scenario: AC4 操作列按鈕行為不受影響（回歸）
+
+  Scenario: AC5 #template-select／#export-format-select 套用 .input class
+    Then 高度、邊框、圓角、focus 與設計系統輸入框一致；選項與 onchange 不變
+
+  Scenario: AC6 Tabs 套用 token（詳情頁 Tabs 連帶變更）
+    Then 目前分頁 --ds-ink-100／600；非目前分頁 --ds-text-secondary；分頁列底線 --ds-border；分頁文字移除 📝／🎙
+
+  Scenario: AC7 窄螢幕（<480px）Tabs 不換行、不溢出
+
+  Scenario: AC8 「●」「⚠」狀態符號保留（SDLCAIP2-57 決議：選項 A）
+```
+
+### 範圍外
+
+* 五張內容卡片（SDLCAIP2-55）；逐字稿分頁（SDLCAIP2-56）
+* `.btn` 系列共用本體；`#modified-badge`／`#low-confidence-badge` 的符號與琥珀色配色
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；SDLCAIP2-42（操作列排列 AC 不得變更）；SDLCAIP2-57（已回答：選項 A）
+* 與 SDLCAIP2-55／56 修改同一檔案，建議不同時合併（非阻塞）
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
+
+## SDLCAIP2-56：Design System｜會議紀錄結果頁 view-result — 逐字稿分頁（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁「逐字稿」分頁的使用者, I want 發言人重命名區塊與逐字稿列表套用 design-system 規範, so that 我在核對逐字稿與重新命名發言人時，視覺與系統其他畫面一致。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 逐字稿分頁套用 design-system
+
+  Scenario: AC1 發言人重命名區塊標題移除「🎤」
+
+  Scenario: AC2 發言人重命名區塊改為灰階（G1 第 1 輪駁回後改寫）
+    Then #speaker-rename-area 背景／邊框改 --ds-* 灰階 token，不再使用綠色；h4 文字改 --ds-text-primary 或 --ds-text-secondary
+    And .rename-row input 改 --ds-border-strong／--ds-radius-sm／--ds-control-h-*；送出按鈕沿用 .btn 系列
+
+  Scenario: AC3 逐字稿列表套用 token
+    Then .seg-row 邊框 --ds-border；.seg-time --ds-text-secondary＋--ds-font-mono；.seg-text --ds-text-primary
+
+  Scenario: AC4 發言人色塊配色邏輯不變，只套用 --ds-radius-pill 與 caption 字級（回歸）
+
+  Scenario: AC5 窄螢幕（<480px）逐字稿列不重疊、不截斷
+
+  Scenario: AC6 發言人重命名與逐字稿既有行為不受影響（回歸）
+```
+
+### 範圍外
+
+* 標題、操作列、Tabs（SDLCAIP2-54）；五張內容卡片（SDLCAIP2-55）
+* `.card`／`.btn` 系列共用本體；speaker-chip 動態配色邏輯（資料識別色，非裝飾）
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；與 SDLCAIP2-54／55 修改同一檔案，建議不同時合併（非阻塞）
+
+### 狀態
+
+G1 approved 2026-09-24（第 2 輪）→ Designing

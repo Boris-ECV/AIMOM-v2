@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>SDLCAIP2-55 Prototype — view-result「會議紀錄」分頁 design-system 套用</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* 舊版既有變數（index.html 現況，共用本體目前用這組） */
+    --primary: #2563EB;
+    --success: #16A34A;
+    --warning: #D97706;
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+
+    /* --ds-* token，數值照抄 src/frontend/index.html 現有 :root（SDLCAIP2-44 已建立） */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+    --ds-breakpoint-mobile: 480px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--ds-font-sans);
+    background: #EDEBE6;
+    color: var(--ds-text-primary);
+    margin: 0;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  h2.section-heading { font-size: 15px; font-weight: 600; margin: 36px 0 12px; color: var(--ds-text-primary); }
+  .note { font-size: 13px; color: var(--ds-text-secondary); margin-bottom: 28px; max-width: 980px; line-height: 1.7; }
+  .note code { font-family: 'JetBrains Mono', monospace; background: var(--ds-badge-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .preview-row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+  .preview-block { }
+  .preview-label { font-size: 13px; font-weight: 600; color: var(--ds-text-secondary); margin-bottom: 8px; }
+
+  .frame-desktop { width: 900px; max-width: 900px; padding: 24px; background: var(--ds-bg); border-radius: 8px; }
+  .frame-mobile { width: 360px; padding: 16px; background: var(--ds-bg); border-radius: 8px; }
+
+  /* ===== .card 共用本體（現況，未改動） ===== */
+  .card {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    margin-bottom: var(--ds-space-5);
+  }
+  .frame-mobile .card { padding: var(--ds-space-5); }
+
+  /* ===== .section-title 共用本體（現況，未改動——與 index.html 186-201 行一致） ===== */
+  .section-title-base { font-size: 1rem; font-weight: 600; color: var(--text);
+                    margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .section-title-base .badge {
+    display: inline-block; font-family: var(--ds-font-sans); font-size: 13px;
+    padding: 4px 12px; border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg); border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text); font-weight: 400;
+  }
+
+  /* ===== .action-table 共用本體（現況，未改動——與 index.html 238-244 行一致） ===== */
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
+                     font-weight: 600; font-size: .8rem; color: var(--muted);
+                     border-bottom: 1px solid var(--border); }
+  .action-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .action-table tr:last-child td { border-bottom: none; }
+  .action-table td[contenteditable="true"] { background: #FEFCE8; outline: 1px solid var(--warning); }
+
+  /* ===== 舊版（Before）：本票改動前的原始樣式 ===== */
+  .before .section-title-base { color: var(--text); }
+  .before .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 12px 16px; }
+  .before .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
+                              font-size: .8rem; color: var(--muted); }
+  .before .meeting-info-grid input { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
+                              border-radius: 6px; color: var(--text); font-family: inherit; }
+  .before .meeting-info-grid input::placeholder { color: #B8C1CC; }
+  .before #summary-text-before { line-height: 1.7; color: var(--text); min-height: 48px; }
+  .before #summary-text-before[contenteditable="true"] { outline: 2px solid var(--primary);
+    border-radius: 4px; padding: 4px 8px; background: #EFF6FF; }
+  .before .decision-list { list-style: none; }
+  .before .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--border);
+                      display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; }
+  .before .decision-list li:last-child { border-bottom: none; }
+  .before .decision-list li::before { content: "✓"; color: var(--success); font-weight: 700; flex-shrink: 0; }
+  .before .topic-item { border: 1px solid var(--border); border-radius: 8px;
+                margin-bottom: 10px; overflow: hidden; }
+  .before .topic-header { padding: 12px 16px; cursor: pointer; font-weight: 500;
+                  display: flex; justify-content: space-between; background: var(--bg); }
+  .before .topic-header:hover { background: #F1F5F9; }
+  .before .topic-body { padding: 12px 16px; font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+  /* ===== SDLCAIP2-55 新增：#view-result 範圍限定規則（決策 1/4/7） ===== */
+  #view-result .section-title-base {
+    font-size: 18px; line-height: 26px; font-weight: 600; color: var(--ds-text-primary);
+  }
+  #view-result .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-result .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  .ds-table-scroll { width: 100%; overflow-x: auto; }
+  .frame-mobile #view-result .action-table { min-width: 500px; }
+  @media (max-width: 479px) {
+    #view-result .section-title-base { font-size: 17px; line-height: 24px; }
+  }
+
+  /* ===== SDLCAIP2-55 新增：共用本體直接修改（決策 2/3/5/6，同步影響 view-history-detail） ===== */
+  .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: var(--ds-space-4); }
+  .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
+                              font-family: var(--ds-font-sans);
+                              font-size: 13px; line-height: 18px; font-weight: 400;
+                              color: var(--ds-text-secondary); }
+  .meeting-info-grid input {
+    height: var(--ds-control-h-desktop); padding: 0 12px;
+    border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface); color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans); font-size: 14px; box-sizing: border-box;
+  }
+  .meeting-info-grid input::placeholder { color: var(--ds-text-placeholder); }
+  .meeting-info-grid input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+
+  #summary-text-after {
+    font-family: var(--ds-font-sans);
+    font-size: 15px; line-height: 28px; font-weight: 400;
+    color: var(--ds-text-primary);
+    min-height: 48px;
+  }
+  #summary-text-after[contenteditable="true"] {
+    outline: 2px solid var(--ds-focus-ring);
+    border-radius: var(--ds-radius-sm);
+    padding: 4px 8px;
+    background: var(--ds-badge-bg);
+  }
+
+  .decision-list { list-style: none; }
+  .decision-list li {
+    padding: 8px 0; border-bottom: 1px solid var(--ds-border);
+    display: flex; align-items: flex-start; gap: 10px;
+    font-family: var(--ds-font-sans); font-size: 15px; line-height: 28px; font-weight: 400;
+  }
+  .decision-list li:last-child { border-bottom: none; }
+  .decision-list li::before { content: "✓"; color: var(--ds-text-primary); font-weight: 700; flex-shrink: 0; }
+
+  .topic-item { border: 1px solid var(--ds-border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+  .topic-header {
+    padding: 12px 16px; cursor: pointer; font-weight: 500;
+    display: flex; justify-content: space-between;
+    background: var(--ds-badge-bg); color: var(--ds-text-primary);
+  }
+  .topic-header:hover { background: var(--ds-border); }
+  .topic-body {
+    padding: 12px 16px; font-size: .875rem; line-height: 1.6;
+    color: var(--ds-text-secondary); font-family: var(--ds-font-sans);
+  }
+
+  @media (max-width: 479px) {
+    .frame-mobile .meeting-info-grid { grid-template-columns: 1fr; gap: var(--ds-space-3); }
+    .frame-mobile .meeting-info-grid label { font-size: 12px; line-height: 16px; }
+    .frame-mobile .meeting-info-grid input { height: var(--ds-control-h-mobile); width: 100%; }
+    .frame-mobile #summary-text-after { font-size: 14px; line-height: 26px; }
+  }
+
+  .tag-before { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+                border-radius: var(--ds-radius-pill); background: #FEE2E2; color: #991B1B; margin-left: 8px; }
+  .tag-after { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+               border-radius: var(--ds-radius-pill); background: #DCFCE7; color: #166534; margin-left: 8px; }
+  .tag-shared { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+               border-radius: var(--ds-radius-pill); background: #DBEAFE; color: #1E40AF; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-55 — view-result「會議紀錄」分頁五張卡片 design-system 套用原型</h1>
+<p class="note">
+  左：桌面寬度（900px 容器，對應 ≥480px 桌面版）。右：手機寬度（360px 容器，模擬 &lt;480px 斷點）。<br>
+  <code>.section-title</code>／<code>.action-table th/td</code> 用 <code>#view-result</code>
+  範圍限定規則覆寫，不動共用本體（決策 1/4）；<code>.meeting-info-grid</code>／
+  <code>.decision-list</code>／<code>.topic-item</code> 系列直接改共用本體（決策 2/3/5/6），
+  因此變更會同步套用到 <code>view-history-detail</code>（AC 已明講、為預期行為，見文件末端
+  「共用元件套用後樣貌」區塊）。<br>
+  待辦事項表格手機版外包 <code>.ds-table-scroll</code>（<code>overflow-x:auto</code>，
+  SDLCAIP2-45/50 既有全站共用 class，本票重用）並設 <code>min-width: 500px</code>，避免頁面級
+  橫向捲軸（決策 7，AC7）——可在下方右側「手機寬度」區塊內左右滑動表格驗證。
+</p>
+
+<h2 class="section-heading">Before / After 對照（桌面寬度，五張卡片）</h2>
+<div class="preview-row">
+
+  <div class="preview-block">
+    <div class="preview-label">Before：舊版變數<span class="tag-before">現況</span></div>
+    <div class="frame-desktop before">
+      <div class="card">
+        <div class="section-title-base">會議資訊 <span class="badge">未提及可手動填寫</span></div>
+        <div class="meeting-info-grid">
+          <label>日期<input type="text" placeholder="例如 2026-08-04"></label>
+          <label>時間<input type="text" placeholder="例如 14:00"></label>
+          <label>地點<input type="text" placeholder="例如 3樓會議室"></label>
+          <label>參與者（以逗號分隔）<input type="text" placeholder="例如 王小明, 李小華"></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title-base">摘要 <span class="badge">雙擊編輯</span></div>
+        <p id="summary-text-before">本次會議討論 Q3 產品規劃與資源配置，確認下一階段時程與負責窗口。</p>
+      </div>
+      <div class="card">
+        <div class="section-title-base">待辦事項</div>
+        <table class="action-table">
+          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+          <tbody>
+            <tr><td contenteditable="false">王小明</td><td contenteditable="false">整理需求訪談紀錄並同步至共用文件</td><td contenteditable="false">09/28</td></tr>
+            <tr><td contenteditable="true">李小華</td><td contenteditable="true">確認外部廠商報價</td><td contenteditable="true">09/30</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-title-base">決定事項</div>
+        <ul class="decision-list">
+          <li>採用方案 B 作為下一階段主要開發方向</li>
+          <li>下次會議訂於 10/05 進行進度檢討</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-title-base">討論重點</div>
+        <div>
+          <div class="topic-item">
+            <div class="topic-header">Q3 產品規劃 <span>▼</span></div>
+          </div>
+          <div class="topic-item">
+            <div class="topic-header">資源配置與時程 <span>▲</span></div>
+            <div class="topic-body">討論人力配置與外包廠商協作方式，預計 10 月初完成初版時程表。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-block">
+    <div class="preview-label">After：design-system token<span class="tag-after">本票</span></div>
+    <div class="frame-desktop">
+      <div id="view-result">
+        <div class="card">
+          <div class="section-title-base">會議資訊 <span class="badge">未提及可手動填寫</span></div>
+          <div class="meeting-info-grid">
+            <label>日期<input type="text" placeholder="例如 2026-08-04"></label>
+            <label>時間<input type="text" placeholder="例如 14:00"></label>
+            <label>地點<input type="text" placeholder="例如 3樓會議室"></label>
+            <label>參與者（以逗號分隔）<input type="text" placeholder="例如 王小明, 李小華"></label>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title-base">摘要 <span class="badge">雙擊編輯</span></div>
+          <p id="summary-text-after">本次會議討論 Q3 產品規劃與資源配置，確認下一階段時程與負責窗口。</p>
+        </div>
+        <div class="card">
+          <div class="section-title-base">待辦事項</div>
+          <div class="ds-table-scroll">
+            <table class="action-table" id="action-tbody-table">
+              <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+              <tbody id="action-tbody">
+                <tr><td contenteditable="false">王小明</td><td contenteditable="false">整理需求訪談紀錄並同步至共用文件</td><td contenteditable="false">09/28</td></tr>
+                <tr><td contenteditable="true">李小華</td><td contenteditable="true">確認外部廠商報價</td><td contenteditable="true">09/30</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title-base">決定事項</div>
+          <ul class="decision-list" id="decision-list">
+            <li>採用方案 B 作為下一階段主要開發方向</li>
+            <li>下次會議訂於 10/05 進行進度檢討</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="section-title-base">討論重點</div>
+          <div id="topics-container">
+            <div class="topic-item">
+              <div class="topic-header">Q3 產品規劃 <span>▼</span></div>
+            </div>
+            <div class="topic-item">
+              <div class="topic-header">資源配置與時程 <span>▲</span></div>
+              <div class="topic-body">討論人力配置與外包廠商協作方式，預計 10 月初完成初版時程表。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section-heading">手機版（360px，模擬 &lt;480px）—— After 版本</h2>
+<div class="preview-row">
+  <div class="preview-block">
+    <div class="preview-label">五張卡片（可左右滑動待辦事項表格驗證 AC7）</div>
+    <div class="frame-mobile">
+      <div id="view-result">
+        <div class="card">
+          <div class="section-title-base">會議資訊 <span class="badge">未提及可手動填寫</span></div>
+          <div class="meeting-info-grid">
+            <label>日期<input type="text" placeholder="例如 2026-08-04"></label>
+            <label>時間<input type="text" placeholder="例如 14:00"></label>
+            <label>地點<input type="text" placeholder="例如 3樓會議室"></label>
+            <label>參與者（以逗號分隔）<input type="text" placeholder="例如 王小明, 李小華"></label>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title-base">摘要 <span class="badge">雙擊編輯</span></div>
+          <p id="summary-text-after">本次會議討論 Q3 產品規劃與資源配置，確認下一階段時程與負責窗口。</p>
+        </div>
+        <div class="card">
+          <div class="section-title-base">待辦事項</div>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+              <tbody>
+                <tr><td contenteditable="false">王小明</td><td contenteditable="false">整理需求訪談紀錄並同步至共用文件</td><td contenteditable="false">09/28</td></tr>
+                <tr><td contenteditable="true">李小華</td><td contenteditable="true">確認外部廠商報價</td><td contenteditable="true">09/30</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title-base">決定事項</div>
+          <ul class="decision-list">
+            <li>採用方案 B 作為下一階段主要開發方向</li>
+            <li>下次會議訂於 10/05 進行進度檢討</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="section-title-base">討論重點</div>
+          <div>
+            <div class="topic-item">
+              <div class="topic-header">Q3 產品規劃 <span>▼</span></div>
+            </div>
+            <div class="topic-item">
+              <div class="topic-header">資源配置與時程 <span>▲</span></div>
+              <div class="topic-body">討論人力配置與外包廠商協作方式，預計 10 月初完成初版時程表。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-heading">共用元件套用後樣貌 —— view-history-detail（決策 2/3/5/6，同步影響，屬預期行為）</h2>
+<p class="note">
+  <code>.meeting-info-grid</code>／<code>.decision-list</code>／<code>.topic-item</code>
+  系列為共用本體（非 <code>#view-result</code> 範圍限定），本票修改後會同步套用到
+  <code>view-history-detail</code>（唯讀頁，欄位 <code>disabled</code>）。此區塊示範其實際
+  樣貌，供 G1b 審核時一併確認未產生非預期外觀。<code>.section-title</code>／
+  <code>.action-table</code> 在 view-history-detail 目前<strong>不會</strong>套用本票的
+  <code>#view-result</code> 範圍限定規則（維持現況），待人類已決議的後續工單
+  SDLCAIP2-58 抄用本文件「最終數值總表」的數值後才會套用，本原型不預先呈現。
+</p>
+<div class="preview-row">
+  <div class="preview-block">
+    <div class="preview-label">會議資訊（唯讀）<span class="tag-shared">共用本體</span></div>
+    <div class="frame-desktop" style="width:460px;">
+      <div class="card">
+        <div class="section-title-base">會議資訊 <span class="badge">雙擊摘要／待辦事項／決定事項／討論重點可逐項編輯</span></div>
+        <div class="meeting-info-grid">
+          <label>日期<input type="text" value="2026-09-20" disabled></label>
+          <label>時間<input type="text" value="14:00" disabled></label>
+          <label>地點<input type="text" value="3樓會議室" disabled></label>
+          <label>參與者（以逗號分隔）<input type="text" value="王小明, 李小華" disabled></label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="preview-block">
+    <div class="preview-label">決定事項 + 討論重點<span class="tag-shared">共用本體</span></div>
+    <div class="frame-desktop" style="width:400px;">
+      <div class="card">
+        <div class="section-title-base">決定事項</div>
+        <ul class="decision-list">
+          <li>採用方案 B 作為下一階段主要開發方向</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-title-base">討論重點</div>
+        <div>
+          <div class="topic-item">
+            <div class="topic-header">Q3 產品規劃 <span>▼</span></div>
+          </div>
+          <div class="topic-item">
+            <div class="topic-header">資源配置與時程 <span>▲</span></div>
+            <div class="topic-body">討論人力配置與外包廠商協作方式，預計 10 月初完成初版時程表。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
