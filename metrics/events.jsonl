@@ -685,3 +685,12 @@
 {"ts": "2026-09-24T16:56:30Z", "event": "stage_transition", "ticket": "SDLCAIP2-56", "agent": "orch-20260925-b7c2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
 {"ts": "2026-09-24T16:56:44Z", "event": "gate_review", "ticket": "SDLCAIP2-54", "agent": "orch-20260925-b7c2", "data": {"gate": "G1b", "mode": "manual", "result": "pending_human", "design_pr": 322}}
 {"ts": "2026-09-24T16:56:55Z", "event": "gate_review", "ticket": "SDLCAIP2-56", "agent": "orch-20260925-b7c2", "data": {"gate": "G1b", "mode": "manual", "result": "pending_human", "design_pr": 323}}
+{"ts": "2026-09-24T16:46:25Z", "event": "gate_review", "ticket": "SDLCAIP2-48", "agent": "human", "data": {"gate": "G1", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-24T16:47:19Z", "event": "gate_review", "ticket": "SDLCAIP2-46", "agent": "human", "data": {"gate": "G1b", "mode": "manual", "result": "approved"}}
+{"ts": "2026-09-24T17:00:00Z", "event": "blocked", "ticket": "SDLCAIP2-55", "agent": "orch-20260925-b7c2", "data": {"from": "In Progress", "human_input": "SDLCAIP2-59", "reason": "SDLCAIP2-36 template-select-style e2e couples #template-select (SDLCAIP2-54 scope) to .meeting-info-grid input restyled by 55; branch b1457c2 pushed"}}
+{"ts": "2026-09-24T17:03:30Z", "event": "stage_transition", "ticket": "SDLCAIP2-48", "agent": "orch-20260925-b7c2", "data": {"from": "Awaiting Gate", "to": "Designing"}}
+{"ts": "2026-09-24T17:04:00Z", "event": "stage_transition", "ticket": "SDLCAIP2-46", "agent": "orch-20260925-b7c2", "data": {"from": "Awaiting Gate", "to": "Ready", "design_pr": 315, "note": "dev deferred to next session: max_stories_per_session soft cap reached"}}
+{"ts": "2026-09-24T17:08:00Z", "event": "design_completed", "ticket": "SDLCAIP2-48", "agent": "orch-20260925-b7c2", "data": {"design_pr": 325}}
+{"ts": "2026-09-24T17:08:40Z", "event": "stage_transition", "ticket": "SDLCAIP2-48", "agent": "orch-20260925-b7c2", "data": {"from": "Designing", "to": "Awaiting Gate"}}
+{"ts": "2026-09-24T17:08:48Z", "event": "gate_review", "ticket": "SDLCAIP2-48", "agent": "orch-20260925-b7c2", "data": {"gate": "G1b", "mode": "manual", "result": "pending_human", "design_pr": 325}}
+{"ts": "2026-09-24T17:15:00Z", "event": "session_end", "ticket": null, "agent": "orch-20260925-b7c2", "data": {"session": "session39", "tickets_touched": ["SDLCAIP2-46", "SDLCAIP2-48", "SDLCAIP2-54", "SDLCAIP2-55", "SDLCAIP2-56", "SDLCAIP2-59"], "tickets_done": [], "reason": "story soft cap reached; all remaining work awaits human gates or HUMAN-INPUT", "tokens_estimate": "medium"}}
