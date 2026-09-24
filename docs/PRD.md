@@ -1405,3 +1405,53 @@ Feature: view-result 逐字稿分頁套用 design-system
 ### 狀態
 
 G1 approved 2026-09-24（第 2 輪）→ Designing
+
+## SDLCAIP2-48：Design System｜歷史紀錄詳情頁 view-history-detail
+
+### 使用者故事
+
+As a 查看歷史紀錄詳情（view-history-detail）的使用者, I want 這個畫面的版面、字體、色彩與內容樣式套用 design-system 規範, so that 我在查看單一筆歷史會議紀錄的完整內容時，有與結果頁一致、清楚易讀的視覺呈現。
+
+### 範圍說明（SDLCAIP2-58 決議：選項 1，與結果頁視覺一致）
+
+* 由 SDLCAIP2-54／55 修改的共用本體（`.tabs`、`.meeting-info-grid`、`.decision-list`、`.topic-*`）會連帶套用到詳情頁，本票只做回歸確認
+* 55 只以 `#view-result` 前綴覆寫的 `.section-title`／`.action-table`，本票比照相同數值新增 `#view-history-detail` 前綴覆寫
+* 詳情頁專屬項目：emoji 移除、空狀態文字色、標題列間距
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜歷史紀錄詳情頁 view-history-detail
+
+  Scenario: AC1 編輯／儲存按鈕移除「✏️」「💾」；saveHistoryEdit() 文字還原行為不變
+
+  Scenario: AC2 分頁按鈕移除「📝」「🎙」；switchHistoryTab() 行為不變
+
+  Scenario: AC3 卡片標題與結果頁一致（#view-history-detail 前綴覆寫）
+    Then 與 SDLCAIP2-55 的 #view-result .section-title 數值完全相同；共用 .section-title 本體不變
+
+  Scenario: AC4 待辦表格與結果頁一致（#view-history-detail 前綴覆寫）
+    Then 與 SDLCAIP2-55 的 #view-result .action-table th/td 數值完全相同；<480px 不造成頁面級橫向捲軸
+
+  Scenario: AC5 空狀態文字色改 --ds-text-secondary（#view-history-detail 前綴覆寫）
+
+  Scenario: AC6 標題列按鈕群組間距改 var(--ds-space-2)
+
+  Scenario: AC7 SDLCAIP2-54／55 連帶變更的共用樣式與結果頁一致（回歸確認）
+
+  Scenario: AC8 開啟詳情、404、編輯／儲存／取消、返回列表行為不變（回歸）
+```
+
+### 範圍外
+
+* `.tabs`／`.meeting-info-grid`／`.decision-list`／`.topic-*` 共用本體（SDLCAIP2-54／55 負責）
+* `.card`／`.btn`／`.btn-row`／`.section-title`／`.action-table`／`.empty-state` 共用本體（只新增前綴覆寫）
+* 全站共用樣式與頁首（SDLCAIP2-44）；詳情頁匯出功能；新功能；JS 邏輯變更
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；**SDLCAIP2-55（須先合併）**；SDLCAIP2-54（AC7 驗證 Tabs 連帶效果）；SDLCAIP2-58（已回答：選項 1）
+
+### 狀態
+
+G1 approved 2026-09-25 → Designing
