@@ -1265,3 +1265,54 @@ Feature: Design System｜轉錄進度頁 view-progress
 ### 狀態
 
 G1 approved 2026-09-24 → Designing
+
+---
+
+## SDLCAIP2-55：Design System｜會議紀錄結果頁 view-result — 會議紀錄分頁卡片群（拆自 SDLCAIP2-49）
+
+### 使用者故事
+
+As a 查看會議紀錄結果頁「會議紀錄」分頁的使用者, I want 會議資訊、摘要、待辦事項、決定事項、討論重點五張卡片的標題、文字、表格、清單樣式套用 design-system 規範, so that 我在瀏覽與編輯會議紀錄內容時，視覺與系統其他畫面一致、清楚易讀。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: view-result 會議紀錄分頁卡片群套用 design-system
+
+  Scenario: AC1 卡片標題套用 Heading h2 token（#view-result 前綴覆寫）
+    Then #view-result .section-title 為 h2 18px/26px/600（手機 17px/24px/600）、--ds-text-primary；共用 .section-title 本體不變
+
+  Scenario: AC2 會議資訊欄位套用 Input 元件樣式（詳情頁連帶變更）
+    Then .meeting-info-grid label/input 改用 --ds-* token；<480px 單欄堆疊；onchange 綁定不變
+
+  Scenario: AC3 摘要文字套用 Body token
+    Then #summary-text 行高／顏色對應 body token；雙擊編輯提示邏輯不變
+
+  Scenario: AC4 待辦事項表格套用 token（#view-result 前綴覆寫）
+    Then #view-result .action-table th/td 比照 #view-admin；共用 .action-table 本體與 contenteditable 樣式不變
+
+  Scenario: AC5 決定事項清單套用 token（詳情頁連帶變更）
+    Then .decision-list 邊框 --ds-border；「✓」改 --ds-text-primary（原綠色）
+
+  Scenario: AC6 討論重點手風琴套用 token（詳情頁連帶變更）
+    Then .topic-item/.topic-header/.topic-body 改用 --ds-* 灰階 token；toggleTopic() 行為不變
+
+  Scenario: AC7 窄螢幕（<480px）待辦表格不造成頁面級橫向捲軸
+
+  Scenario: AC8 既有編輯／儲存 JS 行為不受影響（回歸）
+```
+
+### 範圍外
+
+* 標題、操作列、Tabs（SDLCAIP2-54）；逐字稿分頁（SDLCAIP2-56）
+* `.card` 共用本體；`.action-table`／`.empty-state`／`.section-title` 共用本體（只新增 `#view-result` 前綴覆寫）
+* PDF/Word 匯出檔案樣式；全站共用樣式與頁首（SDLCAIP2-44）
+
+### 依賴
+
+* SDLCAIP2-44（已合併）；SDLCAIP2-45（已合併，前綴覆寫先例）
+* SDLCAIP2-48 將沿用本票 `#view-result .section-title`／`.action-table` 的數值（SDLCAIP2-58 決議）
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
