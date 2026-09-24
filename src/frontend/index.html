@@ -268,6 +268,25 @@
   .ds-table-scroll { width: 100%; overflow-x: auto; }
   @media (max-width: 479px) {
     #view-admin .action-table { min-width: 560px; }
+    #view-history .action-table { min-width: 420px; }
+  }
+
+  /* ===== SDLCAIP2-50: view-history scoped overrides (does not modify .action-table/.empty-state base above) ===== */
+  #view-history .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history .empty-state {
+    color: var(--ds-text-secondary);
   }
 
   .decision-list { list-style: none; }
@@ -531,11 +550,13 @@
   <!-- ============ HISTORY LIST VIEW（SDLCAIP2-32） ============ -->
   <div id="view-history" class="view">
     <div class="card">
-      <div class="section-title">📜 歷史紀錄</div>
-      <table class="action-table" id="history-table" style="display:none;">
-        <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
-        <tbody id="history-tbody"></tbody>
-      </table>
+      <div class="section-title">歷史紀錄</div>
+      <div class="ds-table-scroll">
+        <table class="action-table" id="history-table" style="display:none;">
+          <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
       <div id="history-empty" class="empty-state" style="display:none;">
         <p>尚無已保留的會議紀錄</p>
       </div>
