@@ -1074,3 +1074,111 @@ Feature: Design System｜管理者儀表板頁 view-admin
     Given view-upload/view-progress/view-result/view-history 等其他畫面
     Then 本票變更合併後，除 .action-table 共用定義保持不變所保障的表格外觀外，其餘既有樣式不受本票影響
 ```
+
+---
+
+## SDLCAIP2-47：Design System｜上傳頁 view-upload
+
+### 使用者故事
+
+As a 上傳會議錄音的使用者, I want 上傳頁的版面、字體、色彩與元件樣式套用 design-system 規範（沿用 SDLCAIP2-44 的 --ds-* token）, so that 首次進入系統即感受到一致、清楚的視覺，手機上也能順利操作。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: Design System｜上傳頁 view-upload
+
+  Scenario: view-upload 卡片延續既有 .card token
+    Given 使用者開啟上傳頁（view-upload）
+    Then .card 容器的背景/邊框/圓角與其他畫面一致（沿用 SDLCAIP2-44 既有規則）
+
+  Scenario: 上傳頁標題移除 emoji
+    Given 使用者檢視 view-upload 頁面標題
+    When 查看標題文字內容
+    Then 標題應顯示「上傳錄音檔」，不含裝飾性 emoji（原本的「📤」應被移除）
+
+  Scenario: 拖放區與上傳按鈕內移除裝飾性 SVG icon
+    Given 使用者檢視上傳頁的拖放區與上傳按鈕
+    When 觀察其中的 SVG icon 元素
+    Then 拖放區與上傳按鈕內應無裝飾性 SVG icon
+    And 按鈕的 disabled/reset 行為保持不變
+
+  Scenario: 拖放區邊框、圓角、hover-dragover 改用 --ds-* token
+    Given 使用者檢視上傳頁的拖放區（#drop-zone）
+    When 檢視其 CSS 屬性
+    Then 邊框、圓角、hover-dragover 狀態改用 --ds-* 灰階 token（不再使用 var(--border)/var(--radius)/var(--primary)/#EFF6FF）
+
+  Scenario: 已選檔案區塊背景與文字色改用 --ds-* token
+    Given 使用者選擇檔案後，已選檔案區塊（#file-info/.fname）顯示
+    When 檢視該區塊的 CSS 屬性
+    Then 背景色與文字色改用 design-system token
+
+  Scenario: 上傳按鈕延續全域 .btn/.btn-primary token
+    Given 使用者檢視上傳頁的上傳按鈕
+    When 檢視其樣式
+    Then 按鈕延續 SDLCAIP2-44 定義的全域 .btn/.btn-primary token（不另外定義頁面專屬樣式）
+
+  Scenario: 窄螢幕（<480px）下維持既有 RWD
+    Given 使用者以小於 480px 寬度檢視 view-upload
+    Then 按鈕顯示為全寬、卡片內距維持現有 RWD 規則，不出現非預期的橫向捲軸
+
+  Scenario: 其他畫面與 header 不受影響，#upload-error 維持紅色
+    Given view-progress/view-result/view-history 等其他畫面已套用 design-system
+    When 本 Story 的變更合併後
+    Then 其他畫面視覺不因本票而改變；#upload-error 元素維持紅色（design-system 無錯誤色票，不在本工單擴充 token）
+```
+
+### 範圍外
+
+* 共用 class 本體（.card/.btn 等）——SDLCAIP2-44 已定義
+* 上傳/轉錄後端與 API
+* 「多欄表單窄螢幕單欄堆疊」（view-upload 沒有多欄表單，不適用）
+* #upload-error 錯誤色不改灰階（design-system 無錯誤色票，不在單頁工單擴充 token）
+* 隱藏的 #file-input 不套用 .input
+* 不建新建置流程
+
+### 依賴
+
+* SDLCAIP2-44（已合併）
+* docs/design-system/
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
+
+---
+
+## SDLCAIP2-50：Design System｜歷史紀錄列表頁 view-history
+
+### 使用者故事
+
+As a 查看歷史紀錄列表的使用者, I want 畫面的版面、字體、色彩與列表樣式套用 design-system 規範, so that 瀏覽過去會議紀錄清單時與系統其他畫面視覺一致。
+
+### 驗收條件
+
+- AC1：.card 沿用既有 token（回歸）
+- AC2：#history-table 表格：th 背景 --ds-badge-bg、th 文字 --ds-text-secondary、td 文字 --ds-text-primary、th/td 下框線 --ds-border、字體 --ds-font-sans，以 #view-history 前綴選取器實作、不改 .action-table 共用本體
+- AC3：空清單提示文字色 --ds-text-secondary，以 #view-history .empty-state 實作、不改共用本體
+- AC4：「歷史紀錄」標題移除 📜
+- AC5：<480px 表格不造成頁面級橫向捲軸且欄位可讀（技術手法由設計文件決定）
+- AC6：點擊列開啟詳情頁行為不變（回歸）
+- AC7：空狀態顯示/隱藏邏輯不變（回歸）
+- AC8：其他畫面的 .action-table/.empty-state/.card 不受影響（回歸）
+
+### 範圍外
+
+* 共用樣式與頁首（SDLCAIP2-44）
+* /api/meetings 查詢/分頁行為
+* 修改 .action-table/.empty-state/.card 共用本體
+* .section-title 本體字級/字色 token 化（沿用 SDLCAIP2-45 先例）
+* view-history-detail（SDLCAIP2-48）與 view-result（SDLCAIP2-49）
+* docs/design-system/ 文件
+
+### 依賴
+
+* SDLCAIP2-44（已合併）
+* SDLCAIP2-45（已合併，#view-xxx .action-table 覆寫模式與 .ds-table-scroll）
+
+### 狀態
+
+G1 approved 2026-09-24 → Designing
