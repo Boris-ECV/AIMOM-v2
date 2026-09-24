@@ -200,6 +200,20 @@
     .section-title .badge { font-size: 12px; padding: 4px 10px; }
   }
 
+  /* ===== SDLCAIP2-55: view-result scoped override (does not modify .section-title base above) ===== */
+  #view-result .section-title {
+    font-size: 18px;   /* tokens.json Heading.h2 */
+    line-height: 26px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  @media (max-width: 479px) {
+    #view-result .section-title {
+      font-size: 17px;  /* tokens.json Heading.h2-mobile */
+      line-height: 24px;
+    }
+  }
+
   /* SDLCAIP2-44：.input — 新增，本工單不套用到任何現有元素（SDLCAIP2-52 決議） */
   .input, select.input {
     height: var(--ds-control-h-desktop);
@@ -218,17 +232,48 @@
     .input, select.input { height: var(--ds-control-h-mobile); width: 100%; }
   }
 
-  #summary-text { line-height: 1.7; color: var(--text); min-height: 48px; }
-  #summary-text[contenteditable="true"] { outline: 2px solid var(--primary);
-    border-radius: 4px; padding: 4px 8px; background: #EFF6FF; }
+  /* SDLCAIP2-55: #summary-text — Body.body/body-mobile token, contenteditable hint colors moved to --ds-* */
+  #summary-text {
+    font-family: var(--ds-font-sans);
+    font-size: 15px; line-height: 28px; font-weight: 400;  /* tokens.json Body.body */
+    color: var(--ds-text-primary);
+    min-height: 48px;
+  }
+  #summary-text[contenteditable="true"] {
+    outline: 2px solid var(--ds-focus-ring);
+    border-radius: var(--ds-radius-sm);
+    padding: 4px 8px;
+    background: var(--ds-badge-bg);
+  }
+  @media (max-width: 479px) {
+    #summary-text { font-size: 14px; line-height: 26px; }  /* Body.body-mobile */
+  }
 
+  /* SDLCAIP2-55: .meeting-info-grid — shared only by view-result & view-history-detail, modify shared body */
   .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 12px 16px; }
+                        gap: var(--ds-space-4); }
   .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
-                              font-size: .8rem; color: var(--muted); }
-  .meeting-info-grid input { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                              border-radius: 6px; color: var(--text); font-family: inherit; }
-  .meeting-info-grid input::placeholder { color: #B8C1CC; }
+                              font-family: var(--ds-font-sans);
+                              font-size: 13px; line-height: 18px; font-weight: 400;  /* tokens.json Body.caption */
+                              color: var(--ds-text-secondary); }
+  .meeting-info-grid input {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .meeting-info-grid input::placeholder { color: var(--ds-text-placeholder); }
+  .meeting-info-grid input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  @media (max-width: 479px) {
+    .meeting-info-grid { grid-template-columns: 1fr; gap: var(--ds-space-3); }
+    .meeting-info-grid label { font-size: 12px; line-height: 16px; }  /* Body.caption-mobile */
+    .meeting-info-grid input { height: var(--ds-control-h-mobile); width: 100%; }
+  }
   #template-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
                       border-radius: 6px; color: var(--text); font-family: inherit; }
   #export-format-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
@@ -268,6 +313,22 @@
   @media (max-width: 479px) {
     #view-admin .action-table { min-width: 560px; }
     #view-history .action-table { min-width: 420px; }
+    #view-result .action-table { min-width: 500px; }
+  }
+
+  /* ===== SDLCAIP2-55: view-result scoped overrides (does not modify .action-table base above) ===== */
+  #view-result .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-result .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
   }
 
   /* ===== SDLCAIP2-50: view-history scoped overrides (does not modify .action-table/.empty-state base above) ===== */
@@ -288,18 +349,26 @@
     color: var(--ds-text-secondary);
   }
 
+  /* SDLCAIP2-55: .decision-list — shared only by view-result & view-history-detail, modify shared body */
   .decision-list { list-style: none; }
-  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--border);
-                      display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; }
+  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--ds-border);
+                      display: flex; align-items: flex-start; gap: 10px;
+                      font-family: var(--ds-font-sans);
+                      font-size: 15px; line-height: 28px; font-weight: 400; }  /* tokens.json Body.body */
   .decision-list li:last-child { border-bottom: none; }
-  .decision-list li::before { content: "✓"; color: var(--success); font-weight: 700; flex-shrink: 0; }
+  .decision-list li::before { content: "✓"; color: var(--ds-text-primary); font-weight: 700; flex-shrink: 0; }
 
-  .topic-item { border: 1px solid var(--border); border-radius: 8px;
+  /* SDLCAIP2-55: .topic-item/.topic-header/.topic-body — shared only by view-result & view-history-detail */
+  .topic-item { border: 1px solid var(--ds-border); border-radius: 8px;
                 margin-bottom: 10px; overflow: hidden; }
   .topic-header { padding: 12px 16px; cursor: pointer; font-weight: 500;
-                  display: flex; justify-content: space-between; background: var(--bg); }
-  .topic-header:hover { background: #F1F5F9; }
-  .topic-body { padding: 12px 16px; font-size: .875rem; color: var(--muted);
+                  display: flex; justify-content: space-between;
+                  background: var(--ds-badge-bg);
+                  color: var(--ds-text-primary); }
+  .topic-header:hover { background: var(--ds-border); }
+  .topic-body { padding: 12px 16px; font-size: .875rem;
+                color: var(--ds-text-secondary);
+                font-family: var(--ds-font-sans);
                 line-height: 1.6; display: none; }
   .topic-body.open { display: block; }
 
@@ -513,10 +582,12 @@
       </div>
       <div class="card">
         <div class="section-title">待辦事項</div>
-        <table class="action-table">
-          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
-          <tbody id="action-tbody"></tbody>
-        </table>
+        <div class="ds-table-scroll">
+          <table class="action-table">
+            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+            <tbody id="action-tbody"></tbody>
+          </table>
+        </div>
       </div>
       <div class="card">
         <div class="section-title">決定事項</div>
