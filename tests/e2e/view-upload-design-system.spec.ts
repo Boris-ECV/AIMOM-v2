@@ -120,27 +120,19 @@ test.describe("Design System｜上傳畫面 view-upload（SDLCAIP2-47）", () =>
     expect(baseStyles.borderColor).toBe("rgb(210, 208, 202)"); // --ds-border-strong #D2D0CA
     expect(baseStyles.borderRadius).toBe("10px"); // --ds-radius-md
 
-    // hover（CSS 有 transition: border-color .2s, background .2s，等待轉場結束再讀值避免抓到中間色）
+    // hover（CSS 有 transition: border-color .2s, background .2s；用 toHaveCSS 的自動重試
+    // 機制等待轉場結束再判定，而非固定 waitForTimeout，避免抓到轉場中間色造成 flaky）
     await dropZone.hover();
-    await page.waitForTimeout(400);
-    const hoverStyles = await dropZone.evaluate((el) => {
-      const cs = getComputedStyle(el);
-      return { borderColor: cs.borderColor, background: cs.backgroundColor };
-    });
-    expect(hoverStyles.borderColor).toBe("rgb(31, 30, 28)"); // --ds-ink-100 #1F1E1C
-    expect(hoverStyles.background).toBe("rgb(239, 238, 234)"); // --ds-badge-bg #EFEEEA
-    expect(hoverStyles.background).not.toBe("rgb(239, 246, 255)"); // 舊值 #EFF6FF 已消失
+    await expect(dropZone).toHaveCSS("border-color", "rgb(31, 30, 28)"); // --ds-ink-100 #1F1E1C
+    await expect(dropZone).toHaveCSS("background-color", "rgb(239, 238, 234)"); // --ds-badge-bg #EFEEEA
+    await expect(dropZone).not.toHaveCSS("background-color", "rgb(239, 246, 255)"); // 舊值 #EFF6FF 已消失
 
     // .dragover class（不依賴 hover 移出，直接透過 class 驗證，較穩定）
     await page.mouse.move(0, 0);
     await page.evaluate(() => document.getElementById("drop-zone")!.classList.add("dragover"));
-    const dragoverStyles = await dropZone.evaluate((el) => {
-      const cs = getComputedStyle(el);
-      return { borderColor: cs.borderColor, background: cs.backgroundColor };
-    });
-    expect(dragoverStyles.borderColor).toBe("rgb(31, 30, 28)"); // --ds-ink-100
-    expect(dragoverStyles.background).toBe("rgb(239, 238, 234)"); // --ds-badge-bg
-    expect(dragoverStyles.background).not.toBe("rgb(239, 246, 255)");
+    await expect(dropZone).toHaveCSS("border-color", "rgb(31, 30, 28)"); // --ds-ink-100
+    await expect(dropZone).toHaveCSS("background-color", "rgb(239, 238, 234)"); // --ds-badge-bg
+    await expect(dropZone).not.toHaveCSS("background-color", "rgb(239, 246, 255)");
     await page.evaluate(() => document.getElementById("drop-zone")!.classList.remove("dragover"));
   });
 
