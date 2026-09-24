@@ -156,23 +156,39 @@
     .btn { height: var(--ds-control-h-mobile); width: 100%; }
   }
 
-  /* PROGRESS VIEW */
-  .stage-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
-  .stage-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  /* PROGRESS VIEW — SDLCAIP2-46：改用 --ds-* token，移除 emoji，#progress-message 套用 Badge 樣式 */
+  .stage-list { display: flex; flex-direction: column; gap: var(--ds-space-2); margin: var(--ds-space-5) 0; }
+  .stage-item { display: flex; align-items: center; gap: var(--ds-space-3);
+                padding: var(--ds-space-3) var(--ds-space-4);
                 border-radius: 8px; border: 1px solid var(--border); background: #fff; }
   .stage-icon { width: 32px; height: 32px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center;
                 font-size: 1rem; flex-shrink: 0; }
-  .stage-icon.done { background: #DCFCE7; color: var(--success); }
-  .stage-icon.active { background: #DBEAFE; color: var(--primary); }
-  .stage-icon.waiting { background: var(--bg); color: var(--muted); }
-  .stage-label { flex: 1; font-weight: 500; }
-  .stage-msg { font-size: .8rem; color: var(--muted); }
-  .progress-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-  .progress-bar { height: 100%; background: var(--primary);
+  .stage-icon.done { background: var(--ds-badge-bg); color: var(--ds-badge-text);
+                      border: 1px solid var(--ds-badge-border); }
+  .stage-icon.active { background: var(--ds-ink-100); color: var(--ds-bg);
+                        border: 1px solid var(--ds-ink-100); }
+  .stage-icon.waiting { background: var(--ds-surface); color: var(--ds-text-secondary);
+                         border: 1px solid var(--ds-border-strong); }
+  .stage-label { flex: 1; font-weight: 500; font-family: var(--ds-font-sans); }
+  .stage-msg { font-size: .8rem; color: var(--muted); font-family: var(--ds-font-sans); }
+  .progress-bar-wrap { height: 8px; background: var(--ds-border); border-radius: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--ds-ink-100);
                   border-radius: 4px; transition: width .4s ease; }
-  .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right; }
-  #progress-message { font-size: .9rem; color: var(--muted); margin-top: 12px; }
+  .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right;
+                   font-family: var(--ds-font-sans); }
+  #progress-message {
+    display: inline-block;
+    font-family: var(--ds-font-sans);
+    font-size: .875rem;
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg);
+    border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text);
+    margin-bottom: var(--ds-space-4);
+  }
+  #progress-message:empty { display: none; }
 
   /* TABS */
   .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
@@ -422,29 +438,29 @@
   <!-- ============ PROGRESS VIEW ============ -->
   <div id="view-progress" class="view">
     <div class="card">
-      <h2 style="font-size:1.2rem;margin-bottom:8px;">⚙️ 處理中...</h2>
-      <p id="progress-message" style="color:var(--muted);font-size:.875rem;margin-bottom:20px;"></p>
+      <h2 style="font-size:1.2rem;margin-bottom:8px;font-family:var(--ds-font-sans);">處理中...</h2>
+      <p id="progress-message"></p>
       <div class="progress-bar-wrap">
         <div class="progress-bar" id="progress-bar" style="width:0%"></div>
       </div>
       <div class="progress-pct" id="progress-pct">0%</div>
       <div class="stage-list" id="stage-list">
         <div class="stage-item" id="stage-uploaded">
-          <div class="stage-icon waiting" id="icon-uploaded">📤</div>
+          <div class="stage-icon waiting" id="icon-uploaded"></div>
           <div>
             <div class="stage-label">上傳完成</div>
             <div class="stage-msg">驗證格式與時長</div>
           </div>
         </div>
         <div class="stage-item" id="stage-transcribed">
-          <div class="stage-icon waiting" id="icon-transcribed">🎙️</div>
+          <div class="stage-icon waiting" id="icon-transcribed"></div>
           <div>
             <div class="stage-label">語音轉文字 + 說話者識別</div>
             <div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div>
           </div>
         </div>
         <div class="stage-item" id="stage-done">
-          <div class="stage-icon waiting" id="icon-done">✨</div>
+          <div class="stage-icon waiting" id="icon-done"></div>
           <div>
             <div class="stage-label">AI 整理會議紀錄</div>
             <div class="stage-msg">摘要與整理</div>
