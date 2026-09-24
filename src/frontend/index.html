@@ -274,8 +274,18 @@
     .meeting-info-grid label { font-size: 12px; line-height: 16px; }  /* Body.caption-mobile */
     .meeting-info-grid input { height: var(--ds-control-h-mobile); width: 100%; }
   }
-  #template-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                      border-radius: 6px; color: var(--text); font-family: inherit; }
+  /* SDLCAIP2-55 (SDLCAIP2-59 option A): kept equal to .meeting-info-grid input per SDLCAIP2-36; SDLCAIP2-54 will replace with .input */
+  #template-select {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
   #export-format-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
                            border-radius: 6px; color: var(--text); font-family: inherit; }
 
