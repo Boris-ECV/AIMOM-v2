@@ -286,8 +286,18 @@
     font-size: 14px;
     box-sizing: border-box;
   }
-  #export-format-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                           border-radius: 6px; color: var(--text); font-family: inherit; }
+  /* SDLCAIP2-55 (SDLCAIP2-60 option A): kept equal to #template-select per SDLCAIP2-37; SDLCAIP2-54 will replace with .input */
+  #export-format-select {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
 
   .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
   .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
