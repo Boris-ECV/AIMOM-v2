@@ -127,12 +127,18 @@ test.describe("Design System｜view-result 標題／操作列／分頁 Tabs（SD
       boxes.push(box!);
     }
 
+    // 「同排」判定：容忍度取自元素自身高度（垂直重疊即視為同排），而非固定像素數，
+    // 避免不同平台的字型渲染造成的高度/基線微幅差異影響判定。
+    const sameRow = (a: { y: number; height: number }, b: { y: number; height: number }) => {
+      const tolerance = Math.min(a.height, b.height) / 2;
+      return Math.abs(a.y - b.y) <= tolerance;
+    };
+
     // 左側四項閱讀順序（同排時 x 遞增；換行時新行 y 更大）：template -> regenerate -> export-format -> export
     for (let i = 1; i < 4; i++) {
       const prev = boxes[i - 1];
       const cur = boxes[i];
-      const sameRow = Math.abs(cur.y - prev.y) <= 4;
-      if (sameRow) {
+      if (sameRow(prev, cur)) {
         expect(cur.x).toBeGreaterThanOrEqual(prev.x);
       } else {
         expect(cur.y).toBeGreaterThan(prev.y);
@@ -141,8 +147,7 @@ test.describe("Design System｜view-result 標題／操作列／分頁 Tabs（SD
     // cleanup -> new-recording：同排時 x 遞增，換行時新行在 cleanup 之後
     const cleanupBox = boxes[4];
     const newRecordingBox = boxes[5];
-    const sameRow = Math.abs(newRecordingBox.y - cleanupBox.y) <= 4;
-    if (sameRow) {
+    if (sameRow(cleanupBox, newRecordingBox)) {
       expect(newRecordingBox.x).toBeGreaterThanOrEqual(cleanupBox.x);
     } else {
       expect(newRecordingBox.y).toBeGreaterThan(cleanupBox.y);
@@ -173,34 +178,44 @@ test.describe("Design System｜view-result 標題／操作列／分頁 Tabs（SD
   });
 
   // 註：480px 容器（main max-width:900px, padding 24px -> 內容區僅 432px）本就無法讓六個
-  // 帶 label 的控制項擠進單一橫排，且獨占一行的「清除暫存/新錄音」群組因 flex-wrap 換行後
-  // justify-content:space-between 對單一子群組不生效，實測也不會貼齊容器右緣。這兩點皆為
-  // 本票開始之前即存在的行為 —— 已用 HEAD~1（SDLCAIP2-55 版本，本票變更前）的 index.html
-  // 實測比對，換行位置與各元素像素座標（x/y）與本票之後幾乎一致（僅 1px 內差異，屬瀏覽器
-  // layout 捨入），證實本票（AC5 的 .input + width:auto 中和覆寫）沒有讓 480px 的換行狀態
-  // 變得比 pre-story 更差。與 docs/design/SDLCAIP2-54.md 決策 3 的結論一致：AC3「480px
-  // 不變」在此語境下指「本票不得新增任何進一步影響換行狀態的 CSS」，而非「六控制項需真正
-  // 擠進單一橫排且靠右對齊」（後者原本就不成立，非本票造成）。
-  // 因此這裡改為驗證：換行後的閱讀順序（左到右／由上到下）不變、按鈕文字不變、且各元素的
-  // 像素座標與 pre-story 實測快照一致（±3px 容忍度）—— 這才是本票語境下真正可驗證的迴歸。
-  const PRE_STORY_480_SNAPSHOT: Record<string, { x: number; y: number }> = {
-    "#template-select": { x: 53, y: 175 },
-    "#regenerate-btn": { x: 193, y: 175 },
-    "#export-format-select": { x: 339, y: 175 },
-    "#export-confirm-btn": { x: 24, y: 225 },
-    "#cleanup-btn": { x: 24, y: 275 },
-    "#new-recording-btn": { x: 115, y: 275 },
-  };
-
-  test("AC3 (480px 回歸): 換行順序與座標與 pre-story 快照一致、按鈕文字不變", async ({ page }) => {
+  // 帶 label 的控制項擠進單一橫排，這是本票開始之前即存在的行為（pre-existing
+  // `.btn-row{flex-wrap:wrap}` 與 `.btn{width:100%}` mobile 樣式）。本票只新增 .input class
+  // 與 <480px 的 width:auto 覆寫，不得引入新的換行來源。與 docs/design/SDLCAIP2-54.md 決策 3
+  // 的結論一致：AC3「480px 不變」在此語境下指「本票不得新增任何進一步影響換行狀態的 CSS」，
+  // 而非「六控制項需真正擠進單一橫排且靠右對齊」（後者原本就不成立，非本票造成）。
+  //
+  // 驗證手法改用平台/字型無關的結構性斷言，不比對固定像素座標快照 —— 固定座標快照會
+  // 隨渲染環境的字型（例如 CI 的 Linux 字型 vs 開發機的 Windows 字型）造成文字寬度不同而
+  // 跑版，屬於環境差異而非真的迴歸。改為驗證：
+  // 1) 換行後的閱讀順序（依「列」分組，同排以垂直重疊、非固定像素容忍度判定）不變、按鈕
+  //    文字不變（沿用 assertControlTextsAndOrder）；
+  // 2) 操作列容器與整頁皆無水平溢出（scrollWidth <= clientWidth）；
+  // 3) 兩個 select 的實際寬度小於容器寬度，證明 <480px 的 width:auto 覆寫生效（而非仍是
+  //    100% 滿版）。
+  test("AC3 (480px 回歸): 換行順序不變、無水平溢出、select 非滿版寬度、按鈕文字不變", async ({ page }) => {
     await page.setViewportSize({ width: 480, height: 800 });
-    const boxes = await assertControlTextsAndOrder(page);
+    await assertControlTextsAndOrder(page);
 
-    CONTROL_IDS.forEach((id, i) => {
-      const expected = PRE_STORY_480_SNAPSHOT[id];
-      expect(Math.abs(boxes[i].x - expected.x)).toBeLessThanOrEqual(3);
-      expect(Math.abs(boxes[i].y - expected.y)).toBeLessThanOrEqual(3);
-    });
+    const actionGroupContainer = page.locator("#result-action-group-content").locator("..");
+    const actionOverflow = await actionGroupContainer.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(actionOverflow.scrollWidth).toBeLessThanOrEqual(actionOverflow.clientWidth + 1);
+
+    const pageOverflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(pageOverflow.scrollWidth).toBeLessThanOrEqual(pageOverflow.clientWidth);
+
+    const containerWidth = await page.evaluate(() => document.querySelector("#view-result")!.clientWidth);
+    const templateBox = await page.locator("#template-select").boundingBox();
+    const exportBox = await page.locator("#export-format-select").boundingBox();
+    expect(templateBox).not.toBeNull();
+    expect(exportBox).not.toBeNull();
+    expect(templateBox!.width).toBeLessThan(containerWidth - 10);
+    expect(exportBox!.width).toBeLessThan(containerWidth - 10);
   });
 
   test("AC4 (回歸): 按鈕仍呼叫既有函式，參數不變", async ({ page }) => {
