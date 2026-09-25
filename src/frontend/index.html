@@ -320,24 +320,41 @@
   .topic-body.open { display: block; }
 
   /* TRANSCRIPT */
+  /* SDLCAIP2-56：.seg-row/.seg-time/.seg-text 套用 --ds-* token（border 灰階、
+     .seg-time 對應 tokens.json Mono.code、.seg-text 對應 Body.body） */
   #transcript-container { max-height: 500px; overflow-y: auto; }
-  .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border);
+  .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--ds-border);
              align-items: flex-start; font-size: .875rem; }
   .seg-row:last-child { border-bottom: none; }
-  .seg-time { min-width: 80px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .seg-time { min-width: 80px; color: var(--ds-text-secondary); font-variant-numeric: tabular-nums;
+              font-family: var(--ds-font-mono); font-size: 13px; line-height: 18px; }
   .seg-speaker { min-width: 100px; }
-  .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
-                  font-size: .75rem; font-weight: 600; cursor: pointer; }
-  .seg-text { flex: 1; line-height: 1.5; }
+  /* SDLCAIP2-56 AC4：只套用 --ds-radius-pill + caption 字級，行內動態 background 指派邏輯不變 */
+  .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: var(--ds-radius-pill);
+                  font-size: 13px; font-weight: 600; cursor: pointer; }
+  .seg-text { flex: 1; color: var(--ds-text-primary); font-family: var(--ds-font-sans);
+              font-size: 15px; line-height: 28px; }
+  @media (max-width: 479px) {
+    .seg-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 0; }
+    .seg-time { min-width: 0; }
+    .seg-speaker { min-width: 0; }
+    .seg-text { width: 100%; }
+  }
 
   /* SPEAKER RENAME */
-  #speaker-rename-area { background: #F0FDF4; border: 1px solid #BBF7D0;
-                         border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
-  #speaker-rename-area h4 { font-size: .85rem; color: var(--success); margin-bottom: 10px; font-weight: 600; }
+  /* SDLCAIP2-56 AC2：灰階 token 比照 .card（background/border/radius），h4 用
+     --ds-text-secondary（操作說明文字，非卡片主標題），不留綠色/強調色 */
+  #speaker-rename-area { background: var(--ds-surface); border: 1px solid var(--ds-border);
+                         border-radius: var(--ds-radius-md); padding: 14px 18px; margin-bottom: 20px; }
+  #speaker-rename-area h4 { font-size: .85rem; color: var(--ds-text-secondary); margin-bottom: 10px; font-weight: 600; }
   .rename-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .rename-row label { min-width: 100px; font-size: .85rem; font-weight: 500; }
-  .rename-row input { border: 1px solid var(--border); border-radius: 5px;
-                      padding: 5px 10px; font-size: .85rem; flex: 1; max-width: 200px; }
+  .rename-row input { border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-sm);
+                      height: var(--ds-control-h-desktop); padding: 0 12px; font-size: .85rem;
+                      flex: 1; max-width: 200px; box-sizing: border-box; }
+  @media (max-width: 479px) {
+    .rename-row input { height: var(--ds-control-h-mobile); }
+  }
 
   /* MODIFIED BADGE */
   #modified-badge { display: none; padding: 4px 12px; border-radius: 999px;
@@ -547,7 +564,7 @@
     <!-- TRANSCRIPT TAB -->
     <div id="tab-transcript" style="display:none;">
       <div id="speaker-rename-area" style="display:none;">
-        <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
+        <h4>發言人重命名（點擊輸入框修改名稱）</h4>
         <div id="rename-rows"></div>
         <p style="font-size:.8rem; color:#64748B; margin:8px 0;">
           提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。
