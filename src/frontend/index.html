@@ -385,6 +385,39 @@
     color: var(--ds-text-secondary);
   }
 
+  /* ===== SDLCAIP2-48: view-history-detail scoped overrides (does not modify shared bases above) ===== */
+  #view-history-detail .section-title {
+    font-size: 18px;   /* tokens.json Heading.h2 */
+    line-height: 26px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  @media (max-width: 479px) {
+    #view-history-detail .section-title {
+      font-size: 17px;  /* tokens.json Heading.h2-mobile */
+      line-height: 24px;
+    }
+  }
+  #view-history-detail .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history-detail .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history-detail .empty-state {
+    color: var(--ds-text-secondary);
+  }
+  @media (max-width: 479px) {
+    #view-history-detail .action-table { min-width: 500px; }
+  }
+
   /* SDLCAIP2-55: .decision-list — shared only by view-result & view-history-detail, modify shared body */
   .decision-list { list-style: none; }
   .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--ds-border);
@@ -687,11 +720,11 @@
   <!-- ============ HISTORY DETAIL VIEW（SDLCAIP2-32，唯讀） ============ -->
   <div id="view-history-detail" class="view">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--ds-space-2);">
         <h2 id="history-detail-title" style="font-size:1.2rem;"></h2>
         <div class="btn-row">
-          <button class="btn btn-outline btn-sm" id="history-edit-btn" onclick="enableHistoryEditMode()">✏️ 編輯</button>
-          <button class="btn btn-primary btn-sm" id="history-save-btn" style="display:none;" onclick="saveHistoryEdit()">💾 儲存</button>
+          <button class="btn btn-outline btn-sm" id="history-edit-btn" onclick="enableHistoryEditMode()">編輯</button>
+          <button class="btn btn-primary btn-sm" id="history-save-btn" style="display:none;" onclick="saveHistoryEdit()">儲存</button>
           <button class="btn btn-outline btn-sm" id="history-cancel-btn" style="display:none;" onclick="cancelHistoryEdit()">取消</button>
           <button class="btn btn-outline btn-sm" onclick="showView('view-history')">← 返回歷史列表</button>
         </div>
@@ -720,8 +753,8 @@
         </div>
       </div>
       <div class="tabs">
-        <button class="tab active" id="history-tab-btn-minutes" onclick="switchHistoryTab('minutes')">📝 會議紀錄</button>
-        <button class="tab" id="history-tab-btn-transcript" onclick="switchHistoryTab('transcript')">🎙 逐字稿</button>
+        <button class="tab active" id="history-tab-btn-minutes" onclick="switchHistoryTab('minutes')">會議紀錄</button>
+        <button class="tab" id="history-tab-btn-transcript" onclick="switchHistoryTab('transcript')">逐字稿</button>
       </div>
       <div id="history-tab-minutes">
         <div class="card">
@@ -730,10 +763,12 @@
         </div>
         <div class="card">
           <div class="section-title">待辦事項</div>
-          <table class="action-table">
-            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
-            <tbody id="history-action-tbody"></tbody>
-          </table>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+              <tbody id="history-action-tbody"></tbody>
+            </table>
+          </div>
         </div>
         <div class="card">
           <div class="section-title">決定事項</div>
