@@ -191,11 +191,21 @@
   #progress-message:empty { display: none; }
 
   /* TABS */
-  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
-  .tab { padding: 10px 20px; cursor: pointer; font-size: .9rem; font-weight: 500;
-         border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+  /* SDLCAIP2-54: .tabs/.tab shared body — apply design-system Tabs tokens
+     (shared only by #view-result & #view-history-detail) */
+  .tabs { display: flex; gap: var(--ds-space-6); border-bottom: 2px solid var(--ds-border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; cursor: pointer;
+         border: none; background: none;
+         font-family: var(--ds-font-sans);
+         font-size: 14px; line-height: 20px; font-weight: 500;  /* tokens.json Body.label-button */
+         color: var(--ds-text-secondary);
+         border-bottom: 2px solid transparent;
          margin-bottom: -2px; transition: color .15s, border-color .15s; }
-  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab.active { color: var(--ds-ink-100); font-weight: 600; border-bottom-color: var(--ds-ink-100); }
+  @media (max-width: 479px) {
+    .tabs { gap: 0; }
+    .tab { flex: 1; min-width: 0; text-align: center; }
+  }
 
   /* RESULT: MINUTES */
   .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
@@ -230,6 +240,24 @@
     }
   }
 
+  /* ===== SDLCAIP2-54: #view-result h2 / #result-meta — replaces inline style
+     (inline style specificity would otherwise always win over external CSS) ===== */
+  #view-result h2 {
+    font-family: var(--ds-font-sans);
+    font-size: 18px; line-height: 26px; font-weight: 600;  /* tokens.json Heading.h2 */
+    color: var(--ds-text-primary);
+    margin-bottom: 4px;
+  }
+  @media (max-width: 479px) {
+    #view-result h2 { font-size: 17px; line-height: 24px; }  /* Heading.h2-mobile */
+  }
+  #result-meta {
+    font-family: var(--ds-font-sans);
+    font-size: 13px; line-height: 18px; font-weight: 400;  /* tokens.json Body.caption */
+    color: var(--ds-text-secondary);
+    margin-bottom: 16px;
+  }
+
   /* SDLCAIP2-44：.input — 新增，本工單不套用到任何現有元素（SDLCAIP2-52 決議） */
   .input, select.input {
     height: var(--ds-control-h-desktop);
@@ -246,6 +274,13 @@
   .input:focus-visible, select.input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
   @media (max-width: 479px) {
     .input, select.input { height: var(--ds-control-h-mobile); width: 100%; }
+  }
+
+  /* ===== SDLCAIP2-54: view-result select.input wrap-risk neutralizer (mirrors
+     SDLCAIP2-44 decision 5's header .btn { width:auto } technique) ===== */
+  @media (max-width: 479px) {
+    #view-result #template-select.input,
+    #view-result #export-format-select.input { width: auto; }
   }
 
   /* SDLCAIP2-55: #summary-text — Body.body/body-mobile token, contenteditable hint colors moved to --ds-* */
@@ -290,30 +325,9 @@
     .meeting-info-grid label { font-size: 12px; line-height: 16px; }  /* Body.caption-mobile */
     .meeting-info-grid input { height: var(--ds-control-h-mobile); width: 100%; }
   }
-  /* SDLCAIP2-55 (SDLCAIP2-59 option A): kept equal to .meeting-info-grid input per SDLCAIP2-36; SDLCAIP2-54 will replace with .input */
-  #template-select {
-    height: var(--ds-control-h-desktop);
-    padding: 0 12px;
-    border: 1px solid var(--ds-border-strong);
-    border-radius: var(--ds-radius-sm);
-    background: var(--ds-surface);
-    color: var(--ds-text-primary);
-    font-family: var(--ds-font-sans);
-    font-size: 14px;
-    box-sizing: border-box;
-  }
-  /* SDLCAIP2-55 (SDLCAIP2-60 option A): kept equal to #template-select per SDLCAIP2-37; SDLCAIP2-54 will replace with .input */
-  #export-format-select {
-    height: var(--ds-control-h-desktop);
-    padding: 0 12px;
-    border: 1px solid var(--ds-border-strong);
-    border-radius: var(--ds-radius-sm);
-    background: var(--ds-surface);
-    color: var(--ds-text-primary);
-    font-family: var(--ds-font-sans);
-    font-size: 14px;
-    box-sizing: border-box;
-  }
+  /* SDLCAIP2-54: #template-select / #export-format-select now use .input (204-220-range
+     class below) instead of these dedicated ID rules — see .input mobile-width-neutralizing
+     override further below (near .input definition) */
 
   .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
   .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
@@ -612,18 +626,18 @@
 
   <!-- ============ RESULT VIEW ============ -->
   <div id="view-result" class="view">
-    <h2 style="font-size:1.2rem;margin-bottom:4px;">📋 會議紀錄</h2>
-    <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-bottom:16px;"></p>
+    <h2>會議紀錄</h2>
+    <p id="result-meta"></p>
     <div class="btn-row" style="align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div class="btn-row" id="result-action-group-content" style="align-items:center;">
         <span id="modified-badge">● 未儲存修改</span>
         <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
         <label style="font-size:.8rem;color:var(--muted);">模板
-          <select id="template-select"></select>
+          <select id="template-select" class="input"></select>
         </label>
         <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
         <label style="font-size:.8rem;color:var(--muted);">匯出格式
-          <select id="export-format-select">
+          <select id="export-format-select" class="input">
             <option value="markdown">Markdown</option>
             <option value="plaintext">純文字</option>
             <option value="docx">Word</option>
@@ -639,8 +653,8 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" id="tab-btn-minutes" onclick="switchTab('minutes')">📝 會議紀錄</button>
-      <button class="tab" id="tab-btn-transcript" onclick="switchTab('transcript')">🎙 逐字稿</button>
+      <button class="tab active" id="tab-btn-minutes" onclick="switchTab('minutes')">會議紀錄</button>
+      <button class="tab" id="tab-btn-transcript" onclick="switchTab('transcript')">逐字稿</button>
     </div>
 
     <!-- MINUTES TAB -->
