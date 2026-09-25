@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDLCAIP2-56 原型 — 逐字稿分頁（發言人重命名區 + 逐字稿列表）Before/After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563EB;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+    --radius: 10px;
+
+    /* ===== --ds-* design-system tokens（來源：docs/design-system/tokens.json） ===== */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: var(--ds-font-sans);
+    background: #EDEBE6;
+    color: var(--ds-text-primary);
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.lead { color: var(--ds-text-secondary); font-size: 13px; margin: 0 0 24px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center;
+         height: var(--ds-control-h-desktop); padding: 0 16px; border-radius: var(--ds-radius-sm);
+         font-family: var(--ds-font-sans); font-size: 14px; font-weight: 500;
+         border: 1px solid transparent; cursor: pointer; }
+  .btn-primary { background: var(--ds-ink-100); color: #fff; }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+
+  .quadrant-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .quadrant {
+    background: #fff;
+    border: 1px solid var(--ds-border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .quadrant h2 { font-size: 14px; margin: 0 0 4px; }
+  .quadrant .tag { display: inline-block; font-size: 11px; font-weight: 600;
+                    padding: 2px 8px; border-radius: 999px; margin-bottom: 12px; }
+  .tag.before { background: #FEE2E2; color: #B91C1C; }
+  .tag.after { background: #DCFCE7; color: #166534; }
+
+  .viewport { border: 1px dashed #C9C7C1; border-radius: 8px; padding: 16px; background: var(--ds-bg); overflow: auto; }
+  .viewport.desktop { width: 100%; }
+  .viewport.mobile { width: 360px; max-width: 100%; margin: 0 auto; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 16px; box-sizing: border-box; }
+  .card.ds { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); }
+
+  /* ============ BEFORE styles (現況) ============ */
+  .before #speaker-rename-area {
+    background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 20px;
+  }
+  .before #speaker-rename-area h4 { font-size: .85rem; color: var(--success); margin-bottom: 10px; font-weight: 600; }
+  .before .rename-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .before .rename-row label { min-width: 100px; font-size: .85rem; font-weight: 500; }
+  .before .rename-row input { border: 1px solid var(--border); border-radius: 5px;
+                        padding: 5px 10px; font-size: .85rem; flex: 1; max-width: 200px;
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  .before .hint { font-size: .8rem; color: #64748B; margin: 8px 0; }
+
+  .before #transcript-container { max-height: 320px; overflow-y: auto; }
+  .before .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border);
+             align-items: flex-start; font-size: .875rem; }
+  .before .seg-row:last-child { border-bottom: none; }
+  .before .seg-time { min-width: 80px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .before .seg-speaker { min-width: 100px; }
+  .before .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
+                  font-size: .75rem; font-weight: 600; cursor: pointer; }
+  .before .seg-text { flex: 1; line-height: 1.5; }
+
+  /* ============ AFTER styles（本票變更後） ============ */
+  .after #speaker-rename-area {
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md);
+    padding: 14px 18px; margin-bottom: 20px;
+  }
+  /* AC2 決策 2：h4 顏色選 --ds-text-secondary（非 --ds-text-primary），理由見設計文件決策 2 */
+  .after #speaker-rename-area h4 { font-size: .85rem; color: var(--ds-text-secondary); margin-bottom: 10px; font-weight: 600; }
+  .after .rename-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .after .rename-row label { min-width: 100px; font-size: .85rem; font-weight: 500; }
+  /* AC2 + 決策 3：邊框/圓角/高度改 token，padding 配套改為水平方向 */
+  .after .rename-row input {
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    font-size: .85rem; flex: 1; max-width: 200px;
+    font-family: var(--ds-font-sans);
+    color: var(--ds-text-primary);
+    background: var(--ds-surface);
+  }
+  .after .rename-row input::placeholder { color: var(--ds-text-placeholder); }
+  .after .rename-row input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  .after .hint { font-size: .8rem; color: var(--ds-text-secondary); margin: 8px 0; }
+
+  .after #transcript-container { max-height: 320px; overflow-y: auto; }
+  /* AC3：.seg-row border, .seg-time color/font-mono, .seg-text color/body token */
+  .after .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--ds-border);
+             align-items: flex-start; }
+  .after .seg-row:last-child { border-bottom: none; }
+  .after .seg-time {
+    min-width: 80px; color: var(--ds-text-secondary);
+    font-family: var(--ds-font-mono); font-size: 13px; line-height: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  .after .seg-speaker { min-width: 100px; }
+  /* AC4：只加 radius-pill（數值不變）+ caption 字級，不動行內動態 background、不動 font-weight */
+  .after .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: var(--ds-radius-pill);
+                  font-size: 13px; font-weight: 600; cursor: pointer; }
+  .after .seg-text {
+    flex: 1; color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans); font-size: 15px; line-height: 28px;
+  }
+
+  /* AC5 決策 6：<480px 三行式垂直堆疊（此原型用容器寬度模擬斷點，故直接對 .mobile .after 套用同一規則） */
+  .mobile.after .seg-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 0; }
+  .mobile.after .seg-time { min-width: 0; }
+  .mobile.after .seg-speaker { min-width: 0; }
+  .mobile.after .seg-text { width: 100%; }
+
+  .btn-primary.after-btn { background: var(--ds-ink-100); }
+
+  .note-block { background: #fff; border: 1px solid var(--ds-border); border-radius: 10px;
+                padding: 16px 20px; font-size: 13px; line-height: 1.8; color: var(--ds-text-secondary); }
+  .note-block h3 { font-size: 14px; color: var(--ds-text-primary); margin: 0 0 8px; }
+  .note-block code { font-family: var(--ds-font-mono); font-size: 12px; background: var(--ds-badge-bg);
+                      padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <h1>SDLCAIP2-56 —— 逐字稿分頁（發言人重命名區 + 逐字稿列表）Before / After 對照</h1>
+  <p class="lead">
+    範圍：<code>#speaker-rename-area</code>（h4 / rename-row / 送出按鈕）與
+    <code>#transcript-container</code>（<code>.seg-row</code> 時間／講者 chip／文字）。
+    以下四象限：桌面 Before、桌面 After、手機 Before（&lt;480px）、手機 After（&lt;480px）。
+    範例內容含 3 位講者（王小明 / 李小華 / 陳大文），文字長度取真實感中文句子。
+  </p>
+
+  <div class="quadrant-grid">
+    <!-- 桌面 Before -->
+    <div class="quadrant before">
+      <span class="tag before">BEFORE · 桌面</span>
+      <h2>桌面寬度（900px 容器模擬）</h2>
+      <div class="viewport desktop">
+        <div id="speaker-rename-area">
+          <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
+          <div id="rename-rows">
+            <div class="rename-row">
+              <label>SPEAKER_00</label>
+              <input type="text" value="王小明" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_01</label>
+              <input type="text" value="李小華" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_02</label>
+              <input type="text" value="" placeholder="輸入真實姓名">
+            </div>
+          </div>
+          <p class="hint">提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。</p>
+          <button class="btn btn-primary btn-sm">送出</button>
+        </div>
+        <div class="card">
+          <div id="transcript-container">
+            <div class="seg-row">
+              <span class="seg-time">00:00</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#DBEAFE">王小明</span></span>
+              <span class="seg-text">大家好，我們今天開會主要是要討論下一季的產品規劃，先請各部門report一下目前進度。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:18</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#FCE7F3">李小華</span></span>
+              <span class="seg-text">好的，我這邊工程進度大概完成七成，預計月底前可以進入測試階段。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:42</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#D1FAE5">SPEAKER_02</span></span>
+              <span class="seg-text">我這邊行銷素材也快準備好了，不過需要等產品規格確定之後才能定稿文案。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 桌面 After -->
+    <div class="quadrant after">
+      <span class="tag after">AFTER · 桌面</span>
+      <h2>桌面寬度（900px 容器模擬）</h2>
+      <div class="viewport desktop">
+        <div id="speaker-rename-area">
+          <h4>發言人重命名（點擊輸入框修改名稱）</h4>
+          <div id="rename-rows">
+            <div class="rename-row">
+              <label>SPEAKER_00</label>
+              <input type="text" value="王小明" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_01</label>
+              <input type="text" value="李小華" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_02</label>
+              <input type="text" value="" placeholder="輸入真實姓名">
+            </div>
+          </div>
+          <p class="hint">提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。</p>
+          <button class="btn btn-primary btn-sm after-btn">送出</button>
+        </div>
+        <div class="card ds">
+          <div id="transcript-container">
+            <div class="seg-row">
+              <span class="seg-time">00:00</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#DBEAFE">王小明</span></span>
+              <span class="seg-text">大家好，我們今天開會主要是要討論下一季的產品規劃，先請各部門report一下目前進度。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:18</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#FCE7F3">李小華</span></span>
+              <span class="seg-text">好的，我這邊工程進度大概完成七成，預計月底前可以進入測試階段。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:42</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#D1FAE5">SPEAKER_02</span></span>
+              <span class="seg-text">我這邊行銷素材也快準備好了，不過需要等產品規格確定之後才能定稿文案。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 手機 Before -->
+    <div class="quadrant before">
+      <span class="tag before">BEFORE · 手機（&lt;480px）</span>
+      <h2>手機寬度（360px 容器）</h2>
+      <div class="viewport mobile">
+        <div id="speaker-rename-area">
+          <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
+          <div id="rename-rows">
+            <div class="rename-row">
+              <label>SPEAKER_00</label>
+              <input type="text" value="王小明" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_01</label>
+              <input type="text" value="李小華" placeholder="輸入真實姓名">
+            </div>
+          </div>
+          <p class="hint">提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。</p>
+          <button class="btn btn-primary btn-sm">送出</button>
+        </div>
+        <div class="card">
+          <div id="transcript-container">
+            <div class="seg-row">
+              <span class="seg-time">00:00</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#DBEAFE">王小明</span></span>
+              <span class="seg-text">大家好，我們今天開會主要是要討論下一季的產品規劃，先請各部門report一下目前進度。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:18</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#FCE7F3">李小華</span></span>
+              <span class="seg-text">好的，我這邊工程進度大概完成七成，預計月底前可以進入測試階段。</span>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:#B91C1C;margin-top:8px;">
+          ⚠ 注意：橫向擠壓下時間/講者欄位仍固定 min-width，長文字容易被右側 .seg-text 擠壓或視覺重疊。
+        </p>
+      </div>
+    </div>
+
+    <!-- 手機 After -->
+    <div class="quadrant after">
+      <span class="tag after">AFTER · 手機（&lt;480px）</span>
+      <h2>手機寬度（360px 容器）——三行式垂直堆疊（決策 6）</h2>
+      <div class="viewport mobile">
+        <div id="speaker-rename-area">
+          <h4>發言人重命名（點擊輸入框修改名稱）</h4>
+          <div id="rename-rows">
+            <div class="rename-row">
+              <label>SPEAKER_00</label>
+              <input type="text" value="王小明" placeholder="輸入真實姓名">
+            </div>
+            <div class="rename-row">
+              <label>SPEAKER_01</label>
+              <input type="text" value="李小華" placeholder="輸入真實姓名">
+            </div>
+          </div>
+          <p class="hint">提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。</p>
+          <button class="btn btn-primary btn-sm after-btn">送出</button>
+        </div>
+        <div class="card ds">
+          <div id="transcript-container">
+            <div class="seg-row">
+              <span class="seg-time">00:00</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#DBEAFE">王小明</span></span>
+              <span class="seg-text">大家好，我們今天開會主要是要討論下一季的產品規劃，先請各部門report一下目前進度。</span>
+            </div>
+            <div class="seg-row">
+              <span class="seg-time">00:18</span>
+              <span class="seg-speaker"><span class="speaker-chip" style="background:#FCE7F3">李小華（一個比較長的顯示名稱範例）</span></span>
+              <span class="seg-text">好的，我這邊工程進度大概完成七成，預計月底前可以進入測試階段，這句話刻意寫長一點來驗證換行不會被截斷。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note-block">
+    <h3>對照說明</h3>
+    <p>
+      1. <code>&lt;h4&gt;</code> 文字移除「🎤 」前綴（AC1）。<br>
+      2. <code>#speaker-rename-area</code> 背景/邊框/圓角改為 <code>--ds-surface</code> /
+      <code>--ds-border</code> / <code>--ds-radius-md</code>（比照全站 <code>.card</code>
+      同組 token），<code>h4</code> 顏色改 <code>--ds-text-secondary</code>，不留任何綠色/強調色（AC2，
+      回應第一輪 G1 退回意見）。<br>
+      3. <code>.rename-row input</code> 邊框改 <code>--ds-border-strong</code>、圓角
+      <code>--ds-radius-sm</code>、高度改用固定 <code>--ds-control-h-desktop</code>
+      （手機 <code>--ds-control-h-mobile</code>），padding 配套改為 <code>0 12px</code>（AC2 + 決策 3）。<br>
+      4. <code>#submit-speaker-names-btn</code> 全程沿用共用 <code>.btn .btn-primary .btn-sm</code>，
+      未新增任何專屬樣式（AC2）。<br>
+      5. <code>.seg-row</code> 邊框改 <code>--ds-border</code>；<code>.seg-time</code> 顏色改
+      <code>--ds-text-secondary</code>、字體改 <code>--ds-font-mono</code>（Mono.code 13px/18px）；
+      <code>.seg-text</code> 顏色改 <code>--ds-text-primary</code>、套用 Body.body（15px/28px）（AC3）。<br>
+      6. <code>.speaker-chip</code> 只加 <code>--ds-radius-pill</code>（數值不變）與 caption
+      字級（13px），行內動態 <code>background</code> 指派邏輯完全不動，深色文字在六色色盤上仍清晰可辨（AC4）。<br>
+      7. 手機 &lt;480px：<code>.seg-row</code> 改為 <code>flex-direction: column</code> 三行式垂直堆疊
+      （時間 → 講者 chip → 文字），每行各自佔滿寬度，不再因固定 <code>min-width</code> 造成重疊或截斷（AC5，
+      對照左側 Before 象限的擠壓問題）。<br>
+      8. 本原型未修改任何 JS 邏輯，所有互動皆為靜態展示；實際頁面行為（<code>renameSpeaker()</code> /
+      <code>submitSpeakerNames()</code>）不受影響（AC6）。
+    </p>
+  </div>
+</body>
+</html>
