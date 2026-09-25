@@ -335,8 +335,9 @@ test.describe("Design System｜view-result 標題／操作列／分頁 Tabs（SD
     const historyActive = page.locator("#history-tab-btn-minutes");
     const inkColor = await resolveToken(page, "color", "var(--ds-ink-100)");
     await expect(historyActive).toHaveCSS("color", inkColor);
-    // 文字不變（history-detail 不移除 emoji，範圍外）
-    await expect(historyActive).toHaveText("📝 會議紀錄");
+    // 文字斷言已由 SDLCAIP2-48 AC2 取代：history-detail 移除 emoji（原斷言為
+    // 「不移除 emoji，範圍外」，SDLCAIP2-48 併入後該行為已變更）
+    await expect(historyActive).toHaveText("會議紀錄");
   });
 
   test("AC6 (回歸): switchTab() 仍切換 active class 與面板顯示", async ({ page }) => {
