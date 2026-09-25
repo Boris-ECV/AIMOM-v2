@@ -100,15 +100,19 @@ test.describe("Design System｜歷史紀錄列表頁 view-history（SDLCAIP2-50�
     await expect(td).toHaveCSS("border-bottom-color", "rgb(228, 227, 223)"); // --ds-border
     await expect(td).toHaveCSS("font-size", "13px");
 
-    // 關鍵回歸保護：view-result 的共用 .action-table 基底規則不得被 view-history 的範圍限定選取器影響
+    // SDLCAIP2-55 supersedes this block's original assertions: #view-result now has its own
+    // scoped .action-table override (same token values as #view-history's, by design — see
+    // SDLCAIP2-55 design doc decision 4, "同元件同外觀"), so the old "unaffected/old --bg,
+    // --muted, --border" expectations no longer hold. Assert the new, intentionally-matching
+    // values instead.
     await openViewResultWithRow(page);
     const resultTh = page.locator("#view-result .action-table th").first();
-    await expect(resultTh).toHaveCSS("background-color", "rgb(248, 250, 252)"); // 舊 --bg #F8FAFC，未被覆寫
-    await expect(resultTh).toHaveCSS("color", "rgb(100, 116, 139)"); // 舊 --muted #64748B，未被覆寫
-    await expect(resultTh).toHaveCSS("border-bottom-color", "rgb(226, 232, 240)"); // 舊 --border #E2E8F0，未被覆寫
+    await expect(resultTh).toHaveCSS("background-color", "rgb(239, 238, 234)"); // --ds-badge-bg (SDLCAIP2-55 AC4)
+    await expect(resultTh).toHaveCSS("color", "rgb(107, 106, 100)"); // --ds-text-secondary (SDLCAIP2-55 AC4)
+    await expect(resultTh).toHaveCSS("border-bottom-color", "rgb(228, 227, 223)"); // --ds-border (SDLCAIP2-55 AC4)
 
     const resultTd = page.locator("#view-result .action-table td").first();
-    await expect(resultTd).toHaveCSS("border-bottom-color", "rgb(226, 232, 240)"); // 舊 --border，未被覆寫
+    await expect(resultTd).toHaveCSS("border-bottom-color", "rgb(228, 227, 223)"); // --ds-border (SDLCAIP2-55 AC4)
   });
 
   test("AC3 + AC8: #history-empty 文字色改用 --ds-* token，且不影響共用 .empty-state 基底規則", async ({ page }) => {
