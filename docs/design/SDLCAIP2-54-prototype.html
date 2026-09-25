@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>SDLCAIP2-54 原型 — view-result 標題／操作列／分頁 Tabs 套用設計系統</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Noto Sans TC", sans-serif; background:#f4f5f7; margin:0; padding:24px; }
+  h1 { font-size:1.05rem; }
+  h2.section { font-size:.95rem; color:#333; margin: 32px 0 8px; }
+  .note { font-size:.85rem; color:#555; max-width:1000px; margin-bottom:20px; line-height:1.6; }
+  .note code { background:#eee; padding:1px 4px; border-radius:3px; }
+  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .frame-label { font-size:.75rem; color:#888; margin-bottom:6px; }
+  .frame { border: 2px dashed #bbb; background:#fff; }
+  .frame-wide { width: 1280px; max-width: 100%; }
+  .frame-narrow { width: 360px; }
+  .frame-inner { padding: 20px; }
+
+  /* ===== tokens 複製自 src/frontend/index.html :root（僅本原型展示用值） ===== */
+  :root {
+    --primary: #2563EB;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-ink-200: #2C2B28;
+    --ds-badge-bg: #EFEEEA;
+    --ds-focus-ring: #1F1E1C;
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-space-6: 32px;
+    --ds-radius-sm: 6px;
+    --ds-control-h-desktop: 40px;
+    --ds-control-h-mobile: 44px;
+  }
+
+  /* ---- shared structural styles copied from src/frontend/index.html, unchanged ---- */
+  .btn { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 20px;
+         border-radius:6px; border:1px solid var(--ds-border-strong); background:var(--ds-surface);
+         color:var(--ds-text-primary); font-family:var(--ds-font-sans); font-size:14px; font-weight:500;
+         cursor:pointer; }
+  .btn-outline { background: var(--ds-surface); color: var(--ds-text-primary); border:1px solid var(--ds-border-strong); }
+  .btn-sm { padding: 0 14px; font-size: .8rem; height:32px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  #modified-badge, #low-confidence-badge { display:none; }
+  .demo-show { display:inline-block !important; padding:4px 12px; border-radius:999px; background:#fef3c7; font-size:.75rem; color:#D97706; font-weight:600; }
+
+  /* ===================== BEFORE（現況，改動前） ===================== */
+  .before h2.rv-h2 { font-size:1.2rem; margin-bottom:4px; }
+  .before #result-meta.rv-meta { color: var(--muted); font-size: .8rem; margin-bottom: 16px; }
+  .before select.rv-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
+                              border-radius: 6px; color: var(--text); font-family: inherit; }
+  .before .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .before .tab { padding: 10px 20px; cursor: pointer; font-size: .9rem; font-weight: 500;
+                 border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+                 margin-bottom: -2px; }
+  .before .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* ===================== AFTER（本票變更後，決策 1/2/4/5） ===================== */
+  /* 決策 1/2：h2 / #result-meta 改用外部規則，取代 inline style */
+  .after #view-result h2 {
+    font-family: var(--ds-font-sans);
+    font-size: 18px; line-height: 26px; font-weight: 600;  /* tokens.json Heading.h2 */
+    color: var(--ds-text-primary);
+    margin-bottom: 4px;
+  }
+  .after #result-meta {
+    font-family: var(--ds-font-sans);
+    font-size: 13px; line-height: 18px; font-weight: 400;  /* tokens.json Body.caption */
+    color: var(--ds-text-secondary);
+    margin-bottom: 16px;
+  }
+  @media (max-width: 479px) {
+    .after #view-result h2 { font-size: 17px; line-height: 24px; }  /* Heading.h2-mobile */
+  }
+
+  /* 決策 4：.input / select.input（複製自 src/frontend/index.html 204-220 行） */
+  .after .input, .after select.input {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .after .input:focus-visible, .after select.input:focus-visible {
+    outline: 2px solid var(--ds-focus-ring); outline-offset: 2px;
+  }
+  @media (max-width: 479px) {
+    .after .input, .after select.input { height: var(--ds-control-h-mobile); width: 100%; }
+    /* 範圍限定覆寫：中和 .input 手機版 width:100%，維持 AC3 換行狀態不變 */
+    .after #view-result #template-select.input,
+    .after #view-result #export-format-select.input { width: auto; }
+  }
+
+  /* 決策 5：.tabs / .tab 套用 Tabs README + label-button token */
+  .after .tabs {
+    display: flex;
+    gap: var(--ds-space-6);
+    border-bottom: 2px solid var(--ds-border);
+    margin-bottom: 24px;
+  }
+  .after .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none; background: none;
+    font-family: var(--ds-font-sans);
+    font-size: 14px; line-height: 20px; font-weight: 500;  /* tokens.json Body.label-button */
+    color: var(--ds-text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+  .after .tab.active {
+    color: var(--ds-ink-100);
+    font-weight: 600;
+    border-bottom-color: var(--ds-ink-100);
+  }
+  @media (max-width: 479px) {
+    .after .tabs { gap: 0; }
+    .after .tab { flex: 1; min-width: 0; text-align: center; }
+  }
+</style>
+</head>
+<body>
+  <h1>SDLCAIP2-54 原型 — view-result 標題／操作列／分頁 Tabs 套用設計系統</h1>
+  <div class="note">
+    對應 <code>docs/design/SDLCAIP2-54.md</code>。純靜態展示，<code>onclick</code> 保留原文字但未綁定
+    真實函式，不含任何後端呼叫或 JS 邏輯，不得用於功能驗證。下方每個區塊皆以「Before（現況）／
+    After（套用本票變更後）」並列，各自再提供「桌面（1280px 容器）」與「手機（360px 容器，模擬
+    &lt;480px 斷點）」。也可另外用瀏覽器 DevTools 縮窄視窗驗證真實斷點行為。
+  </div>
+
+  <!-- ============ 區塊 1：標題 + result-meta ============ -->
+  <h2 class="section">區塊 1 — &lt;h2&gt; ＋ #result-meta（AC1／AC2）</h2>
+  <div class="row">
+    <div>
+      <div class="frame-label">Before（桌面 900px）</div>
+      <div class="frame" style="width:900px;">
+        <div class="frame-inner before">
+          <h2 class="rv-h2">📋 會議紀錄</h2>
+          <p id="result-meta" class="rv-meta">job id: 20260925-ab12cd34</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After（桌面 900px）</div>
+      <div class="frame" style="width:900px;">
+        <div class="frame-inner after" id="view-result">
+          <h2>會議紀錄</h2>
+          <p id="result-meta">job id: 20260925-ab12cd34</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;">
+    <div>
+      <div class="frame-label">Before（手機 360px，&lt;480px）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner before">
+          <h2 class="rv-h2">📋 會議紀錄</h2>
+          <p id="result-meta" class="rv-meta">job id: 20260925-ab12cd34</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After（手機 360px，&lt;480px）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner after" id="view-result">
+          <h2>會議紀錄</h2>
+          <p id="result-meta">job id: 20260925-ab12cd34</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 區塊 2：操作列（同排不換行回歸 + .input） ============ -->
+  <h2 class="section">區塊 2 — 操作列（AC3／AC4 回歸、AC5 .input）</h2>
+  <div class="note">
+    左組（模板／重新產生／匯出格式／匯出）靠左、右組（清除暫存／新錄音）靠右，四個
+    <code>onclick</code> 呼叫文字保留（不綁定真實函式）。After 版本 <code>#template-select</code>／
+    <code>#export-format-select</code> 加上 <code>class="input"</code>，並帶決策 4 的手機版
+    <code>width:auto</code> 中和覆寫，使兩種寬度下的換行狀態與 Before 完全一致。
+  </div>
+  <div class="row">
+    <div>
+      <div class="frame-label">Before（桌面 1280px）</div>
+      <div class="frame frame-wide">
+        <div class="frame-inner before">
+          <div class="btn-row" style="align-items:center;justify-content:space-between;">
+            <div class="btn-row" style="align-items:center;">
+              <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+              <label style="font-size:.8rem;color:var(--muted);">模板
+                <select class="rv-select"><option>標準會議紀錄</option></select>
+              </label>
+              <button class="btn btn-outline btn-sm">重新產生</button>
+              <label style="font-size:.8rem;color:var(--muted);">匯出格式
+                <select class="rv-select">
+                  <option>Markdown</option><option>純文字</option><option>Word</option><option>PDF</option>
+                </select>
+              </label>
+              <button class="btn btn-outline btn-sm">匯出</button>
+            </div>
+            <div class="btn-row" style="align-items:center;">
+              <button class="btn btn-outline btn-sm">清除暫存</button>
+              <button class="btn btn-outline btn-sm">+ 新錄音</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After（桌面 1280px）</div>
+      <div class="frame frame-wide">
+        <div class="frame-inner after" id="view-result">
+          <div class="btn-row" style="align-items:center;justify-content:space-between;">
+            <div class="btn-row" id="result-action-group-content" style="align-items:center;">
+              <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+              <label style="font-size:.8rem;color:var(--muted);">模板
+                <select id="template-select" class="input"><option>標準會議紀錄</option></select>
+              </label>
+              <button class="btn btn-outline btn-sm" id="regenerate-btn">重新產生</button>
+              <label style="font-size:.8rem;color:var(--muted);">匯出格式
+                <select id="export-format-select" class="input">
+                  <option>Markdown</option><option>純文字</option><option>Word</option><option>PDF</option>
+                </select>
+              </label>
+              <button class="btn btn-outline btn-sm" id="export-confirm-btn">匯出</button>
+            </div>
+            <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
+              <button class="btn btn-outline btn-sm" id="cleanup-btn">清除暫存</button>
+              <button class="btn btn-outline btn-sm" id="new-recording-btn">+ 新錄音</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;">
+    <div>
+      <div class="frame-label">Before（手機 360px，&lt;480px——按鈕已因全域 .btn 規則各佔滿版寬自然換行，此為本票開始前既有行為）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner before">
+          <div class="btn-row" style="align-items:center;justify-content:space-between;">
+            <div class="btn-row" style="align-items:center;">
+              <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+              <label style="font-size:.8rem;color:var(--muted);">模板
+                <select class="rv-select"><option>標準會議紀錄</option></select>
+              </label>
+              <button class="btn btn-outline btn-sm" style="width:100%;">重新產生</button>
+              <label style="font-size:.8rem;color:var(--muted);">匯出格式
+                <select class="rv-select">
+                  <option>Markdown</option><option>純文字</option><option>Word</option><option>PDF</option>
+                </select>
+              </label>
+              <button class="btn btn-outline btn-sm" style="width:100%;">匯出</button>
+            </div>
+            <div class="btn-row" style="align-items:center;">
+              <button class="btn btn-outline btn-sm" style="width:100%;">清除暫存</button>
+              <button class="btn btn-outline btn-sm" style="width:100%;">+ 新錄音</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After（手機 360px，&lt;480px——與 Before 換行狀態一致，.input 的 width:100% 已被中和）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner after" id="view-result">
+          <div class="btn-row" style="align-items:center;justify-content:space-between;">
+            <div class="btn-row" id="result-action-group-content" style="align-items:center;">
+              <span id="modified-badge" class="demo-show">● 未儲存修改</span>
+              <label style="font-size:.8rem;color:var(--muted);">模板
+                <select id="template-select" class="input"><option>標準會議紀錄</option></select>
+              </label>
+              <button class="btn btn-outline btn-sm" id="regenerate-btn" style="width:100%;">重新產生</button>
+              <label style="font-size:.8rem;color:var(--muted);">匯出格式
+                <select id="export-format-select" class="input">
+                  <option>Markdown</option><option>純文字</option><option>Word</option><option>PDF</option>
+                </select>
+              </label>
+              <button class="btn btn-outline btn-sm" id="export-confirm-btn" style="width:100%;">匯出</button>
+            </div>
+            <div class="btn-row" id="result-action-group-reset" style="align-items:center;">
+              <button class="btn btn-outline btn-sm" id="cleanup-btn" style="width:100%;">清除暫存</button>
+              <button class="btn btn-outline btn-sm" id="new-recording-btn" style="width:100%;">+ 新錄音</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    註：<code>.btn</code> 的手機版 <code>width:100%</code>（SDLCAIP2-44 全域規則）在本原型用
+    inline <code>style="width:100%"</code> 手動模擬（原型未載入完整全站 <code>&lt;style&gt;</code>），
+    Before／After 兩者做法一致，用來證明本票沒有改變按鈕的換行狀態，只中和了 <code>.input</code>
+    新增到 select 上才會出現的額外 <code>width:100%</code> 風險。
+  </div>
+
+  <!-- ============ 區塊 3：Tabs（view-result + history-detail 共用樣式） ============ -->
+  <h2 class="section">區塊 3 — Tabs（AC6／AC7，含 history-detail 共用樣式漣漪）</h2>
+  <div class="row">
+    <div>
+      <div class="frame-label">Before — view-result Tabs（桌面 900px）</div>
+      <div class="frame" style="width:900px;">
+        <div class="frame-inner before">
+          <div class="tabs">
+            <button class="tab active">📝 會議紀錄</button>
+            <button class="tab">🎙 逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After — view-result Tabs（桌面 900px，emoji 移除、active 用 ink-100/600）</div>
+      <div class="frame" style="width:900px;">
+        <div class="frame-inner after">
+          <div class="tabs">
+            <button class="tab active" id="tab-btn-minutes">會議紀錄</button>
+            <button class="tab" id="tab-btn-transcript">逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;">
+    <div>
+      <div class="frame-label">Before — view-result Tabs（手機 360px，&lt;480px）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner before">
+          <div class="tabs">
+            <button class="tab active">📝 會議紀錄</button>
+            <button class="tab">🎙 逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">After — view-result Tabs（手機 360px，&lt;480px，flex:1 等寬、不換行不溢出）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner after">
+          <div class="tabs">
+            <button class="tab active" id="tab-btn-minutes">會議紀錄</button>
+            <button class="tab" id="tab-btn-transcript">逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:16px;">
+    <div>
+      <div class="frame-label">共用樣式漣漪 — history-detail Tabs（桌面 900px，emoji 保留，僅樣式隨共用本體改變）</div>
+      <div class="frame" style="width:900px;">
+        <div class="frame-inner after">
+          <div class="tabs">
+            <button class="tab active" id="history-tab-btn-minutes">📝 會議紀錄</button>
+            <button class="tab" id="history-tab-btn-transcript">🎙 逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="frame-label">共用樣式漣漪 — history-detail Tabs（手機 360px，&lt;480px）</div>
+      <div class="frame frame-narrow">
+        <div class="frame-inner after">
+          <div class="tabs">
+            <button class="tab active" id="history-tab-btn-minutes">📝 會議紀錄</button>
+            <button class="tab" id="history-tab-btn-transcript">🎙 逐字稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    註：history-detail 分頁文字刻意<strong>保留</strong> emoji（「📝 會議紀錄」／「🎙 逐字稿」）——
+    AC6 僅要求 view-result 分頁文字移除 emoji，history-detail 因與 view-result 共用
+    <code>.tabs</code>/<code>.tab</code> class 本體，顏色/字重/底線/底部邊框/字級/間距會同步改變
+    （此為 AC6 明講的「expected, disclosed」），但文字內容不在本票變更範圍內。
+  </div>
+</body>
+</html>
