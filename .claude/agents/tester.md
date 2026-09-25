@@ -57,6 +57,20 @@ and the code.
    - NEVER modify production code. If the implementation is wrong,
      document the failure precisely and report back.
    - NEVER delete or weaken existing tests.
+   - NEVER force-push (`--force`, `--force-with-lease`) and never amend
+     or rebase already-pushed commits on the story branch; add a new
+     commit instead.
+   - Layout assertions must be platform- and font-independent. Never
+     hardcode pixel coordinates, text widths or offsets you measured
+     locally: CI runs on Linux with different fonts than a Windows or
+     macOS dev machine. Assert structure instead — reading order,
+     same-row detection with a tolerance derived from element heights,
+     no horizontal overflow (`scrollWidth <= clientWidth`), relative
+     widths. Token-derived values (font-size, line-height, height,
+     radius, colors) are fine to assert exactly. Observed in this
+     framework's pilot (SDLCAIP2-54, 2026-09-25): a layout test with a
+     Windows-captured pixel snapshot passed 127/127 locally and failed
+     on GitHub Actions by 259px.
 
 ## Output format (return to orchestrator)
 - Mapping table: acceptance criterion -> test name(s)

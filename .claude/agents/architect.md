@@ -48,7 +48,21 @@ You do not write production code and you do not touch tests.
    creep on the requirements stage). Flag it in the open-questions
    section; the orchestrator escalates to HUMAN-INPUT if it can't be
    resolved from context.
-4. Stay in scope. Design only what this story's spec requires — do not
+4. **Find cross-element style-coupling tests before finalizing.** If the
+   design changes the computed style of any existing selector, grep
+   `tests/e2e/` for assertions that compare two elements' computed styles
+   for equality (e.g. `toEqual(referenceStyle)`, test names containing
+   "一致"/"consistent") and that involve a selector you change. Follow the
+   chain transitively (A must equal B, B must equal C…). List every such
+   test in the design doc's current-state section, and if the design
+   would break one, raise it as an open design question — do not leave it
+   for the developer to discover. Observed in this framework's pilot
+   (SDLCAIP2-55, 2026-09-25): a design restyled `.meeting-info-grid input`
+   without noticing two chained equality tests (SDLCAIP2-36 and -37)
+   coupling it to `#template-select` and `#export-format-select`; each
+   link surfaced separately during development and needed its own
+   HUMAN-INPUT round-trip.
+5. Stay in scope. Design only what this story's spec requires — do not
    design ahead for future stories, even ones you can see coming in the
    Epic breakdown. Cross-story consistency comes from reading prior
    design docs, not from over-designing this one.
