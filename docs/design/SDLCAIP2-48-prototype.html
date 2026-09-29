@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDLCAIP2-48 原型 — 歷史紀錄詳情頁 view-history-detail Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563EB;
+    --success: #16A34A;
+    --warning: #D97706;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --muted: #64748B;
+    --radius: 10px;
+
+    /* SDLCAIP2-44 design-system tokens（照抄 src/frontend/index.html :root，第 26–48 行） */
+    --ds-bg: #F6F5F3;
+    --ds-surface: #FFFFFF;
+    --ds-border: #E4E3DF;
+    --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C;
+    --ds-text-secondary: #6B6A64;
+    --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C;
+    --ds-badge-bg: #EFEEEA;
+    --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary);
+    --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-4: 20px;
+    --ds-radius-sm: 6px; --ds-radius-pill: 999px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--ds-font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #EDEDED; color: var(--text); margin: 0; padding: 24px;
+  }
+  h1 { font-size: 1.3rem; margin: 0 0 6px; }
+  .intro { color: var(--muted); font-size: .9rem; margin-bottom: 24px; max-width: 900px; line-height: 1.6; }
+  .intro code { background: #fff; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); }
+  .section-heading { font-size: 1.05rem; font-weight: 700; margin: 40px 0 12px; padding-top: 20px; border-top: 2px dashed #cbd5e1; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .frame-label { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .frame-label.after { color: #0f766e; }
+  .frame {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .frame.desktop { width: 900px; max-width: 96vw; }
+  .frame.mobile { width: 360px; }
+
+  /* ============ 共用 base 樣式（照抄 src/frontend/index.html 現況） ============ */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 20px; margin-bottom: 16px; }
+  .btn { height: 40px; padding: 0 18px; border-radius: 8px; border: 1px solid transparent;
+         font-size: .875rem; font-weight: 500; cursor: pointer; display: inline-flex;
+         align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary { background: var(--ds-ink-100); color: #fff; }
+  .btn-outline { background: #fff; border-color: var(--ds-border-strong); color: var(--text); }
+  .btn-sm { padding: 0 14px; font-size: .8rem; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; cursor: pointer; font-size: .9rem; font-weight: 500;
+         border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+         margin-bottom: -2px; }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
+                   margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .section-title .badge {
+    display: inline-block; font-family: var(--ds-font-sans); font-size: 13px;
+    padding: 4px 12px; border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg); border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text); font-weight: 400;
+  }
+
+  .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 12px 16px; }
+  .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
+                              font-size: .8rem; color: var(--muted); }
+  .meeting-info-grid input { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
+                              border-radius: 6px; color: var(--text); font-family: inherit; }
+  .meeting-info-grid input::placeholder { color: #B8C1CC; }
+
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
+                     font-weight: 600; font-size: .8rem; color: var(--muted);
+                     border-bottom: 1px solid var(--border); }
+  .action-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .action-table tr:last-child td { border-bottom: none; }
+
+  .ds-table-scroll { width: 100%; overflow-x: auto; }
+
+  .decision-list { list-style: none; margin: 0; padding: 0; }
+  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--border);
+                      display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; }
+  .decision-list li:last-child { border-bottom: none; }
+  .decision-list li::before { content: "✓"; color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+  .topic-item { border: 1px solid var(--border); border-radius: 8px;
+                margin-bottom: 10px; overflow: hidden; }
+  .topic-header { padding: 12px 16px; cursor: pointer; font-weight: 500;
+                   display: flex; justify-content: space-between; background: #F8FAFC; }
+  .topic-header:hover { background: #F1F5F9; }
+  .topic-body { padding: 12px 16px; font-size: .875rem; line-height: 1.6; display: none; color: var(--muted); }
+  .topic-body.open { display: block; }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-state p { margin-top: 8px; font-size: .9rem; }
+
+  /* ============ AFTER 專用：本票（SDLCAIP2-48）新增規則 ============ */
+  #proto-after .header-row { gap: var(--ds-space-2); }
+
+  #proto-after .section-title.ds48 {
+    font-size: 18px;   /* tokens.json Heading.h2 */
+    line-height: 26px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  .frame.mobile #proto-after .section-title.ds48 {
+    font-size: 17px;   /* tokens.json Heading.h2-mobile */
+    line-height: 24px;
+  }
+
+  #proto-after .action-table.ds48 th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #proto-after .action-table.ds48 td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  .frame.mobile #proto-after .action-table.ds48 { min-width: 500px; }
+
+  #proto-after .empty-state.ds48 { color: var(--ds-text-secondary); }
+
+  .note-badge { display: inline-block; font-size: .7rem; font-weight: 600; color: #0f766e;
+                background: #ccfbf1; border-radius: 999px; padding: 2px 8px; margin-left: 6px; }
+  .legend { font-size: .78rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>SDLCAIP2-48 — 歷史紀錄詳情頁 view-history-detail Design System 套用原型</h1>
+<p class="intro">
+  對應 <code>docs/design/SDLCAIP2-48.md</code>。左側為目前 <code>main</code> 分支現況
+  （Before），右側為套用本票 AC1–AC6 後的結果（After）。<strong>AC7</strong>
+  （<code>.tabs</code>/<code>.meeting-info-grid</code>/<code>.decision-list</code>/
+  <code>.topic-*</code> 與 view-result 一致）為回歸斷言，需等 SDLCAIP2-54/55 併入 main
+  後才會自動生效，本原型中 Before/After 兩側這幾個元件刻意維持同一份舊樣式，不假裝
+  54/55 已完成（見設計文件「開放設計問題」段落說明）。<strong>AC8</strong>
+  （編輯/儲存/返回等 JS 行為）為靜態原型，不含互動邏輯，僅示意畫面結構。
+</p>
+
+<div class="section-heading">桌面寬度（900px 容器）— 正常內容</div>
+<div class="row">
+  <div>
+    <div class="frame-label">Before（main 現況）</div>
+    <div class="frame desktop">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <h2 style="font-size:1.2rem;">2026-09-20 產品規劃會議</h2>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm">✏️ 編輯</button>
+            <button class="btn btn-outline btn-sm">取消</button>
+            <button class="btn btn-outline btn-sm">← 返回歷史列表</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">會議資訊 <span class="badge">雙擊摘要／待辦事項／決定事項／討論重點可逐項編輯</span></div>
+        <div class="meeting-info-grid">
+          <label>日期<input type="text" value="2026-09-20" disabled></label>
+          <label>時間<input type="text" value="14:00" disabled></label>
+          <label>地點<input type="text" value="3樓會議室" disabled></label>
+          <label>參與者（以逗號分隔）<input type="text" value="王小明, 李小華" disabled></label>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">📝 會議紀錄</button>
+        <button class="tab">🎙 逐字稿</button>
+      </div>
+      <div class="card">
+        <div class="section-title">摘要</div>
+        <p>本次會議討論下一季產品規劃方向，確認三項核心功能優先序，並分配對應負責人與時程。</p>
+      </div>
+      <div class="card">
+        <div class="section-title">待辦事項</div>
+        <table class="action-table">
+          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+          <tbody>
+            <tr><td>王小明</td><td>完成規格文件初稿</td><td>2026-09-25</td></tr>
+            <tr><td>李小華</td><td>盤點現有 API 相依性</td><td>2026-09-27</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-title">決定事項</div>
+        <ul class="decision-list">
+          <li>採用 A 方案作為 MVP 範圍</li>
+          <li>下週三前完成技術可行性評估</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-title">討論重點</div>
+        <div>
+          <div class="topic-item">
+            <div class="topic-header">功能優先序 <span>▼</span></div>
+            <div class="topic-body">討論三項候選功能的優先順序與資源分配。</div>
+          </div>
+          <div class="topic-item">
+            <div class="topic-header">時程風險 <span>▼</span></div>
+            <div class="topic-body">評估外部依賴可能造成的延遲風險。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="proto-after">
+    <div class="frame-label after">After（套用本票 AC1–AC6）<span class="note-badge">DS-48</span></div>
+    <div class="frame desktop">
+      <div class="card">
+        <div class="header-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+          <h2 style="font-size:1.2rem;">2026-09-20 產品規劃會議</h2>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm">編輯</button>
+            <button class="btn btn-outline btn-sm">取消</button>
+            <button class="btn btn-outline btn-sm">← 返回歷史列表</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title ds48">會議資訊 <span class="badge">雙擊摘要／待辦事項／決定事項／討論重點可逐項編輯</span></div>
+        <div class="meeting-info-grid">
+          <label>日期<input type="text" value="2026-09-20" disabled></label>
+          <label>時間<input type="text" value="14:00" disabled></label>
+          <label>地點<input type="text" value="3樓會議室" disabled></label>
+          <label>參與者（以逗號分隔）<input type="text" value="王小明, 李小華" disabled></label>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">會議紀錄</button>
+        <button class="tab">逐字稿</button>
+      </div>
+      <div class="card">
+        <div class="section-title ds48">摘要</div>
+        <p>本次會議討論下一季產品規劃方向，確認三項核心功能優先序，並分配對應負責人與時程。</p>
+      </div>
+      <div class="card">
+        <div class="section-title ds48">待辦事項</div>
+        <div class="ds-table-scroll">
+          <table class="action-table ds48">
+            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+            <tbody>
+              <tr><td>王小明</td><td>完成規格文件初稿</td><td>2026-09-25</td></tr>
+              <tr><td>李小華</td><td>盤點現有 API 相依性</td><td>2026-09-27</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title ds48">決定事項</div>
+        <ul class="decision-list">
+          <li>採用 A 方案作為 MVP 範圍</li>
+          <li>下週三前完成技術可行性評估</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-title ds48">討論重點</div>
+        <div>
+          <div class="topic-item">
+            <div class="topic-header">功能優先序 <span>▼</span></div>
+            <div class="topic-body">討論三項候選功能的優先順序與資源分配。</div>
+          </div>
+          <div class="topic-item">
+            <div class="topic-header">時程風險 <span>▼</span></div>
+            <div class="topic-body">評估外部依賴可能造成的延遲風險。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="legend">
+      AC1/AC2：按鈕/分頁文字移除 emoji。AC3：<code>.section-title</code> 改
+      18/26/600（<code>--ds-text-primary</code>）。AC4：<code>.action-table</code>
+      表頭/表身改 <code>--ds-badge-bg</code>/<code>--ds-text-secondary</code>/
+      <code>--ds-text-primary</code>/13px，並外包 <code>.ds-table-scroll</code>。
+      AC6：標題列 <code>gap</code> 改 <code>var(--ds-space-2)</code>。
+      <code>.meeting-info-grid</code>/<code>.tabs</code>/<code>.decision-list</code>/
+      <code>.topic-*</code> 維持現況（AC7，待 54/55 併入後自動一致，本票不變更）。
+    </p>
+  </div>
+</div>
+
+<div class="section-heading">手機寬度（360px 容器，模擬 &lt;480px 斷點）</div>
+<div class="row">
+  <div>
+    <div class="frame-label">Before</div>
+    <div class="frame mobile">
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <h2 style="font-size:1.1rem;">2026-09-20 產品規劃會議</h2>
+          <div class="btn-row" style="flex-direction:column;">
+            <button class="btn btn-outline btn-sm">✏️ 編輯</button>
+            <button class="btn btn-outline btn-sm">取消</button>
+            <button class="btn btn-outline btn-sm">← 返回歷史列表</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">會議資訊</div>
+        <div class="meeting-info-grid" style="grid-template-columns:1fr;">
+          <label>日期<input type="text" value="2026-09-20" disabled></label>
+          <label>時間<input type="text" value="14:00" disabled></label>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">📝 會議紀錄</button>
+        <button class="tab">🎙 逐字稿</button>
+      </div>
+      <div class="card">
+        <div class="section-title">待辦事項</div>
+        <table class="action-table">
+          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+          <tbody>
+            <tr><td>王小明</td><td>完成規格文件初稿</td><td>2026-09-25</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:6px;">
+          ⚠ 無捲動容器，窄螢幕下表格可能撐破頁面（此為 Before 示意，實際情形視內容長度而定）
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="frame-label after">After<span class="note-badge">DS-48</span></div>
+    <div class="frame mobile" id="proto-after-mobile">
+      <div class="card">
+        <div class="header-row" style="display:flex;flex-direction:column;gap:var(--ds-space-2);">
+          <h2 style="font-size:1.1rem;">2026-09-20 產品規劃會議</h2>
+          <div class="btn-row" style="flex-direction:column;">
+            <button class="btn btn-outline btn-sm">編輯</button>
+            <button class="btn btn-outline btn-sm">取消</button>
+            <button class="btn btn-outline btn-sm">← 返回歷史列表</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title ds48" style="font-size:17px;line-height:24px;">會議資訊</div>
+        <div class="meeting-info-grid" style="grid-template-columns:1fr;">
+          <label>日期<input type="text" value="2026-09-20" disabled></label>
+          <label>時間<input type="text" value="14:00" disabled></label>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">會議紀錄</button>
+        <button class="tab">逐字稿</button>
+      </div>
+      <div class="card">
+        <div class="section-title ds48" style="font-size:17px;line-height:24px;">待辦事項</div>
+        <div class="ds-table-scroll">
+          <table class="action-table ds48" style="min-width:500px;">
+            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+            <tbody>
+              <tr><td>王小明</td><td>完成規格文件初稿</td><td>2026-09-25</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:.72rem;color:var(--ds-text-secondary);margin-top:6px;">
+          ✓ 外包 <code>.ds-table-scroll</code> + <code>min-width:500px</code>，橫向捲動於表格
+          內部發生，頁面本身不出現水平捲軸
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-heading">空清單／錯誤狀態</div>
+<div class="row">
+  <div>
+    <div class="frame-label">Before</div>
+    <div class="frame desktop" style="width:520px;">
+      <div class="card">
+        <div class="section-title">討論重點</div>
+        <div class="empty-state"><p>無討論重點</p></div>
+      </div>
+      <div class="empty-state" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+        <p>找不到此會議紀錄</p>
+        <div style="margin-top:12px;"><button class="btn btn-outline btn-sm">← 返回歷史列表</button></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="frame-label after">After<span class="note-badge">DS-48</span></div>
+    <div class="frame desktop" style="width:520px;">
+      <div class="card">
+        <div class="section-title ds48">討論重點</div>
+        <div class="empty-state ds48"><p>無討論重點</p></div>
+      </div>
+      <div class="empty-state ds48" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+        <p>找不到此會議紀錄</p>
+        <div style="margin-top:12px;"><button class="btn btn-outline btn-sm">← 返回歷史列表</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="legend" style="margin-top:40px;max-width:900px;">
+  AC5：<code>#view-history-detail .empty-state</code> 文字色改
+  <code>--ds-text-secondary</code>，同一條規則同時涵蓋討論重點空清單與
+  <code>#history-detail-error</code>。此區塊與 SDLCAIP2-50 對 <code>#view-history
+  .empty-state</code> 的決策同一手法（次要語意 → secondary token）。
+</p>
+
+</body>
+</html>

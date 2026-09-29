@@ -115,17 +115,16 @@
   }
 
   /* UPLOAD VIEW */
-  #drop-zone { border: 2px dashed var(--border); border-radius: var(--radius);
+  #drop-zone { border: 2px dashed var(--ds-border-strong); border-radius: var(--ds-radius-md);
                padding: 56px 32px; text-align: center; cursor: pointer;
                transition: border-color .2s, background .2s; }
-  #drop-zone:hover, #drop-zone.dragover { border-color: var(--primary); background: #EFF6FF; }
-  #drop-zone svg { width: 48px; height: 48px; color: var(--muted); margin-bottom: 12px; }
+  #drop-zone:hover, #drop-zone.dragover { border-color: var(--ds-ink-100); background: var(--ds-badge-bg); }
   #drop-zone p { color: var(--muted); font-size: .9rem; margin-top: 8px; }
   #drop-zone strong { font-size: 1.1rem; color: var(--text); }
   #file-input { display: none; }
-  #file-info { margin-top: 16px; padding: 12px 16px; background: #EFF6FF;
+  #file-info { margin-top: 16px; padding: 12px 16px; background: var(--ds-badge-bg);
                border-radius: 6px; display: none; font-size: .875rem; }
-  #file-info .fname { font-weight: 600; color: var(--primary); }
+  #file-info .fname { font-weight: 600; color: var(--ds-text-primary); }
 
   /* BUTTONS — SDLCAIP2-44：.btn/.btn-primary/.btn-outline/.btn-sm 改用 --ds-* token
      （既有結構屬性 display:inline-flex/gap 與 :active transform 維持不變，見設計文件決策 4/8） */
@@ -157,30 +156,56 @@
     .btn { height: var(--ds-control-h-mobile); width: 100%; }
   }
 
-  /* PROGRESS VIEW */
-  .stage-list { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
-  .stage-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  /* PROGRESS VIEW — SDLCAIP2-46：改用 --ds-* token，移除 emoji，#progress-message 套用 Badge 樣式 */
+  .stage-list { display: flex; flex-direction: column; gap: var(--ds-space-2); margin: var(--ds-space-5) 0; }
+  .stage-item { display: flex; align-items: center; gap: var(--ds-space-3);
+                padding: var(--ds-space-3) var(--ds-space-4);
                 border-radius: 8px; border: 1px solid var(--border); background: #fff; }
   .stage-icon { width: 32px; height: 32px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center;
                 font-size: 1rem; flex-shrink: 0; }
-  .stage-icon.done { background: #DCFCE7; color: var(--success); }
-  .stage-icon.active { background: #DBEAFE; color: var(--primary); }
-  .stage-icon.waiting { background: var(--bg); color: var(--muted); }
-  .stage-label { flex: 1; font-weight: 500; }
-  .stage-msg { font-size: .8rem; color: var(--muted); }
-  .progress-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-  .progress-bar { height: 100%; background: var(--primary);
+  .stage-icon.done { background: var(--ds-badge-bg); color: var(--ds-badge-text);
+                      border: 1px solid var(--ds-badge-border); }
+  .stage-icon.active { background: var(--ds-ink-100); color: var(--ds-bg);
+                        border: 1px solid var(--ds-ink-100); }
+  .stage-icon.waiting { background: var(--ds-surface); color: var(--ds-text-secondary);
+                         border: 1px solid var(--ds-border-strong); }
+  .stage-label { flex: 1; font-weight: 500; font-family: var(--ds-font-sans); }
+  .stage-msg { font-size: .8rem; color: var(--muted); font-family: var(--ds-font-sans); }
+  .progress-bar-wrap { height: 8px; background: var(--ds-border); border-radius: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--ds-ink-100);
                   border-radius: 4px; transition: width .4s ease; }
-  .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right; }
-  #progress-message { font-size: .9rem; color: var(--muted); margin-top: 12px; }
+  .progress-pct { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: right;
+                   font-family: var(--ds-font-sans); }
+  #progress-message {
+    display: inline-block;
+    font-family: var(--ds-font-sans);
+    font-size: .875rem;
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-badge-bg);
+    border: 1px solid var(--ds-badge-border);
+    color: var(--ds-badge-text);
+    margin-bottom: var(--ds-space-4);
+  }
+  #progress-message:empty { display: none; }
 
   /* TABS */
-  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
-  .tab { padding: 10px 20px; cursor: pointer; font-size: .9rem; font-weight: 500;
-         border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+  /* SDLCAIP2-54: .tabs/.tab shared body — apply design-system Tabs tokens
+     (shared only by #view-result & #view-history-detail) */
+  .tabs { display: flex; gap: var(--ds-space-6); border-bottom: 2px solid var(--ds-border); margin-bottom: 24px; }
+  .tab { padding: 10px 20px; cursor: pointer;
+         border: none; background: none;
+         font-family: var(--ds-font-sans);
+         font-size: 14px; line-height: 20px; font-weight: 500;  /* tokens.json Body.label-button */
+         color: var(--ds-text-secondary);
+         border-bottom: 2px solid transparent;
          margin-bottom: -2px; transition: color .15s, border-color .15s; }
-  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab.active { color: var(--ds-ink-100); font-weight: 600; border-bottom-color: var(--ds-ink-100); }
+  @media (max-width: 479px) {
+    .tabs { gap: 0; }
+    .tab { flex: 1; min-width: 0; text-align: center; }
+  }
 
   /* RESULT: MINUTES */
   .section-title { font-size: 1rem; font-weight: 600; color: var(--text);
@@ -201,6 +226,38 @@
     .section-title .badge { font-size: 12px; padding: 4px 10px; }
   }
 
+  /* ===== SDLCAIP2-55: view-result scoped override (does not modify .section-title base above) ===== */
+  #view-result .section-title {
+    font-size: 18px;   /* tokens.json Heading.h2 */
+    line-height: 26px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  @media (max-width: 479px) {
+    #view-result .section-title {
+      font-size: 17px;  /* tokens.json Heading.h2-mobile */
+      line-height: 24px;
+    }
+  }
+
+  /* ===== SDLCAIP2-54: #view-result h2 / #result-meta — replaces inline style
+     (inline style specificity would otherwise always win over external CSS) ===== */
+  #view-result h2 {
+    font-family: var(--ds-font-sans);
+    font-size: 18px; line-height: 26px; font-weight: 600;  /* tokens.json Heading.h2 */
+    color: var(--ds-text-primary);
+    margin-bottom: 4px;
+  }
+  @media (max-width: 479px) {
+    #view-result h2 { font-size: 17px; line-height: 24px; }  /* Heading.h2-mobile */
+  }
+  #result-meta {
+    font-family: var(--ds-font-sans);
+    font-size: 13px; line-height: 18px; font-weight: 400;  /* tokens.json Body.caption */
+    color: var(--ds-text-secondary);
+    margin-bottom: 16px;
+  }
+
   /* SDLCAIP2-44：.input — 新增，本工單不套用到任何現有元素（SDLCAIP2-52 決議） */
   .input, select.input {
     height: var(--ds-control-h-desktop);
@@ -219,21 +276,58 @@
     .input, select.input { height: var(--ds-control-h-mobile); width: 100%; }
   }
 
-  #summary-text { line-height: 1.7; color: var(--text); min-height: 48px; }
-  #summary-text[contenteditable="true"] { outline: 2px solid var(--primary);
-    border-radius: 4px; padding: 4px 8px; background: #EFF6FF; }
+  /* ===== SDLCAIP2-54: view-result select.input wrap-risk neutralizer (mirrors
+     SDLCAIP2-44 decision 5's header .btn { width:auto } technique) ===== */
+  @media (max-width: 479px) {
+    #view-result #template-select.input,
+    #view-result #export-format-select.input { width: auto; }
+  }
 
+  /* SDLCAIP2-55: #summary-text — Body.body/body-mobile token, contenteditable hint colors moved to --ds-* */
+  #summary-text {
+    font-family: var(--ds-font-sans);
+    font-size: 15px; line-height: 28px; font-weight: 400;  /* tokens.json Body.body */
+    color: var(--ds-text-primary);
+    min-height: 48px;
+  }
+  #summary-text[contenteditable="true"] {
+    outline: 2px solid var(--ds-focus-ring);
+    border-radius: var(--ds-radius-sm);
+    padding: 4px 8px;
+    background: var(--ds-badge-bg);
+  }
+  @media (max-width: 479px) {
+    #summary-text { font-size: 14px; line-height: 26px; }  /* Body.body-mobile */
+  }
+
+  /* SDLCAIP2-55: .meeting-info-grid — shared only by view-result & view-history-detail, modify shared body */
   .meeting-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 12px 16px; }
+                        gap: var(--ds-space-4); }
   .meeting-info-grid label { display: flex; flex-direction: column; gap: 4px;
-                              font-size: .8rem; color: var(--muted); }
-  .meeting-info-grid input { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                              border-radius: 6px; color: var(--text); font-family: inherit; }
-  .meeting-info-grid input::placeholder { color: #B8C1CC; }
-  #template-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                      border-radius: 6px; color: var(--text); font-family: inherit; }
-  #export-format-select { font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border);
-                           border-radius: 6px; color: var(--text); font-family: inherit; }
+                              font-family: var(--ds-font-sans);
+                              font-size: 13px; line-height: 18px; font-weight: 400;  /* tokens.json Body.caption */
+                              color: var(--ds-text-secondary); }
+  .meeting-info-grid input {
+    height: var(--ds-control-h-desktop);
+    padding: 0 12px;
+    border: 1px solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .meeting-info-grid input::placeholder { color: var(--ds-text-placeholder); }
+  .meeting-info-grid input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  @media (max-width: 479px) {
+    .meeting-info-grid { grid-template-columns: 1fr; gap: var(--ds-space-3); }
+    .meeting-info-grid label { font-size: 12px; line-height: 16px; }  /* Body.caption-mobile */
+    .meeting-info-grid input { height: var(--ds-control-h-mobile); width: 100%; }
+  }
+  /* SDLCAIP2-54: #template-select / #export-format-select now use .input (204-220-range
+     class below) instead of these dedicated ID rules — see .input mobile-width-neutralizing
+     override further below (near .input definition) */
 
   .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
   .action-table th { background: var(--bg); padding: 10px 14px; text-align: left;
@@ -268,42 +362,135 @@
   .ds-table-scroll { width: 100%; overflow-x: auto; }
   @media (max-width: 479px) {
     #view-admin .action-table { min-width: 560px; }
+    #view-history .action-table { min-width: 420px; }
+    #view-result .action-table { min-width: 500px; }
   }
 
-  .decision-list { list-style: none; }
-  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--border);
-                      display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; }
-  .decision-list li:last-child { border-bottom: none; }
-  .decision-list li::before { content: "✓"; color: var(--success); font-weight: 700; flex-shrink: 0; }
+  /* ===== SDLCAIP2-55: view-result scoped overrides (does not modify .action-table base above) ===== */
+  #view-result .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-result .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
 
-  .topic-item { border: 1px solid var(--border); border-radius: 8px;
+  /* ===== SDLCAIP2-50: view-history scoped overrides (does not modify .action-table/.empty-state base above) ===== */
+  #view-history .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history .empty-state {
+    color: var(--ds-text-secondary);
+  }
+
+  /* ===== SDLCAIP2-48: view-history-detail scoped overrides (does not modify shared bases above) ===== */
+  #view-history-detail .section-title {
+    font-size: 18px;   /* tokens.json Heading.h2 */
+    line-height: 26px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  @media (max-width: 479px) {
+    #view-history-detail .section-title {
+      font-size: 17px;  /* tokens.json Heading.h2-mobile */
+      line-height: 24px;
+    }
+  }
+  #view-history-detail .action-table th {
+    background: var(--ds-badge-bg);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history-detail .action-table td {
+    color: var(--ds-text-primary);
+    border-bottom: 1px solid var(--ds-border);
+    font-family: var(--ds-font-sans);
+    font-size: 13px;
+  }
+  #view-history-detail .empty-state {
+    color: var(--ds-text-secondary);
+  }
+  @media (max-width: 479px) {
+    #view-history-detail .action-table { min-width: 500px; }
+  }
+
+  /* SDLCAIP2-55: .decision-list — shared only by view-result & view-history-detail, modify shared body */
+  .decision-list { list-style: none; }
+  .decision-list li { padding: 8px 0; border-bottom: 1px solid var(--ds-border);
+                      display: flex; align-items: flex-start; gap: 10px;
+                      font-family: var(--ds-font-sans);
+                      font-size: 15px; line-height: 28px; font-weight: 400; }  /* tokens.json Body.body */
+  .decision-list li:last-child { border-bottom: none; }
+  .decision-list li::before { content: "✓"; color: var(--ds-text-primary); font-weight: 700; flex-shrink: 0; }
+
+  /* SDLCAIP2-55: .topic-item/.topic-header/.topic-body — shared only by view-result & view-history-detail */
+  .topic-item { border: 1px solid var(--ds-border); border-radius: 8px;
                 margin-bottom: 10px; overflow: hidden; }
   .topic-header { padding: 12px 16px; cursor: pointer; font-weight: 500;
-                  display: flex; justify-content: space-between; background: var(--bg); }
-  .topic-header:hover { background: #F1F5F9; }
-  .topic-body { padding: 12px 16px; font-size: .875rem; color: var(--muted);
+                  display: flex; justify-content: space-between;
+                  background: var(--ds-badge-bg);
+                  color: var(--ds-text-primary); }
+  .topic-header:hover { background: var(--ds-border); }
+  .topic-body { padding: 12px 16px; font-size: .875rem;
+                color: var(--ds-text-secondary);
+                font-family: var(--ds-font-sans);
                 line-height: 1.6; display: none; }
   .topic-body.open { display: block; }
 
   /* TRANSCRIPT */
+  /* SDLCAIP2-56：.seg-row/.seg-time/.seg-text 套用 --ds-* token（border 灰階、
+     .seg-time 對應 tokens.json Mono.code、.seg-text 對應 Body.body） */
   #transcript-container { max-height: 500px; overflow-y: auto; }
-  .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border);
+  .seg-row { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--ds-border);
              align-items: flex-start; font-size: .875rem; }
   .seg-row:last-child { border-bottom: none; }
-  .seg-time { min-width: 80px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .seg-time { min-width: 80px; color: var(--ds-text-secondary); font-variant-numeric: tabular-nums;
+              font-family: var(--ds-font-mono); font-size: 13px; line-height: 18px; }
   .seg-speaker { min-width: 100px; }
-  .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: 999px;
-                  font-size: .75rem; font-weight: 600; cursor: pointer; }
-  .seg-text { flex: 1; line-height: 1.5; }
+  /* SDLCAIP2-56 AC4：只套用 --ds-radius-pill + caption 字級，行內動態 background 指派邏輯不變 */
+  .speaker-chip { display: inline-block; padding: 2px 10px; border-radius: var(--ds-radius-pill);
+                  font-size: 13px; font-weight: 600; cursor: pointer; }
+  .seg-text { flex: 1; color: var(--ds-text-primary); font-family: var(--ds-font-sans);
+              font-size: 15px; line-height: 28px; }
+  @media (max-width: 479px) {
+    .seg-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 0; }
+    .seg-time { min-width: 0; }
+    .seg-speaker { min-width: 0; }
+    .seg-text { width: 100%; }
+  }
 
   /* SPEAKER RENAME */
-  #speaker-rename-area { background: #F0FDF4; border: 1px solid #BBF7D0;
-                         border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
-  #speaker-rename-area h4 { font-size: .85rem; color: var(--success); margin-bottom: 10px; font-weight: 600; }
+  /* SDLCAIP2-56 AC2：灰階 token 比照 .card（background/border/radius），h4 用
+     --ds-text-secondary（操作說明文字，非卡片主標題），不留綠色/強調色 */
+  #speaker-rename-area { background: var(--ds-surface); border: 1px solid var(--ds-border);
+                         border-radius: var(--ds-radius-md); padding: 14px 18px; margin-bottom: 20px; }
+  #speaker-rename-area h4 { font-size: .85rem; color: var(--ds-text-secondary); margin-bottom: 10px; font-weight: 600; }
   .rename-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .rename-row label { min-width: 100px; font-size: .85rem; font-weight: 500; }
-  .rename-row input { border: 1px solid var(--border); border-radius: 5px;
-                      padding: 5px 10px; font-size: .85rem; flex: 1; max-width: 200px; }
+  .rename-row input { border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-sm);
+                      height: var(--ds-control-h-desktop); padding: 0 12px; font-size: .85rem;
+                      flex: 1; max-width: 200px; box-sizing: border-box; }
+  @media (max-width: 479px) {
+    .rename-row input { height: var(--ds-control-h-mobile); }
+  }
 
   /* MODIFIED BADGE */
   #modified-badge { display: none; padding: 4px 12px; border-radius: 999px;
@@ -379,9 +566,8 @@
   <!-- ============ UPLOAD VIEW ============ -->
   <div id="view-upload" class="view active">
     <div class="card">
-      <h2 style="font-size:1.2rem;margin-bottom:24px;">📤 上傳錄音檔</h2>
+      <h2 style="font-size:1.2rem;margin-bottom:24px;">上傳錄音檔</h2>
       <div id="drop-zone">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
         <strong>拖放錄音檔至此，或點擊選取</strong>
         <p>支援 MP3 / WAV / M4A｜最長 2 小時</p>
       </div>
@@ -392,7 +578,6 @@
       </div>
       <div style="margin-top:20px;">
         <button class="btn btn-primary" id="upload-btn" disabled onclick="doUpload()">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M2 20h20"/></svg>
           開始處理
         </button>
         <span id="upload-error" style="color:var(--danger);font-size:.85rem;margin-left:14px;"></span>
@@ -406,29 +591,29 @@
   <!-- ============ PROGRESS VIEW ============ -->
   <div id="view-progress" class="view">
     <div class="card">
-      <h2 style="font-size:1.2rem;margin-bottom:8px;">⚙️ 處理中...</h2>
-      <p id="progress-message" style="color:var(--muted);font-size:.875rem;margin-bottom:20px;"></p>
+      <h2 style="font-size:1.2rem;margin-bottom:8px;font-family:var(--ds-font-sans);">處理中...</h2>
+      <p id="progress-message"></p>
       <div class="progress-bar-wrap">
         <div class="progress-bar" id="progress-bar" style="width:0%"></div>
       </div>
       <div class="progress-pct" id="progress-pct">0%</div>
       <div class="stage-list" id="stage-list">
         <div class="stage-item" id="stage-uploaded">
-          <div class="stage-icon waiting" id="icon-uploaded">📤</div>
+          <div class="stage-icon waiting" id="icon-uploaded"></div>
           <div>
             <div class="stage-label">上傳完成</div>
             <div class="stage-msg">驗證格式與時長</div>
           </div>
         </div>
         <div class="stage-item" id="stage-transcribed">
-          <div class="stage-icon waiting" id="icon-transcribed">🎙️</div>
+          <div class="stage-icon waiting" id="icon-transcribed"></div>
           <div>
             <div class="stage-label">語音轉文字 + 說話者識別</div>
             <div class="stage-msg">處理中（轉錄 + 發言人同步完成）</div>
           </div>
         </div>
         <div class="stage-item" id="stage-done">
-          <div class="stage-icon waiting" id="icon-done">✨</div>
+          <div class="stage-icon waiting" id="icon-done"></div>
           <div>
             <div class="stage-label">AI 整理會議紀錄</div>
             <div class="stage-msg">摘要與整理</div>
@@ -441,18 +626,18 @@
 
   <!-- ============ RESULT VIEW ============ -->
   <div id="view-result" class="view">
-    <h2 style="font-size:1.2rem;margin-bottom:4px;">📋 會議紀錄</h2>
-    <p id="result-meta" style="color:var(--muted);font-size:.8rem;margin-bottom:16px;"></p>
+    <h2>會議紀錄</h2>
+    <p id="result-meta"></p>
     <div class="btn-row" style="align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div class="btn-row" id="result-action-group-content" style="align-items:center;">
         <span id="modified-badge">● 未儲存修改</span>
         <span id="low-confidence-badge">⚠ 偵測到的語言信心水準較低，逐字稿可能不夠準確</span>
         <label style="font-size:.8rem;color:var(--muted);">模板
-          <select id="template-select"></select>
+          <select id="template-select" class="input"></select>
         </label>
         <button class="btn btn-outline btn-sm" id="regenerate-btn" onclick="regenerateSummary()">重新產生</button>
         <label style="font-size:.8rem;color:var(--muted);">匯出格式
-          <select id="export-format-select">
+          <select id="export-format-select" class="input">
             <option value="markdown">Markdown</option>
             <option value="plaintext">純文字</option>
             <option value="docx">Word</option>
@@ -468,8 +653,8 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" id="tab-btn-minutes" onclick="switchTab('minutes')">📝 會議紀錄</button>
-      <button class="tab" id="tab-btn-transcript" onclick="switchTab('transcript')">🎙 逐字稿</button>
+      <button class="tab active" id="tab-btn-minutes" onclick="switchTab('minutes')">會議紀錄</button>
+      <button class="tab" id="tab-btn-transcript" onclick="switchTab('transcript')">逐字稿</button>
     </div>
 
     <!-- MINUTES TAB -->
@@ -497,10 +682,12 @@
       </div>
       <div class="card">
         <div class="section-title">待辦事項</div>
-        <table class="action-table">
-          <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
-          <tbody id="action-tbody"></tbody>
-        </table>
+        <div class="ds-table-scroll">
+          <table class="action-table">
+            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+            <tbody id="action-tbody"></tbody>
+          </table>
+        </div>
       </div>
       <div class="card">
         <div class="section-title">決定事項</div>
@@ -515,7 +702,7 @@
     <!-- TRANSCRIPT TAB -->
     <div id="tab-transcript" style="display:none;">
       <div id="speaker-rename-area" style="display:none;">
-        <h4>🎤 發言人重命名（點擊輸入框修改名稱）</h4>
+        <h4>發言人重命名（點擊輸入框修改名稱）</h4>
         <div id="rename-rows"></div>
         <p style="font-size:.8rem; color:#64748B; margin:8px 0;">
           提示：講者命名只會更新此逐字稿分頁與匯出檔案，不會更新「會議紀錄」分頁的參與者／待辦事項負責人。
@@ -531,11 +718,13 @@
   <!-- ============ HISTORY LIST VIEW（SDLCAIP2-32） ============ -->
   <div id="view-history" class="view">
     <div class="card">
-      <div class="section-title">📜 歷史紀錄</div>
-      <table class="action-table" id="history-table" style="display:none;">
-        <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
-        <tbody id="history-tbody"></tbody>
-      </table>
+      <div class="section-title">歷史紀錄</div>
+      <div class="ds-table-scroll">
+        <table class="action-table" id="history-table" style="display:none;">
+          <thead><tr><th>標題</th><th>建立時間</th></tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
       <div id="history-empty" class="empty-state" style="display:none;">
         <p>尚無已保留的會議紀錄</p>
       </div>
@@ -545,11 +734,11 @@
   <!-- ============ HISTORY DETAIL VIEW（SDLCAIP2-32，唯讀） ============ -->
   <div id="view-history-detail" class="view">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--ds-space-2);">
         <h2 id="history-detail-title" style="font-size:1.2rem;"></h2>
         <div class="btn-row">
-          <button class="btn btn-outline btn-sm" id="history-edit-btn" onclick="enableHistoryEditMode()">✏️ 編輯</button>
-          <button class="btn btn-primary btn-sm" id="history-save-btn" style="display:none;" onclick="saveHistoryEdit()">💾 儲存</button>
+          <button class="btn btn-outline btn-sm" id="history-edit-btn" onclick="enableHistoryEditMode()">編輯</button>
+          <button class="btn btn-primary btn-sm" id="history-save-btn" style="display:none;" onclick="saveHistoryEdit()">儲存</button>
           <button class="btn btn-outline btn-sm" id="history-cancel-btn" style="display:none;" onclick="cancelHistoryEdit()">取消</button>
           <button class="btn btn-outline btn-sm" onclick="showView('view-history')">← 返回歷史列表</button>
         </div>
@@ -578,8 +767,8 @@
         </div>
       </div>
       <div class="tabs">
-        <button class="tab active" id="history-tab-btn-minutes" onclick="switchHistoryTab('minutes')">📝 會議紀錄</button>
-        <button class="tab" id="history-tab-btn-transcript" onclick="switchHistoryTab('transcript')">🎙 逐字稿</button>
+        <button class="tab active" id="history-tab-btn-minutes" onclick="switchHistoryTab('minutes')">會議紀錄</button>
+        <button class="tab" id="history-tab-btn-transcript" onclick="switchHistoryTab('transcript')">逐字稿</button>
       </div>
       <div id="history-tab-minutes">
         <div class="card">
@@ -588,10 +777,12 @@
         </div>
         <div class="card">
           <div class="section-title">待辦事項</div>
-          <table class="action-table">
-            <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
-            <tbody id="history-action-tbody"></tbody>
-          </table>
+          <div class="ds-table-scroll">
+            <table class="action-table">
+              <thead><tr><th>負責人</th><th>工作事項</th><th>截止時間</th></tr></thead>
+              <tbody id="history-action-tbody"></tbody>
+            </table>
+          </div>
         </div>
         <div class="card">
           <div class="section-title">決定事項</div>

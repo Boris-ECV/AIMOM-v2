@@ -103,25 +103,25 @@ test.describe("Design System｜管理者儀表板頁 view-admin（SDLCAIP2-45）
     expect(adminTdStyles.color).toBe("rgb(31, 30, 28)"); // --ds-text-primary
     expect(adminTdStyles.borderBottomColor).toBe("rgb(228, 227, 223)"); // --ds-border
 
-    // 關鍵回歸保護：view-result 的共用 .action-table 基底規則不得被 view-admin 的範圍限定選取器影響
+    // SDLCAIP2-55 supersedes this block's original assertions: #view-result now has its own
+    // scoped .action-table override (same token values as #view-admin's, by design — see
+    // SDLCAIP2-55 design doc decision 4, "同元件同外觀"), so the old "unaffected/old --bg,
+    // --muted, --border" expectations no longer hold. Assert the new, intentionally-matching
+    // values instead; this still protects against the two scoped selectors interfering with
+    // each other's non-shared aspects (both now happen to render identically, which is correct).
     await openViewResultWithRow(page);
     const resultTh = page.locator("#view-result .action-table th").first();
     const resultThStyles = await resultTh.evaluate((el) => {
       const cs = getComputedStyle(el);
       return { background: cs.backgroundColor, color: cs.color, borderBottomColor: cs.borderBottomColor };
     });
-    expect(resultThStyles.background).toBe("rgb(248, 250, 252)"); // 舊 --bg #F8FAFC，未被覆寫
-    expect(resultThStyles.color).toBe("rgb(100, 116, 139)"); // 舊 --muted #64748B，未被覆寫
-    expect(resultThStyles.borderBottomColor).toBe("rgb(226, 232, 240)"); // 舊 --border #E2E8F0，未被覆寫
-    // 確認明確不等於新 view-admin 專用 token 數值
-    expect(resultThStyles.background).not.toBe("rgb(239, 238, 234)");
-    expect(resultThStyles.color).not.toBe("rgb(107, 106, 100)");
-    expect(resultThStyles.borderBottomColor).not.toBe("rgb(228, 227, 223)");
+    expect(resultThStyles.background).toBe("rgb(239, 238, 234)"); // --ds-badge-bg (SDLCAIP2-55 AC4)
+    expect(resultThStyles.color).toBe("rgb(107, 106, 100)"); // --ds-text-secondary (SDLCAIP2-55 AC4)
+    expect(resultThStyles.borderBottomColor).toBe("rgb(228, 227, 223)"); // --ds-border (SDLCAIP2-55 AC4)
 
     const resultTd = page.locator("#view-result .action-table td").first();
     const resultTdBorder = await resultTd.evaluate((el) => getComputedStyle(el).borderBottomColor);
-    expect(resultTdBorder).toBe("rgb(226, 232, 240)"); // 舊 --border，未被覆寫
-    expect(resultTdBorder).not.toBe("rgb(228, 227, 223)");
+    expect(resultTdBorder).toBe("rgb(228, 227, 223)"); // --ds-border (SDLCAIP2-55 AC4)
   });
 
   test("AC3: 「依日期」「依使用者」子標題套用 design-system 字體規則", async ({ page }) => {

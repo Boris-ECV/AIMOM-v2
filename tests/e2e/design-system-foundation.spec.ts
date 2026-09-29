@@ -168,14 +168,7 @@ test.describe("Design System 基礎建設（SDLCAIP2-44）", () => {
     expect(historyBtnText).not.toContain("📜");
     expect(historyBtnText.trim()).toBe("歷史紀錄");
 
-    // view-history 畫面內容區塊自身的「📜 歷史紀錄」section-title 不在本工單範圍，應維持不動
-    await page.route("**/api/meetings", async (route) => {
-      await route.fulfill({ status: 200, json: { meetings: [] } });
-    });
-    await page.locator("#history-nav-btn").click();
-    await expect(page.locator("#view-history")).toBeVisible();
-    const sectionTitleText = await page.locator("#view-history .section-title").first().evaluate((el) => el.textContent || "");
-    expect(sectionTitleText).toContain("📜");
+    // view-history section-title 的 📜 已由 SDLCAIP2-50 移除，改由該工單的測試驗證
   });
 
   test("AC7: 頁首 RWD — 桌面版（≥480px）維持單列", async ({ page }) => {
