@@ -375,6 +375,26 @@ Do NOT read docs/03/04/05/07 at bootstrap; read them only when needed.
   and rerun after a fresh `pip install -e` before trusting a "FAIL".
   A per-worktree virtualenv would remove this class of failure
   entirely; until this project has one, this is a known sharp edge.
+- **Git worktree isolation does NOT isolate Playwright's local e2e
+  servers either.** `playwright.config.ts` starts the frontend on a
+  fixed port (4173) and the backend on its own fixed port, both with
+  `reuseExistingServer: !process.env.CI`. Locally (no `CI` env), a
+  second `npx playwright test` started in another worktree while the
+  first is still running silently reuses the FIRST worktree's server —
+  it tests the other branch's frontend and reports pass/fail for code it
+  never loaded, with no error. Observed in this framework's pilot
+  (session38, 2026-09-24, SDLCAIP2-47/50): two parallel developer
+  subagents each ran the full e2e suite at the same time; one run
+  demonstrably served its own branch, the other's "70/70 passed" could
+  not be attributed to any branch and had to be discarded. **Rule:**
+  (1) never let two worktrees run e2e at the same time — when parallel
+  tickets reach a step that runs Playwright (developer self-check,
+  tester, orchestrator re-verification), serialize those steps; (2)
+  always run e2e as `CI=1 npx playwright test --workers=1` in
+  delegation prompts and in your own verification, so a port collision
+  fails loudly instead of reusing a foreign server; (3) if an e2e result
+  was produced while another worktree may have been running e2e, treat
+  it as unverified and rerun before writing it into a Jira comment.
 - **Sequential (one-ticket-at-a-time) delegation still needs care in
   the shared checkout — it is not exempt from git-state races.** Two
   confirmed failure modes from this framework's pilot, neither
