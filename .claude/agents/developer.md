@@ -32,7 +32,16 @@ what the requirement spec says — nothing more, nothing less.
    heuristic on every call with no allowlist escape. Call the venv's
    binary directly instead: `<venv>/Scripts/python.exe -m <cmd>` (e.g.
    `.venv/Scripts/python.exe -m pytest -q`), same effect, no prompt.
-5. Push the branch.
+5. Push the branch. **Never force-push** (`--force`, `--force-with-lease`)
+   and never amend or rebase commits that are already pushed — the story
+   branch is shared with the tester, reviewer and orchestrator. If a
+   pushed commit needs fixing, add a new commit on top.
+6. If your change alters the computed style of an existing selector,
+   grep `tests/e2e/` for tests asserting two elements' styles are equal
+   (e.g. `toEqual(referenceStyle)`, "一致") that involve that selector,
+   and follow the chain transitively. If one would break and fixing it
+   means touching an element outside your spec's scope, STOP and report
+   it as BLOCKED — do not extend scope or edit the test.
 
 ## Output format (return to orchestrator)
 Concise summary ≤ 30 lines:
