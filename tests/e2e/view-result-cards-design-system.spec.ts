@@ -12,8 +12,8 @@ import { test, expect, type Page } from "@playwright/test";
 // AC2 - .meeting-info-grid label/input token 化，focus-visible outline，<480px 單欄，
 //       onchange markModified() 回歸
 // AC3 - #summary-text Body token 化，contenteditable 編輯提示色 token 化
-// AC4 - #view-result .action-table th/td token 化；CROSS-VIEW LEAK GUARD：
-//       #view-history-detail .action-table th 維持舊共用本體值
+// AC4 - #view-result .action-table th/td token 化；原 CROSS-VIEW LEAK GUARD（#view-history-detail
+//       .action-table th 維持舊共用本體值）已於 SDLCAIP2-48 AC4 取代，該視圖也改用相同 token 值
 // AC5 - .decision-list li 邊框/li::before 顏色 token 化，不留舊綠色
 // AC6 - .topic-item/.topic-header/.topic-body token 化，hover、toggleTopic() 回歸
 // AC7 - <480px 待辦事項表格捲動容器，不造成頁面級橫向溢出
@@ -229,19 +229,16 @@ test.describe("Design System｜view-result 會議紀錄分頁五張卡片（SDLC
     await expect(td).toHaveCSS("border-bottom-color", border);
     await expect(td).toHaveCSS("font-size", "13px");
 
-    // CROSS-VIEW LEAK GUARD: view-history-detail 的 .action-table th 未被此票範圍限定規則
-    // 覆寫，應維持舊共用本體值（var(--bg)/var(--muted)/var(--border)），不是 --ds-badge-bg
+    // 原 CROSS-VIEW LEAK GUARD 斷言 view-history-detail 的 .action-table th 維持舊共用本體值，
+    // 已被 SDLCAIP2-48 AC4 取代（superseded by SDLCAIP2-48 AC4）：該票為 #view-history-detail
+    // 新增了與 #view-result 相同數值的範圍限定覆寫規則，此處改為斷言新 token 值一致。
     await openViewHistoryDetail(page);
     const detailTh = page.locator("#view-history-detail .action-table th").first();
     await expect(detailTh).toBeVisible();
-    await expect(detailTh).not.toHaveCSS("background-color", badgeBg);
-    await expect(detailTh).not.toHaveCSS("color", textSecondary);
-    const oldBg = await resolveToken(page, "background-color", "var(--bg)");
-    const oldMuted = await resolveToken(page, "color", "var(--muted)");
-    const oldBorder = await resolveToken(page, "border-bottom-color", "var(--border)");
-    await expect(detailTh).toHaveCSS("background-color", oldBg);
-    await expect(detailTh).toHaveCSS("color", oldMuted);
-    await expect(detailTh).toHaveCSS("border-bottom-color", oldBorder);
+    await expect(detailTh).toHaveCSS("background-color", badgeBg);
+    await expect(detailTh).toHaveCSS("color", textSecondary);
+    await expect(detailTh).toHaveCSS("border-bottom-color", border);
+    await expect(detailTh).toHaveCSS("font-size", "13px");
   });
 
   test("AC5: .decision-list li 邊框/li::before 顏色 token 化，不留舊綠色", async ({ page }) => {

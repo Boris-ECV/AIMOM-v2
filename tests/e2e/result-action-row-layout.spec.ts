@@ -52,7 +52,8 @@ test.describe("結果頁操作列排版與按鈕文字（SDLCAIP2-42）", () => 
     const view = page.locator("#view-result");
     const heading = view.locator("h2").first();
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveText("📋 會議紀錄");
+    // superseded by SDLCAIP2-54 AC1: h2 emoji removed ("📋 會議紀錄" -> "會議紀錄")
+    await expect(heading).toHaveText("會議紀錄");
 
     const meta = page.locator("#result-meta");
     const headingBox = await heading.boundingBox();

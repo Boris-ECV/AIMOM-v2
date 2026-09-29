@@ -123,13 +123,14 @@ test.describe("Design System｜歷史紀錄列表頁 view-history（SDLCAIP2-50�
     await expect(page.locator("#history-empty")).toBeVisible();
     await expect(page.locator("#history-empty")).toHaveCSS("color", "rgb(107, 106, 100)"); // --ds-text-secondary
 
-    // 關鍵回歸保護：另一個共用 .empty-state（#history-detail-error，404 情境）不得被本票覆寫
+    // superseded by SDLCAIP2-48 AC5: #history-detail-error 位於 #view-history-detail 容器內，
+    // 該票新增 #view-history-detail .empty-state 範圍限定覆寫（AC5），已不再是舊 --muted 值。
     await page.route("**/api/meetings/m-missing", async (route) => {
       await route.fulfill({ status: 404, json: { detail: "找不到此會議紀錄" } });
     });
     await page.evaluate(() => (0, eval)("openMeetingDetail")("m-missing"));
     await expect(page.locator("#history-detail-error")).toBeVisible();
-    await expect(page.locator("#history-detail-error")).toHaveCSS("color", "rgb(100, 116, 139)"); // 舊 --muted，未被覆寫
+    await expect(page.locator("#history-detail-error")).toHaveCSS("color", "rgb(107, 106, 100)"); // --ds-text-secondary (SDLCAIP2-48 AC5)
   });
 
   test("AC4: .section-title 文字無裝飾性 emoji，為「歷史紀錄」", async ({ page }) => {
