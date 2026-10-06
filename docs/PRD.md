@@ -1455,3 +1455,103 @@ Feature: Design System｜歷史紀錄詳情頁 view-history-detail
 ### 狀態
 
 G1 approved 2026-09-25 → Designing
+
+---
+
+## SDLCAIP2-61：ALLOWED_EMAILS 登入白名單未串接至 Terraform infra
+
+### 使用者故事
+
+As a 系統維運者, I want ALLOWED_EMAILS 白名單設定能透過 Terraform 正常部署到 Lambda 並且不被 CD 覆蓋清除, so that 正式環境的登入白名單限制能真正生效。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: ALLOWED_EMAILS Terraform 串接
+
+  Scenario: Terraform 變數可設定 ALLOWED_EMAILS
+    Given infra/variables.tf、infra/lambda.tf、infra/terraform.tfvars.example、.github/workflows/ci.yml 尚未新增 allowed_emails 設定
+    When 本工單的變更合併後
+    Then infra/variables.tf 新增 allowed_emails 變數定義（sensitive=true）
+    And infra/terraform.tfvars.example 新增示範值
+    And infra/lambda.tf 的環境變數映射新增 ALLOWED_EMAILS 對應
+    And .github/workflows/ci.yml 的敏感變數注入清單新增 TF_VAR_allowed_emails
+
+  Scenario: CD 自動部署不會清除此設定
+    Given ALLOWED_EMAILS 已透過 Terraform 部署到 Lambda 環境變數
+    When GitHub Actions 執行 terraform apply（後續部署流程）
+    Then Lambda 環境變數中的 ALLOWED_EMAILS 值維持不變，不被覆蓋或清除
+
+  Scenario: 白名單機制串接後實際生效
+    Given ALLOWED_EMAILS 已透過 Terraform 正確部署
+    And src/auth.py、src/config.py 的應用層邏輯已在 SDLCAIP2-23 完成
+    When Lambda 接收登入請求時讀取環境變數中的 ALLOWED_EMAILS
+    Then 應用層邏輯能正確讀取並套用白名單限制（不在白名單內的 email 回傳 403）
+```
+
+### 範圍外
+
+* 多環境部署（staging/prod 分離）
+* src/auth.py、src/config.py 應用層邏輯修改（SDLCAIP2-23 已完成）
+* 實際白名單 email 清單內容設定（人類於 GitHub Secrets/terraform.tfvars 另行設定）
+
+### 依賴
+
+* SDLCAIP2-23（已 Done）
+
+### 狀態
+
+G1 approved 2026-10-06 → Designing
+
+---
+
+## SDLCAIP2-62：UI 調整 — 登入頁/處理中文案簡化、頁首導覽列靠右修正、次要按鈕視覺區隔
+
+### 使用者故事
+
+身為使用本系統的所有使用者（含管理者與非管理者），我希望登入頁文案更簡潔、處理中訊息不透露技術細節、頁首導覽列在任何身分下都正確靠右、結果頁次要操作按鈕在視覺上與主要按鈕有明確區隔。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: UI 調整 — 文案與版面修正
+
+  Scenario: AC1 登入頁文案簡化
+    Given 使用者尚未登入，看到登入頁（#auth-gate）
+    When 頁面載入完成
+    Then 標題不含 🔐 圖示，顯示為「會議錄音轉紀錄系統」
+    And 不再顯示「請先登入才能使用」這行文字
+
+  Scenario: AC2 處理中頁面文案簡化
+    Given 使用者已上傳檔案，進入處理中畫面
+    When 後端執行到摘要整理階段（summarize 流程）
+    Then 進度訊息顯示「正在整理會議紀錄...」，不含「AI」字樣
+
+  Scenario: AC3 頁首導覽列靠右修正（管理者與非管理者皆須正確）
+    Given 使用者已登入，角色為「非管理者」
+    When 查看桌面版頁首（≥480px）
+    Then 標題（含副標題）靠左，操作群組（歷史紀錄、使用者 email、登出）整體靠右對齊
+    Given 使用者已登入，角色為「管理者」
+    When 查看桌面版頁首
+    Then 標題靠左，操作群組（含管理者儀表板按鈕）整體靠右對齊，行為與目前一致（不可回歸）
+    修法方向：根因是 #admin-dashboard-btn 的 margin-left:auto 僅在該按鈕可見時才生效；應將 margin-left:auto 移至操作群組容器本身
+
+  Scenario: AC4 次要按鈕視覺區隔（全站 .btn-outline class，16 處使用）
+    Given 任一頁面顯示使用 .btn-outline class 的按鈕
+    When 使用者檢視該按鈕
+    Then 按鈕底色為淡灰色，且視覺權重明顯低於 .btn-primary
+```
+
+### 範圍外
+
+* 後端 API 或商業邏輯變更
+* .btn-primary 現有樣式
+* e2e 測試案例的撰寫與涵蓋範圍（留給 Testing 階段自行宣告）
+
+### 依賴
+
+* 無
+
+### 狀態
+
+G1 approved 2026-10-06 → Designing
