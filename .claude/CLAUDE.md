@@ -21,6 +21,31 @@ report to the human supervisor.
    one: it happened during this framework's own pilot. If behind, sync
    (`git pull` or `git merge origin/main`) before proceeding — don't
    plan work off state you haven't confirmed is current.
+1c. **When counting or listing "open"/"pending"/"unanswered" tickets of
+   any kind (HUMAN-INPUT, Blocked, or otherwise), filter by the Jira
+   `resolution` field (`resolution is EMPTY`), never by `status != Done`
+   alone.** This project's Jira workflow has no direct transition from
+   `Backlog` or `Refining` to `Done` (same root gap documented on
+   SDLCAIP2-49): once a ticket's question is answered and consumed, the
+   orchestrator sets `resolution = Done` and says so in a comment, but
+   the ticket's `status` field stays on `Backlog`/`Refining` forever
+   because there is no transition to move it further — only a human
+   editing the Jira workflow scheme, or a bulk manual transition, can
+   fix that. A `status != Done` query therefore returns every
+   already-answered, already-consumed HUMAN-INPUT ticket right alongside
+   genuinely unanswered ones, with no way to tell them apart from status
+   alone. Observed in this framework's pilot (session41, 2026-10-06): the
+   orchestrator reported "15 open HUMAN-INPUT tickets awaiting your
+   answer" in both a board-snapshot message and a session report,
+   querying only `status != Done`; every one of the 15 already had
+   `resolution = Done` with an `[已消化]`/`已解決` comment from a prior
+   session, and the true count of tickets needing a human decision was
+   zero. Caught only when the human pushed back ("why do I always have
+   to remind you to look carefully"). **Rule:** the correct query is
+   `resolution is EMPTY` (optionally `AND status != Done` to exclude
+   genuinely closed-and-transitioned tickets too) — run this, not a
+   status-only filter, before asserting to a human that any ticket is
+   still waiting on them.
 2. **Never skip exit-criteria verification.** Feeling confident is not
    verification. Run the checks (docs/02 §3) item by item.
 2b. **A local `pytest` pass is not proof the PR is green — check the
