@@ -177,10 +177,10 @@ test.describe("Design System 基礎建設（SDLCAIP2-44）", () => {
     const headerHeight = await header.evaluate((el) => getComputedStyle(el).height);
     expect(headerHeight).toBe("72px"); // --ds-header-h-desktop, 單列高度
 
-    // 桌面版 .header-secondary 為 display:contents，讓子元素直接參與 header 排版
-    // （因此 .header-secondary 本身沒有 boundingBox，改用其子元素驗證是否同列）
+    // SDLCAIP2-62 AC3: 桌面版 .header-secondary 改為 display:flex + margin-left:auto，
+    // 讓操作群組整體靠右對齊（舊版 display:contents 錨點已改放在容器本身，見設計文件決策 1）
     const secondaryDisplay = await page.locator(".header-secondary").evaluate((el) => getComputedStyle(el).display);
-    expect(secondaryDisplay).toBe("contents");
+    expect(secondaryDisplay).toBe("flex");
 
     const titleBox = await page.locator("header h1").boundingBox();
     const logoutBox = await page.locator("header > .btn").boundingBox();
@@ -236,5 +236,106 @@ test.describe("Design System 基礎建設（SDLCAIP2-44）", () => {
     expect(rootVars.bg).toBe("#F8FAFC");
     expect(rootVars.border).toBe("#E2E8F0");
     expect(rootVars.primary).toBe("#2563EB");
+  });
+});
+
+// SDLCAIP2-62 AC3: 頁首導覽列靠右修正（管理者與非管理者皆須正確）
+test.describe("頁首導覽列靠右修正（SDLCAIP2-62）", () => {
+  test("AC3: 非管理者桌面版 — 標題靠左、操作群組整體靠右對齊", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await loginBypass(page);
+
+    const headerBox = (await page.locator("header").first().boundingBox())!;
+    const titleBox = (await page.locator("header h1").boundingBox())!;
+    const secondaryBox = (await page.locator(".header-secondary").boundingBox())!;
+    const logoutBox = (await page.locator("header > .btn").boundingBox())!;
+
+    // 標題靠左：緊貼 header 左側
+    expect(titleBox.x - headerBox.x).toBeLessThan(40);
+    // 操作群組（含登出按鈕）整體靠右：右邊界應接近 header 右邊界
+    const rightmostEdge = Math.max(secondaryBox.x + secondaryBox.width, logoutBox.x + logoutBox.width);
+    expect(headerBox.x + headerBox.width - rightmostEdge).toBeLessThan(40);
+    // 操作群組應明顯在標題右側，而非緊鄰（代表中間有彈性間距把它推到右邊）
+    expect(secondaryBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
+  });
+
+  test("AC3: 管理者桌面版 — 標題靠左、操作群組（含管理者儀表板按鈕）整體靠右對齊", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    await page.evaluate((token) => {
+      sessionStorage.setItem("id_token", token);
+    }, fakeIdToken("e2e-admin-user@example.com"));
+    await page.route("**/api/me", (route) => route.fulfill({ status: 200, json: { role: "admin" } }));
+    await page.reload();
+    await expect(page.locator("#app-shell")).toBeVisible();
+    await expect(page.locator("#admin-dashboard-btn")).toBeVisible();
+
+    const headerBox = (await page.locator("header").first().boundingBox())!;
+    const titleBox = (await page.locator("header h1").boundingBox())!;
+    const secondaryBox = (await page.locator(".header-secondary").boundingBox())!;
+    const logoutBox = (await page.locator("header > .btn").boundingBox())!;
+    const adminBtnBox = (await page.locator("#admin-dashboard-btn").boundingBox())!;
+
+    expect(titleBox.x - headerBox.x).toBeLessThan(40);
+    const rightmostEdge = Math.max(secondaryBox.x + secondaryBox.width, logoutBox.x + logoutBox.width);
+    expect(headerBox.x + headerBox.width - rightmostEdge).toBeLessThan(40);
+    // 管理者儀表板按鈕屬於操作群組，應與其他操作項同一列（垂直中心接近）
+    const adminMidY = adminBtnBox.y + adminBtnBox.height / 2;
+    const titleMidY = titleBox.y + titleBox.height / 2;
+    expect(Math.abs(adminMidY - titleMidY)).toBeLessThan(5);
+  });
+
+  test("AC3: 手機版（<480px）既有兩列版面不因本次修正劣化", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await loginBypass(page);
+
+    const titleBox = (await page.locator("header h1").boundingBox())!;
+    const logoutBox = (await page.locator("header > .btn").boundingBox())!;
+    const secondaryBox = (await page.locator(".header-secondary").boundingBox())!;
+
+    // 第一列：標題與登出按鈕同列（垂直中心接近）
+    const titleMidY = titleBox.y + titleBox.height / 2;
+    const logoutMidY = logoutBox.y + logoutBox.height / 2;
+    expect(Math.abs(titleMidY - logoutMidY)).toBeLessThan(5);
+
+    // 第二列：次要操作群組在第一列下方，不與標題同列
+    expect(secondaryBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height - 1);
+
+    // 第二列內容較寬時可橫向捲動（既有設計：overflow-x:auto，非本次修正範圍的回歸）
+    const overflowX = await page.locator(".header-secondary").evaluate((el) => getComputedStyle(el).overflowX);
+    expect(overflowX).toBe("auto");
+    // 第二列本身不應超出 viewport 寬度（捲動容器自己不造成整頁橫向溢出）
+    const viewportWidth = await page.evaluate(() => window.innerWidth);
+    expect(secondaryBox.x + secondaryBox.width).toBeLessThanOrEqual(viewportWidth + 1);
+  });
+});
+
+// SDLCAIP2-62 AC4: 次要按鈕視覺區隔（全站 .btn-outline class）
+test.describe("次要按鈕視覺區隔（SDLCAIP2-62 AC4）", () => {
+  test("AC4: .btn-outline 底色為淡灰色，視覺權重明顯低於 .btn-primary", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await loginBypass(page);
+
+    const historyBtn = page.locator("#history-nav-btn"); // .btn.btn-outline.btn-sm
+    const uploadBtn = page.locator("#upload-btn"); // .btn.btn-primary（見 view-upload）
+    // upload-btn 預設 disabled 不影響其 background token 本身，仍可讀取樣式
+    await expect(historyBtn).toBeVisible();
+
+    const outlineStyles = await historyBtn.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { background: cs.backgroundColor, color: cs.color };
+    });
+    // --ds-bg: #F6F5F3（淡灰色），非白色、非與 --ds-ink-100（深色主按鈕）相同
+    expect(outlineStyles.background).toBe("rgb(246, 245, 243)");
+
+    const primaryStyles = await uploadBtn.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { background: cs.backgroundColor, color: cs.color };
+    });
+    // 主按鈕為深色底（--ds-ink-100: #1F1E1C）
+    expect(primaryStyles.background).toBe("rgb(31, 30, 28)");
+
+    // 兩者底色必須明顯不同，次要按鈕視覺權重低於主按鈕
+    expect(outlineStyles.background).not.toBe(primaryStyles.background);
   });
 });

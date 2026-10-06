@@ -10,7 +10,10 @@ test.describe("smoke", () => {
 
     const authGate = page.locator("#auth-gate");
     await expect(authGate).toBeVisible();
-    await expect(authGate).toContainText("請先登入才能使用");
+    // SDLCAIP2-62 AC1: 登入頁文案簡化 — 標題簡化為「會議錄音轉紀錄系統」，
+    // 不再顯示「請先登入才能使用」這行文字（刻意移除，非回歸）。
+    await expect(authGate).toContainText("會議錄音轉紀錄系統");
+    await expect(authGate).not.toContainText("請先登入才能使用");
   });
 
   test("後端健康檢查端點回應成功", async ({ request }) => {
