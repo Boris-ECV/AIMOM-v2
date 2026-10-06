@@ -192,7 +192,7 @@ async def summarize(req: SummarizeRequest, user: CurrentUser = Depends(get_curre
     model = config.get_llm_model()
     system_prompt = _build_system_prompt(template)
 
-    update_progress(job_id, "summarizing", 70, "正在 AI 整理會議紀錄...")
+    update_progress(job_id, "summarizing", 70, "正在整理會議紀錄...")
     try:
         client = config.get_llm_client()
         response = client.chat.completions.create(
