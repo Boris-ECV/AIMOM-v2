@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDLCAIP2-64 原型：使用者白名單</title>
+<style>
+  :root {
+    --danger: #DC2626; --bg: #F8FAFC; --border: #E2E8F0; --text: #1E293B; --muted: #64748B;
+    --ds-bg: #F6F5F3; --ds-surface: #FFFFFF; --ds-border: #E4E3DF; --ds-border-strong: #D2D0CA;
+    --ds-text-primary: #1F1E1C; --ds-text-secondary: #6B6A64; --ds-text-placeholder: #B6B4AC;
+    --ds-ink-100: #1F1E1C; --ds-ink-200: #2C2B28; --ds-badge-bg: #EFEEEA; --ds-badge-border: var(--ds-border);
+    --ds-badge-text: var(--ds-text-secondary); --ds-focus-ring: var(--ds-ink-100);
+    --ds-font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', Arial, sans-serif;
+    --ds-space-1: 8px; --ds-space-2: 12px; --ds-space-3: 16px; --ds-space-5: 24px; --ds-space-6: 32px;
+    --ds-radius-sm: 6px; --ds-radius-md: 10px; --ds-radius-pill: 999px;
+    --ds-control-h-desktop: 40px; --ds-control-h-mobile: 44px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--ds-font-sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+  main { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+  .card { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md);
+          padding: var(--ds-space-6); margin-bottom: var(--ds-space-5); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: var(--ds-control-h-desktop); padding: 0 20px;
+         border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-strong); background: var(--ds-surface);
+         color: var(--ds-text-primary); font-family: var(--ds-font-sans); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn:active { transform: scale(.97); }
+  .btn:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  .btn-primary { background: var(--ds-ink-100); border-color: var(--ds-ink-100); color: var(--ds-bg); }
+  .btn-primary:hover { background: var(--ds-ink-200); }
+  .btn-outline { background: var(--ds-bg); }
+  .btn-outline:hover { background: var(--ds-badge-bg); }
+  .btn-sm { padding: 0 14px; font-size: .8rem; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; color: var(--ds-text-placeholder); }
+  .input { height: var(--ds-control-h-desktop); padding: 0 12px; border: 1px solid var(--ds-border-strong);
+           border-radius: var(--ds-radius-sm); background: var(--ds-surface); color: var(--ds-text-primary);
+           font-family: var(--ds-font-sans); font-size: 14px; }
+  .input::placeholder { color: var(--ds-text-placeholder); }
+  .input:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
+  .section-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .ds-table-scroll { width: 100%; overflow-x: auto; }
+  .action-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .action-table th { padding: 10px 14px; text-align: left; font-weight: 600; background: var(--ds-badge-bg);
+                     color: var(--ds-text-secondary); border-bottom: 1px solid var(--ds-border); font-family: var(--ds-font-sans); font-size: 13px; }
+  .action-table td { padding: 10px 14px; color: var(--ds-text-primary); border-bottom: 1px solid var(--ds-border);
+                     font-family: var(--ds-font-sans); font-size: 13px; }
+  .action-table tr:last-child td { border-bottom: none; }
+
+  /* --- 以下為 SDLCAIP2-64 新增規則（僅作用於 #allowed-users-card） --- */
+  #allowed-users-card .au-form { display: flex; gap: var(--ds-space-2); margin-bottom: var(--ds-space-2); }
+  #allowed-users-card .au-form .input { flex: 1; min-width: 0; }
+  #allowed-users-card .au-msg { font-family: var(--ds-font-sans); font-size: 13px; margin-bottom: var(--ds-space-2); }
+  #allowed-users-card .au-msg[data-kind="error"] { color: var(--danger); }
+  #allowed-users-card .au-msg[data-kind="info"] { display: inline-block; padding: 4px 12px; border-radius: var(--ds-radius-pill);
+      background: var(--ds-badge-bg); border: 1px solid var(--ds-badge-border); color: var(--ds-badge-text); }
+  #allowed-users-card .au-status { font-family: var(--ds-font-sans); font-size: 13px; color: var(--ds-text-secondary);
+      padding: var(--ds-space-3) 0; display: flex; align-items: center; gap: var(--ds-space-2); flex-wrap: wrap; }
+  #allowed-users-card .au-status:empty { display: none; }
+  #allowed-users-card #allowed-users-table { min-width: 0; }
+  #allowed-users-card .au-email { overflow-wrap: anywhere; }
+  #allowed-users-card .au-actions { white-space: nowrap; }
+  #allowed-users-card .au-actions .btn { margin-right: var(--ds-space-1); }
+  #allowed-users-card [hidden] { display: none !important; }
+  @media (max-width: 479px) {
+    .btn { height: var(--ds-control-h-mobile); width: 100%; }
+    .input { height: var(--ds-control-h-mobile); width: 100%; }
+    #allowed-users-card .au-form { flex-direction: column; }
+    #allowed-users-card .au-actions .btn, #allowed-users-card .au-status .btn { width: auto; }
+  }
+
+  /* --- 原型專用控制列（非產品 UI） --- */
+  .proto-bar { background: #FEF3C7; border-bottom: 1px solid #D97706; padding: 12px 24px; font-size: 13px; position: sticky; top: 0; }
+  .proto-bar b { margin-right: 8px; }
+  .proto-bar button { margin: 2px 4px 2px 0; height: 30px; padding: 0 12px; font-size: 12px; cursor: pointer; }
+  .proto-bar button.on { background: var(--ds-ink-100); color: #fff; }
+  .proto-note { color: var(--ds-text-secondary); font-size: 12px; margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<div class="proto-bar">
+  <b>原型狀態（僅示意，不呼叫 API）：</b>
+  <span id="proto-buttons"></span>
+</div>
+
+<main>
+  <p class="proto-note">下方卡片為 #view-admin 內「既有用量卡」之後新增的第二張 .card（用量卡此處省略）。「有資料清單」狀態可實際點「移除」體驗二段式確認。</p>
+
+  <div class="card" id="allowed-users-card">
+    <div class="section-title">使用者白名單</div>
+    <form id="allowed-users-form" class="au-form" novalidate>
+      <input id="allowed-users-input" class="input" type="text" autocomplete="off" placeholder="輸入 email 後新增" aria-label="新增白名單 email">
+      <button id="allowed-users-add-btn" class="btn btn-primary" type="submit">新增</button>
+    </form>
+    <p id="allowed-users-msg" class="au-msg" role="status" hidden></p>
+    <div id="allowed-users-status" class="au-status" role="status">
+      <span id="allowed-users-status-text"></span>
+      <button id="allowed-users-retry-btn" class="btn btn-outline btn-sm" type="button" hidden>重試</button>
+    </div>
+    <div class="ds-table-scroll" id="allowed-users-table-wrap" hidden>
+      <table id="allowed-users-table" class="action-table">
+        <thead><tr><th>Email</th><th>最近登入</th><th>操作</th></tr></thead>
+        <tbody id="allowed-users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var S = { items: [], pendingRemove: null };
+
+  var SAMPLE = [
+    { email: 'alice@example.com', last_login: '2026-10-01T08:30:00Z' },
+    { email: 'bob@example.com', last_login: null },
+    { email: "o'brien+test@example.com", last_login: '2026-09-28T23:59:59Z' },
+    { email: '<img src=x onerror=alert(1)>@evil.example', last_login: null }  // 示範 XSS 安全：以文字顯示
+  ];
+
+  function fmtIsoLocal(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString('zh-TW');
+  }
+
+  function setMsg(text, kind) {
+    var el = $('allowed-users-msg');
+    if (!text) { el.hidden = true; el.textContent = ''; delete el.dataset.kind; return; }
+    el.textContent = text; el.dataset.kind = kind; el.hidden = false;
+  }
+
+  function setStatus(text, showRetry) {
+    $('allowed-users-status-text').textContent = text || '';
+    $('allowed-users-retry-btn').hidden = !showRetry;
+  }
+
+  function mkBtn(label, cls, handler) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm ' + cls;
+    b.textContent = label;
+    b.addEventListener('click', handler);
+    return b;
+  }
+
+  function render() {
+    var tbody = $('allowed-users-tbody');
+    tbody.replaceChildren();
+    if (S.items.length === 0) {
+      $('allowed-users-table-wrap').hidden = true;
+      return;
+    }
+    $('allowed-users-table-wrap').hidden = false;
+    setStatus('', false);
+    S.items.forEach(function (it) {
+      var tr = document.createElement('tr');
+      tr.dataset.email = it.email;
+      var tdE = document.createElement('td'); tdE.className = 'au-email'; tdE.textContent = it.email;
+      var tdL = document.createElement('td'); tdL.textContent = fmtIsoLocal(it.last_login);
+      var tdA = document.createElement('td'); tdA.className = 'au-actions';
+      if (S.pendingRemove === it.email) {
+        tdA.appendChild(mkBtn('確認移除', 'btn-primary', function () {
+          S.items = S.items.filter(function (x) { return x.email !== it.email; });
+          S.pendingRemove = null;
+          if (S.items.length === 0) setStatus('清單為空', false);
+          render();
+        }));
+        tdA.appendChild(mkBtn('取消', 'btn-outline', function () { S.pendingRemove = null; render(); }));
+      } else {
+        tdA.appendChild(mkBtn('移除', 'btn-outline', function () { S.pendingRemove = it.email; setMsg('', null); render(); }));
+      }
+      tr.appendChild(tdE); tr.appendChild(tdL); tr.appendChild(tdA);
+      tbody.appendChild(tr);
+    });
+  }
+
+  var STATES = {
+    list: { label: '有資料清單', run: function () { S.items = SAMPLE.slice(); S.pendingRemove = null; setMsg('', null); setStatus('', false); render(); } },
+    empty: { label: '空狀態', run: function () { S.items = []; S.pendingRemove = null; setMsg('', null); setStatus('清單為空', false); render(); } },
+    loadfail: { label: '載入失敗', run: function () { S.items = []; S.pendingRemove = null; setMsg('', null); setStatus('讀取白名單失敗', true); render(); } },
+    adderr: { label: '新增錯誤', run: function () { S.items = SAMPLE.slice(0, 2); S.pendingRemove = null; $('allowed-users-input').value = 'not-an-email'; setStatus('', false); setMsg('email 格式不正確', 'error'); render(); } },
+    dup: { label: '重複新增（已存在）', run: function () { S.items = SAMPLE.slice(0, 2); S.pendingRemove = null; $('allowed-users-input').value = 'alice@example.com'; setStatus('', false); setMsg('已存在', 'info'); render(); } },
+    confirm: { label: '移除二段式確認', run: function () { S.items = SAMPLE.slice(0, 3); S.pendingRemove = 'bob@example.com'; setMsg('', null); setStatus('', false); render(); } }
+  };
+
+  var bar = $('proto-buttons');
+  Object.keys(STATES).forEach(function (k) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = STATES[k].label; b.dataset.state = k;
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(bar.children, function (c) { c.classList.remove('on'); });
+      b.classList.add('on');
+      if (k !== 'adderr' && k !== 'dup') $('allowed-users-input').value = '';
+      STATES[k].run();
+    });
+    bar.appendChild(b);
+  });
+
+  $('allowed-users-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('allowed-users-input').value.trim();
+    if (!v) { setMsg('請輸入 email', 'error'); return; }
+    setMsg('（原型：實際行為見設計文件，請用上方按鈕切換狀態）', 'info');
+  });
+  $('allowed-users-retry-btn').addEventListener('click', function () { STATES.list.run(); bar.children[0].classList.add('on'); });
+
+  bar.children[0].click();
+})();
+</script>
+</body>
+</html>
