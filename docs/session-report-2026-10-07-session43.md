@@ -22,4 +22,6 @@
 - Rate limit 事件：無
 
 ## 下個 session 建議起點
-看板無未完成工單（46 張全 DONE）。等待人類建立新 Backlog Story / Epic。
+**更正**：本報告初版寫「看板無未完成工單（46 張全 DONE）」是錯的。當時用 `resolution is EMPTY` 查詢，DONE 工單未被設 resolution 而混入結果，且漏掉其他工單。正確查法是 `statusCategory != Done`（見 part2 報告）。
+
+見 `docs/session-report-2026-10-07-session43-part2.md`。
