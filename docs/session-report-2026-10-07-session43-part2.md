@@ -18,8 +18,10 @@
 - Silent failure 檢查：發現並更正 1 項——先前 session 報告誤報「看板全 DONE」（查詢條件錯誤，已更正）。
 - 驗證缺口：analyst 的 Grep/Glob 中途失敗，`src/tests/*` 未被實際讀取，進入設計/開發前需由 orchestrator 核對。
 
-## 看板殘留舊票（需人類決定）
-共 16 張舊票 status 非 Done 但 `resolution = Done`：SDLCAIP2-6、8、24、25、26、27、28、30、51、52、53、57、58、59、60（Backlog，皆為已回答的 HUMAN-INPUT）與 SDLCAIP2-49（Refining，疑似已由 54/55/56 取代）。orchestrator 未擅自轉狀態，建議由人類確認後批次轉 DONE。
+## 看板殘留舊票（已結案，非待辦）
+16 張舊票 status 非 Done 但 `resolution = Done`：SDLCAIP2-6、8、24、25、26、27、28、30、51、52、53、57、58、59、60（Backlog，已回答並消化的 HUMAN-INPUT）與 SDLCAIP2-49（Refining，追蹤用父單）。依既有記錄這是 workflow 無 Backlog/Refining → Done 轉換所致，並非待處理工作，orchestrator 未動它們。
+
+**正確的「未完成工單」查法**：`status != Done AND resolution is EMPTY`，兩條件缺一不可（見 memory feedback_jira_resolution_vs_status）。本 session 初次查詢只用 `resolution is EMPTY`，違反此規則，才誤報看板已清空。
 
 ## 資源使用
 - Token 用量估計：低
