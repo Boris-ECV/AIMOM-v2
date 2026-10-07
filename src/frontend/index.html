@@ -519,6 +519,26 @@
   #auth-gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #auth-gate .card { max-width: 360px; text-align: center; }
   #auth-gate p { color: var(--muted); font-size: .875rem; margin: 12px 0 20px; }
+
+  /* ===== SDLCAIP2-64: 使用者白名單區塊（僅作用於 #allowed-users-card） ===== */
+  #allowed-users-card .au-form { display:flex; gap:var(--ds-space-2); margin-bottom:var(--ds-space-2); }
+  #allowed-users-card .au-form .input { flex:1; min-width:0; }
+  #allowed-users-card .au-msg { font-family:var(--ds-font-sans); font-size:13px; margin-bottom:var(--ds-space-2); }
+  #allowed-users-card .au-msg[data-kind="error"] { color:var(--danger); }
+  #allowed-users-card .au-msg[data-kind="info"] { display:inline-block; padding:4px 12px; border-radius:var(--ds-radius-pill);
+    background:var(--ds-badge-bg); border:1px solid var(--ds-badge-border); color:var(--ds-badge-text); }
+  #allowed-users-card .au-status { font-family:var(--ds-font-sans); font-size:13px; color:var(--ds-text-secondary);
+    padding:var(--ds-space-3) 0; display:flex; align-items:center; gap:var(--ds-space-2); flex-wrap:wrap; }
+  #allowed-users-card .au-status:empty { display:none; }
+  #view-admin #allowed-users-table { min-width:0; }
+  #allowed-users-card .au-email { overflow-wrap:anywhere; }
+  #allowed-users-card .au-actions { white-space:nowrap; }
+  #allowed-users-card .au-actions .btn { margin-right:var(--ds-space-1); }
+  #allowed-users-card [hidden] { display:none !important; }
+  @media (max-width: 479px) {
+    #allowed-users-card .au-form { flex-direction:column; }
+    #allowed-users-card .au-actions .btn, #allowed-users-card .au-status .btn { width:auto; }
+  }
 </style>
 </head>
 <body>
@@ -564,6 +584,24 @@
         </table>
       </div>
       <p id="admin-total" style="margin-top:12px;font-weight:600;"></p>
+    </div>
+    <div class="card" id="allowed-users-card">
+      <div class="section-title">使用者白名單</div>
+      <form id="allowed-users-form" class="au-form" novalidate>
+        <input id="allowed-users-input" class="input" type="text" autocomplete="off" placeholder="輸入 email 後新增" aria-label="新增白名單 email">
+        <button id="allowed-users-add-btn" class="btn btn-primary" type="submit">新增</button>
+      </form>
+      <p id="allowed-users-msg" class="au-msg" role="status" hidden></p>
+      <div id="allowed-users-status" class="au-status" role="status">
+        <span id="allowed-users-status-text"></span>
+        <button id="allowed-users-retry-btn" class="btn btn-outline btn-sm" type="button" hidden>重試</button>
+      </div>
+      <div class="ds-table-scroll" id="allowed-users-table-wrap" hidden>
+        <table id="allowed-users-table" class="action-table">
+          <thead><tr><th>Email</th><th>最近登入</th><th>操作</th></tr></thead>
+          <tbody id="allowed-users-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -960,6 +998,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const saved = localStorage.getItem('meetingJobId');
   if (saved) state.jobId = saved;
   setupDropZone();
+  wireAllowedUsers();
   checkAdminAccess();
 });
 
@@ -977,7 +1016,206 @@ async function checkAdminAccess() {
   }
 }
 
+// ─── ALLOWED USERS（SDLCAIP2-64，白名單管理；全程 DOM API，不用 innerHTML/onclick 字串）───
+const allowedUsers = { items: [], loaded: false, pendingRemove: null, busy: false, loadSeq: 0 };
+
+function fmtIsoLocal(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString('zh-TW');
+}
+
+function setAllowedUsersMsg(text, kind) {
+  const el = document.getElementById('allowed-users-msg');
+  if (!text || !kind) {
+    el.hidden = true;
+    el.textContent = '';
+    delete el.dataset.kind;
+    return;
+  }
+  el.textContent = text;
+  el.dataset.kind = kind;
+  el.hidden = false;
+}
+
+function setAllowedUsersStatus(text, showRetry) {
+  document.getElementById('allowed-users-status-text').textContent = text;
+  document.getElementById('allowed-users-retry-btn').hidden = !showRetry;
+}
+
+function setAllowedUsersBusy(flag) {
+  allowedUsers.busy = flag;
+  document.getElementById('allowed-users-add-btn').disabled = flag;
+  document.getElementById('allowed-users-input').disabled = flag;
+  document.getElementById('allowed-users-retry-btn').disabled = flag;
+  document.querySelectorAll('#allowed-users-tbody button').forEach(b => { b.disabled = flag; });
+}
+
+function renderAllowedUsers() {
+  const tbody = document.getElementById('allowed-users-tbody');
+  const wrap = document.getElementById('allowed-users-table-wrap');
+  tbody.replaceChildren();
+  if (allowedUsers.items.length === 0) {
+    wrap.hidden = true;
+    setAllowedUsersStatus('清單為空', false);
+    return;
+  }
+  wrap.hidden = false;
+  setAllowedUsersStatus('', false);
+  const mkBtn = (cls, label, handler) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.disabled = allowedUsers.busy;
+    b.addEventListener('click', handler);
+    return b;
+  };
+  allowedUsers.items.forEach(item => {
+    const email = item.email;
+    const tr = document.createElement('tr');
+    tr.dataset.email = email;
+    const tdEmail = document.createElement('td');
+    tdEmail.className = 'au-email';
+    tdEmail.textContent = email;
+    const tdLogin = document.createElement('td');
+    tdLogin.textContent = fmtIsoLocal(item.last_login);
+    const tdAct = document.createElement('td');
+    tdAct.className = 'au-actions';
+    if (allowedUsers.pendingRemove === email) {
+      tdAct.appendChild(mkBtn('btn btn-primary btn-sm au-confirm', '確認移除', () => confirmRemove(email)));
+      tdAct.appendChild(mkBtn('btn btn-outline btn-sm au-cancel', '取消', () => cancelRemove()));
+    } else {
+      tdAct.appendChild(mkBtn('btn btn-outline btn-sm au-remove', '移除', () => requestRemove(email)));
+    }
+    tr.append(tdEmail, tdLogin, tdAct);
+    tbody.appendChild(tr);
+  });
+}
+
+async function loadAllowedUsers() {
+  const seq = ++allowedUsers.loadSeq;
+  setAllowedUsersStatus('載入中…', false);
+  try {
+    const res = await apiFetch('/api/admin/allowed-users');
+    if (seq !== allowedUsers.loadSeq) return;
+    if (res.status === 403) {
+      allowedUsers.items = [];
+      document.getElementById('allowed-users-tbody').replaceChildren();
+      document.getElementById('allowed-users-table-wrap').hidden = true;
+      setAllowedUsersStatus('僅限管理者存取', false);
+      return;
+    }
+    if (!res.ok) throw new Error('load failed');
+    const data = await res.json();
+    if (seq !== allowedUsers.loadSeq) return;
+    allowedUsers.items = Array.isArray(data) ? data : [];
+    allowedUsers.loaded = true;
+    renderAllowedUsers();
+  } catch (e) {
+    if (seq !== allowedUsers.loadSeq) return;
+    allowedUsers.items = [];
+    document.getElementById('allowed-users-tbody').replaceChildren();
+    document.getElementById('allowed-users-table-wrap').hidden = true;
+    setAllowedUsersStatus('讀取白名單失敗', true);
+  }
+}
+
+async function addAllowedUser(ev) {
+  ev.preventDefault();
+  if (allowedUsers.busy) return;
+  const input = document.getElementById('allowed-users-input');
+  const v = input.value.trim();
+  if (!v) {
+    setAllowedUsersMsg('請輸入 email', 'error');
+    return;
+  }
+  setAllowedUsersMsg(null, null);
+  setAllowedUsersBusy(true);
+  try {
+    const res = await apiFetch('/api/admin/allowed-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: v }),
+    });
+    if (res.status === 201) {
+      const json = await res.json();
+      allowedUsers.items.push({ email: json.email, last_login: json.last_login });
+      allowedUsers.items.sort((a, b) => (a.email < b.email ? -1 : a.email > b.email ? 1 : 0));
+      renderAllowedUsers();
+      input.value = '';
+      setAllowedUsersMsg(null, null);
+    } else if (res.status === 200) {
+      setAllowedUsersMsg('已存在', 'info');
+    } else if (res.status === 422) {
+      setAllowedUsersMsg('email 格式不正確', 'error');
+    } else if (res.status === 403) {
+      setAllowedUsersMsg('僅限管理者存取', 'error');
+    } else {
+      setAllowedUsersMsg('新增失敗，請稍後再試', 'error');
+    }
+  } catch (e) {
+    setAllowedUsersMsg('新增失敗，請稍後再試', 'error');
+  } finally {
+    setAllowedUsersBusy(false);
+  }
+}
+
+function requestRemove(email) {
+  allowedUsers.pendingRemove = email;
+  setAllowedUsersMsg(null, null);
+  renderAllowedUsers();
+}
+
+function cancelRemove() {
+  allowedUsers.pendingRemove = null;
+  renderAllowedUsers();
+}
+
+async function confirmRemove(email) {
+  if (allowedUsers.busy) return;
+  setAllowedUsersBusy(true);
+  try {
+    const res = await apiFetch('/api/admin/allowed-users/' + encodeURIComponent(email), { method: 'DELETE' });
+    if (res.status === 204) {
+      allowedUsers.items = allowedUsers.items.filter(it => it.email !== email);
+      allowedUsers.pendingRemove = null;
+      renderAllowedUsers();
+      setAllowedUsersMsg(null, null);
+    } else if (res.status === 404) {
+      allowedUsers.pendingRemove = null;
+      setAllowedUsersMsg('找不到此 email', 'error');
+      await loadAllowedUsers();
+    } else if (res.status === 403) {
+      allowedUsers.pendingRemove = null;
+      setAllowedUsersMsg('僅限管理者存取', 'error');
+      renderAllowedUsers();
+    } else {
+      allowedUsers.pendingRemove = null;
+      setAllowedUsersMsg('移除失敗，請稍後再試', 'error');
+      renderAllowedUsers();
+    }
+  } catch (e) {
+    allowedUsers.pendingRemove = null;
+    setAllowedUsersMsg('移除失敗，請稍後再試', 'error');
+    renderAllowedUsers();
+  } finally {
+    setAllowedUsersBusy(false);
+  }
+}
+
+function wireAllowedUsers() {
+  document.getElementById('allowed-users-form').addEventListener('submit', addAllowedUser);
+  document.getElementById('allowed-users-retry-btn').addEventListener('click', () => { loadAllowedUsers(); });
+}
+
 async function openAdminDashboard() {
+  allowedUsers.items = [];
+  allowedUsers.pendingRemove = null;
+  setAllowedUsersMsg(null, null);
+  document.getElementById('allowed-users-input').value = '';
+  loadAllowedUsers();
   try {
     const res = await apiFetch('/api/admin/usage');
     if (res.status === 403) {
