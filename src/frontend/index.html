@@ -65,8 +65,12 @@
   header h1 { font-size: 1.15rem; font-weight: 600; margin: 0; cursor: pointer; }
   header span { font-size: .85rem; opacity: .75; }
   .header-subtitle { font-size: .8rem; opacity: .75; }
-  .header-secondary { display: contents; } /* 桌面：讓子元素直接參與 header 的 flex 排版，維持單列 */
-  #admin-dashboard-btn { margin-left: auto; }
+  .header-secondary {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    margin-left: auto; /* SDLCAIP2-62: 錨點改放在一定會被渲染的容器本身，見關鍵技術決策 1 */
+  }
   #current-user-email { font-size: .8rem; opacity: .85; }
   header .btn { width: auto; flex: 0 0 auto; } /* header 內按鈕永遠不套用全域手機版 width:100% 規則 */
 
@@ -84,6 +88,7 @@
       order: 3;
       flex-basis: 100%;
       width: 100%;
+      margin-left: 0; /* 新增：手機版已獨占一整列，取消桌面版的 auto 推擠 */
       align-items: center;
       gap: var(--ds-space-2);
       overflow-x: auto;
@@ -145,7 +150,7 @@
   .btn:focus-visible { outline: 2px solid var(--ds-focus-ring); outline-offset: 2px; }
   .btn-primary { background: var(--ds-ink-100); border-color: var(--ds-ink-100); color: var(--ds-bg); }
   .btn-primary:hover { background: var(--ds-ink-200); border-color: var(--ds-ink-200); }
-  .btn-outline { background: var(--ds-surface); color: var(--ds-text-primary);
+  .btn-outline { background: var(--ds-bg); color: var(--ds-text-primary);
                  border: 1px solid var(--ds-border-strong); }
   .btn-outline:hover { background: var(--ds-badge-bg); }
   .btn-success { background: var(--success); color: #fff; }
@@ -521,8 +526,7 @@
 <!-- ============ AUTH GATE（TASK-014，未登入時顯示） ============ -->
 <div id="auth-gate">
   <div class="card">
-    <h2 style="font-size:1.2rem;margin-bottom:8px;">🔐 會議錄音轉紀錄系統</h2>
-    <p>請先登入才能使用</p>
+    <h2 style="font-size:1.2rem;margin-bottom:8px;">會議錄音轉紀錄系統</h2>
     <button class="btn btn-primary" onclick="login()">使用 Google 帳號登入</button>
     <p id="auth-error" style="color:var(--danger);"></p>
   </div>

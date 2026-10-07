@@ -33,6 +33,22 @@ def test_upload_page_privacy_text():
     assert "不長期" not in FRONTEND_HTML
 
 
+# ─── SDLCAIP2-62 AC1: 登入頁文案簡化 ───────────────────────────
+
+def test_auth_gate_title_excludes_lock_icon():
+    """登入頁標題應為「會議錄音轉紀錄系統」且不含 🔐 圖示（AC1）。"""
+    start = FRONTEND_HTML.index('id="auth-gate"')
+    end = FRONTEND_HTML.index('</div>', FRONTEND_HTML.index('<h2', start))
+    snippet = FRONTEND_HTML[start:end]
+    assert "會議錄音轉紀錄系統" in snippet
+    assert "🔐" not in snippet
+
+
+def test_auth_gate_no_longer_shows_please_login_first_text():
+    """登入頁不應再顯示「請先登入才能使用」這行文字（AC1）。"""
+    assert "請先登入才能使用" not in FRONTEND_HTML
+
+
 # ─── Scenario: 處理中頁面訊息更新且不含供應商/模型名稱 ──────────
 
 def _setup_job(job_id="ui-copy-job-001"):
@@ -112,6 +128,36 @@ def test_stage_done_label_text_excludes_model_name():
     idx = FRONTEND_HTML.index("摘要與整理")
     snippet = FRONTEND_HTML[max(0, idx - 200):idx + 200]
     assert "GPT-4o" not in snippet
+
+
+# ─── SDLCAIP2-62 AC2: 處理中頁面文案簡化（summarize 進度訊息） ──────
+
+def test_summarize_progress_message_excludes_ai_wording():
+    """/summarize 執行到摘要整理階段時，進度訊息應顯示「正在整理會議紀錄...」
+    且不含「AI」字樣（AC2）。"""
+    job_id = "ui-copy-summarize-job"
+    jobstore.create_job(
+        job_id,
+        stage="transcribed",
+        progress=75,
+        message="ok",
+        segments=[{"start": 0.0, "end": 5.0, "text": "測試逐字稿", "speaker": "SPEAKER_00"}],
+    )
+    captured = {}
+
+    def _capture_mid_progress(*args, **kwargs):
+        captured["job"] = jobstore.get_job(job_id)
+        raise RuntimeError("stop after progress capture")
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = _capture_mid_progress
+
+    with patch("config.get_llm_client", return_value=mock_client):
+        client.post("/api/summarize", json={"job_id": job_id})
+
+    assert captured["job"]["progress"] == 70
+    assert captured["job"]["message"] == "正在整理會議紀錄..."
+    assert "AI" not in captured["job"]["message"]
 
 
 def test_frontend_html_never_mentions_gpt4o_or_assemblyai_in_visible_stage_labels():
