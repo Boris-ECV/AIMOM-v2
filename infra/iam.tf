@@ -43,6 +43,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
       aws_dynamodb_table.meetings.arn,
       aws_dynamodb_table.llm_usage.arn,
       aws_dynamodb_table.jobs.arn,
+      aws_dynamodb_table.allowed_users.arn,
     ]
   }
 

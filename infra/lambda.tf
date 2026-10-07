@@ -67,6 +67,7 @@ resource "aws_lambda_function" "api" {
       DYNAMODB_MEETINGS_TABLE   = aws_dynamodb_table.meetings.name
       DYNAMODB_LLM_USAGE_TABLE  = aws_dynamodb_table.llm_usage.name
       DYNAMODB_JOBS_TABLE       = aws_dynamodb_table.jobs.name
+      DYNAMODB_ALLOWED_USERS_TABLE = aws_dynamodb_table.allowed_users.name
       MEETING_RETENTION_DAYS    = tostring(var.meeting_retention_days)
       TMP_DIR                   = "/tmp"
       AUDIO_BUCKET_NAME         = aws_s3_bucket.audio.bucket
