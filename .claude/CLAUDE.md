@@ -439,6 +439,29 @@ Do NOT read docs/03/04/05/07 at bootstrap; read them only when needed.
   cross-file consistency tests (e.g. asserting two artifacts stay
   byte-identical) can live on the side that wasn't touched and fail
   precisely because the other side was.
+- **A subagent that "appends" or "adds a section" to an existing file
+  (reporter on `docs/PRD.md`, architect, etc.) can silently rewrite the
+  whole file and drop existing content — its own success report will
+  not tell you.** Observed in this framework's pilot (session43,
+  2026-10-07, SDLCAIP2-66/67): reporter was asked to append two
+  sections to the end of `docs/PRD.md`; it reported success, but the
+  file had shrunk from 1557 to 1289 lines (`git diff --numstat`:
+  189 added / 457 deleted) — roughly 270 lines of earlier stories'
+  PRD sections were gone. Caught only because the orchestrator checked
+  the diff before committing; the reporter's own report contained line
+  numbers that did not add up and nothing else flagged it. **Rule:**
+  (1) in the delegation prompt, say "append only; do not modify,
+  reorder, or rewrite any existing content" and name the single file
+  it may touch; (2) before committing any subagent's edit to an
+  existing file, run `git diff --numstat <file>` and require the
+  deleted-lines count to be 0 (or exactly what the task intended) —
+  a nonzero surprise means stop, don't commit; (3) recovery: save the
+  newly written text to the scratchpad, `git checkout -- <file>`, then
+  re-append it yourself, and re-check that the numstat is `N 0`;
+  (4) after an architect/developer delegation, `git status --short`
+  must show only the file(s) the task named. Rule 4c's file-path
+  checklist does not catch this either, because `docs/PRD.md` is an
+  allowed self-merge path — the damage would have merged unreviewed.
 
 ## Escalation
 
