@@ -29,13 +29,6 @@ variable "admin_emails" {
   sensitive   = true
 }
 
-variable "allowed_emails" {
-  description = "登入白名單 email，逗號分隔，非空時強制僅允許清單內 email 登入"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 variable "google_client_id" {
   description = "Google OAuth Client ID（Cognito 聯合登入用）"
   type        = string

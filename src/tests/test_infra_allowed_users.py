@@ -5,10 +5,6 @@ import re
 import subprocess
 import sys
 
-import pytest
-
-import auth
-import config
 
 SRC = Path(__file__).resolve().parent.parent
 INFRA = SRC.parent / "infra"
@@ -71,31 +67,3 @@ def test_config_default_table_name():
 def test_config_honors_env_var():
     assert _config_value({"DYNAMODB_ALLOWED_USERS_TABLE": "custom-t"}) == "custom-t"
 
-
-# AC11
-def test_auth_py_does_not_reference_allowed_users_table():
-    text = _read(SRC / "auth.py")
-    assert "DYNAMODB_ALLOWED_USERS_TABLE" not in text
-    assert "allowed_users" not in text
-    assert "allowed-users" not in text
-
-
-def test_existing_auth_allowlist_tests_still_present():
-    text = _read(SRC / "tests" / "test_auth.py")
-    for name in (
-        "test_verify_token_email_not_in_allowlist_raises",
-        "test_verify_token_empty_allowlist_backward_compatible",
-        "test_get_current_user_email_not_in_allowlist_returns_403",
-    ):
-        assert f"def {name}" in text
-
-
-@pytest.mark.parametrize("allowed", ["", "someone@example.com,u@example.com"])
-def test_login_ignores_new_table(monkeypatch, allowed):
-    """u@example.com 不在新白名單表，仍僅依 ALLOWED_EMAILS（空=不限制）決定能否登入。"""
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", allowed)
-    monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "c")
-    monkeypatch.setattr(auth.jwt, "get_unverified_header", lambda t: {"kid": "k"})
-    monkeypatch.setattr(auth.jwt, "decode", lambda *a, **k: {"email": "u@example.com"})
-    user = auth.verify_token("tok", jwks_provider=lambda: {"keys": [{"kid": "k", "alg": "RS256"}]})
-    assert user.email == "u@example.com"

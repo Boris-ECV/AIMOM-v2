@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import logging
 import time
 from typing import Callable, Literal, Optional
 
@@ -13,7 +14,10 @@ from fastapi import Depends, Header, HTTPException
 from jose import jwt
 from pydantic import BaseModel
 
+import allowed_users
 import config
+
+logger = logging.getLogger(__name__)
 
 _JWKS_CACHE: dict = {"keys": None, "fetched_at": 0}
 _JWKS_TTL_SECONDS = 3600
@@ -27,7 +31,7 @@ class CurrentUser(BaseModel):
 
 
 class EmailNotAllowedError(Exception):
-    """token 驗證通過，但 email 不在 ALLOWED_EMAILS 白名單內。"""
+    """token 驗證通過，但 email 不在 allowed-users 資料表（且非管理者）。"""
 
 
 def _cognito_issuer() -> str:
@@ -57,9 +61,13 @@ def _get_admin_emails() -> set[str]:
     return {e.strip().lower() for e in raw.split(",") if e.strip()}
 
 
-def _get_allowed_emails() -> set[str]:
-    raw = config.ALLOWED_EMAILS or ""
-    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+def _load_allowed_emails() -> frozenset[str]:
+    """讀白名單；任何失敗 fail closed（回空集合），並記錄錯誤。"""
+    try:
+        return allowed_users.get_all_emails()
+    except Exception:  # noqa: BLE001
+        logger.exception("讀取 allowed-users 資料表失敗，一般使用者登入將被拒絕（fail closed）")
+        return frozenset()
 
 
 def verify_token(token: str, jwks_provider: Callable[[], dict] = _default_jwks_provider) -> CurrentUser:
@@ -95,11 +103,10 @@ def verify_token(token: str, jwks_provider: Callable[[], dict] = _default_jwks_p
     if not email:
         raise ValueError("token 缺少 email claim")
 
-    allowed_emails = _get_allowed_emails()
-    if allowed_emails and email.lower() not in allowed_emails:
+    email_lc = email.lower()
+    role = "admin" if email_lc in _get_admin_emails() else "user"
+    if role != "admin" and email_lc not in _load_allowed_emails():
         raise EmailNotAllowedError(email)
-
-    role = "admin" if email.lower() in _get_admin_emails() else "user"
     return CurrentUser(email=email, role=role)
 
 

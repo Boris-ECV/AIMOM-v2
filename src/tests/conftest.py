@@ -22,6 +22,7 @@ import pytest
 from moto import mock_aws
 
 from app import app
+import allowed_users
 from auth import CurrentUser, get_current_user
 
 
@@ -38,5 +39,7 @@ def _override_auth():
 
 @pytest.fixture(autouse=True)
 def _mock_dynamodb():
+    allowed_users.invalidate_cache()
     with mock_aws():
         yield
+    allowed_users.invalidate_cache()
