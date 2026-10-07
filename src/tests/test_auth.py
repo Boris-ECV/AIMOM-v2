@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from jose.utils import long_to_base64
 
+import allowed_users
 import config
 import auth
 
@@ -51,6 +52,7 @@ def test_verify_token_success_regular_user(rsa_key, monkeypatch):
     pem, jwk = rsa_key
     monkeypatch.setattr(config, "ADMIN_EMAILS", "admin@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("user@example.com")
     token = _make_token(pem, email="user@example.com")
 
     user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
@@ -66,6 +68,7 @@ def test_verify_token_with_at_hash_claim_accepted(rsa_key, monkeypatch):
     """
     pem, jwk = rsa_key
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("user@example.com")
     now = int(time.time())
     payload = {
         "email": "user@example.com",
@@ -122,13 +125,14 @@ def test_get_current_user_missing_header_401():
     assert resp.status_code == 401
 
 
-# --- SDLCAIP2-23: ALLOWED_EMAILS 白名單 ---
+# --- SDLCAIP2-67: allowed-users 資料表白名單 ---
 
 
 def test_verify_token_email_in_allowlist_passes(rsa_key, monkeypatch):
     pem, jwk = rsa_key
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com,b@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("a@example.com")
+    allowed_users.add_user("b@example.com")
     token = _make_token(pem, email="a@example.com")
 
     user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
@@ -138,34 +142,34 @@ def test_verify_token_email_in_allowlist_passes(rsa_key, monkeypatch):
 
 def test_verify_token_email_not_in_allowlist_raises(rsa_key, monkeypatch):
     pem, jwk = rsa_key
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("a@example.com")
     token = _make_token(pem, email="c@example.com")
 
     with pytest.raises(auth.EmailNotAllowedError):
         auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
 
 
-def test_verify_token_empty_allowlist_backward_compatible(rsa_key, monkeypatch):
+def test_verify_token_empty_table_rejects_regular_user(rsa_key, monkeypatch):
     pem, jwk = rsa_key
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
     token = _make_token(pem, email="anyone@example.com")
 
-    user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+    with pytest.raises(auth.EmailNotAllowedError):
+        auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
 
-    assert user.email == "anyone@example.com"
 
-
-def test_verify_token_admin_not_in_allowlist_still_rejected(rsa_key, monkeypatch):
+def test_verify_token_admin_not_in_table_still_allowed(rsa_key, monkeypatch):
     monkeypatch.setattr(config, "ADMIN_EMAILS", "admin@example.com")
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "other@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("other@example.com")
     pem, jwk = rsa_key
     token = _make_token(pem, email="admin@example.com")
 
-    with pytest.raises(auth.EmailNotAllowedError):
-        auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+    user = auth.verify_token(token, jwks_provider=lambda: {"keys": [jwk]})
+
+    assert user.role == "admin"
+    assert "admin@example.com" not in {u["email"] for u in allowed_users.list_users()}
 
 
 def test_get_current_user_email_in_allowlist_returns_200(rsa_key, monkeypatch):
@@ -174,8 +178,9 @@ def test_get_current_user_email_in_allowlist_returns_200(rsa_key, monkeypatch):
     from auth import get_current_user
 
     pem, jwk = rsa_key
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com,b@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("a@example.com")
+    allowed_users.add_user("b@example.com")
     monkeypatch.setattr(auth, "_JWKS_CACHE", {"keys": {"keys": [jwk]}, "fetched_at": time.time()})
     token = _make_token(pem, email="a@example.com")
 
@@ -192,8 +197,8 @@ def test_get_current_user_email_not_in_allowlist_returns_403(rsa_key, monkeypatc
     from auth import get_current_user
 
     pem, jwk = rsa_key
-    monkeypatch.setattr(config, "ALLOWED_EMAILS", "a@example.com")
     monkeypatch.setattr(config, "COGNITO_APP_CLIENT_ID", "client-abc")
+    allowed_users.add_user("a@example.com")
     monkeypatch.setattr(auth, "_JWKS_CACHE", {"keys": {"keys": [jwk]}, "fetched_at": time.time()})
     token = _make_token(pem, email="c@example.com")
 

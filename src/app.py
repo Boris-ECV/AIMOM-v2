@@ -12,6 +12,7 @@ from progress import router as progress_router
 from history import router as history_router
 from export import router as export_router
 from admin import router as admin_router
+import allowed_users
 from auth import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,11 @@ async def health_check_v2():
 
 @app.get("/api/me")
 async def get_me(user: CurrentUser = Depends(get_current_user)):
-    """回傳目前登入使用者資訊（TASK-008）。"""
+    """回傳目前登入使用者資訊（TASK-008）；順便更新 last_login（SDLCAIP2-67）。"""
+    try:
+        allowed_users.touch_last_login(user.email)
+    except Exception:  # noqa: BLE001
+        logger.exception("更新 last_login 失敗（不影響登入）: %s", user.email)
     return {"email": user.email, "role": user.role}
 
 

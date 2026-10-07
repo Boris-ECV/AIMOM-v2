@@ -63,7 +63,6 @@ resource "aws_lambda_function" "api" {
       COGNITO_USER_POOL_ID      = aws_cognito_user_pool.main.id
       COGNITO_APP_CLIENT_ID     = aws_cognito_user_pool_client.app.id
       ADMIN_EMAILS              = var.admin_emails
-      ALLOWED_EMAILS            = var.allowed_emails
       DYNAMODB_MEETINGS_TABLE   = aws_dynamodb_table.meetings.name
       DYNAMODB_LLM_USAGE_TABLE  = aws_dynamodb_table.llm_usage.name
       DYNAMODB_JOBS_TABLE       = aws_dynamodb_table.jobs.name
