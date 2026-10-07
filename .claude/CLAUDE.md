@@ -21,6 +21,38 @@ report to the human supervisor.
    one: it happened during this framework's own pilot. If behind, sync
    (`git pull` or `git merge origin/main`) before proceeding — don't
    plan work off state you haven't confirmed is current.
+1c. **When counting or listing "open"/"pending"/"unanswered" tickets of
+   any kind (HUMAN-INPUT, Blocked, or otherwise), filter by BOTH
+   `status != Done AND resolution is EMPTY` together — never by `status`
+   alone, and never by `resolution` alone either.** This project's Jira
+   workflow has two independent gaps that each make one field alone
+   unreliable: (1) `Backlog`/`Refining` have no direct transition to
+   `Done` (root gap documented on SDLCAIP2-49), so once a ticket's
+   question is answered and consumed, the orchestrator sets
+   `resolution = Done` and says so in a comment, but `status` stays on
+   `Backlog`/`Refining` forever — a `status != Done` query alone wrongly
+   includes these as "open". (2) The `Done` transition in this workflow
+   does **not** auto-populate `resolution` — plenty of genuinely
+   completed tickets sit at `status = Done` with `resolution: null`
+   (confirmed on SDLCAIP2-56 and ~40 others) — so a `resolution is
+   EMPTY` query *alone* wrongly includes all of those as "open" too.
+   Only the conjunction of both conditions correctly isolates "still
+   needs a human decision". Observed in this framework's pilot
+   (session41, 2026-10-06), as two separate mistakes back to back: first
+   the orchestrator reported "15 open HUMAN-INPUT tickets awaiting your
+   answer" using `status != Done` alone (true count was 0 — all 15 had
+   `resolution = Done` from prior sessions); corrected to recommend
+   `resolution is EMPTY` as the fix, but when actually re-queried
+   project-wide with `resolution is EMPTY` alone it matched ~49 tickets
+   including ~40 closed `Done`-status ones with never-set `resolution`,
+   which would have been an equally wrong over-count in the opposite
+   direction had it not been checked before writing it into this rule.
+   Caught only when the human pushed back once ("why do I always have to
+   remind you to look carefully") and the orchestrator then verified its
+   own proposed fix before shipping it. **Rule:** the correct query is
+   always `status != Done AND resolution is EMPTY` — both conditions,
+   never either one alone — before asserting to a human that any ticket
+   is still waiting on them.
 2. **Never skip exit-criteria verification.** Feeling confident is not
    verification. Run the checks (docs/02 §3) item by item.
 2b. **A local `pytest` pass is not proof the PR is green — check the
