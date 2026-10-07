@@ -59,6 +59,7 @@ ALLOWED_EMAILS = os.getenv("ALLOWED_EMAILS", "")  # 逗號分隔白名單，登�
 DYNAMODB_MEETINGS_TABLE = os.getenv("DYNAMODB_MEETINGS_TABLE", "aimom-meetings")
 DYNAMODB_LLM_USAGE_TABLE = os.getenv("DYNAMODB_LLM_USAGE_TABLE", "aimom-llm-usage")
 DYNAMODB_JOBS_TABLE = os.getenv("DYNAMODB_JOBS_TABLE", "aimom-jobs")
+DYNAMODB_ALLOWED_USERS_TABLE = os.getenv("DYNAMODB_ALLOWED_USERS_TABLE", "aimom-allowed-users")
 MEETING_RETENTION_DAYS = int(os.getenv("MEETING_RETENTION_DAYS", "14"))
 
 
