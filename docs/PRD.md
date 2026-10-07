@@ -1555,3 +1555,192 @@ Feature: UI 調整 — 文案與版面修正
 ### 狀態
 
 G1 approved 2026-10-06 → Designing
+
+---
+
+## SDLCAIP2-66：管理者白名單資料表與管理 API（含 infra）
+
+### 使用者故事
+
+As a 管理者, I want 透過管理 API 查詢、新增、移除登入白名單（儲存在 DynamoDB）, so that 我能在不重新部署的情況下管理允許使用系統的使用者。
+
+（父票追蹤用：SDLCAIP2-63 已拆分為本票及 SDLCAIP2-67；本票僅建置資料表與管理 API；現有 ALLOWED_EMAILS 登入檢查行為不變。）
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 白名單管理 API 與 DynamoDB 資料表
+
+  Scenario: 管理者列出白名單
+    Given 白名單資料表已有 a@example.com（last_login 為 2026-10-01T00:00:00Z）與 b@example.com（從未登入）
+    And 呼叫者為 ADMIN_EMAILS 中的管理者
+    When 呼叫 GET /api/admin/allowed-users
+    Then 回應 200
+    And 內容為依 email 排序的陣列，每筆格式 {"email": str, "last_login": ISO-8601 UTC 字串或 null}
+    And 包含 a@example.com 與其 last_login，以及 b@example.com 且 last_login 為 null
+
+  Scenario: 管理者新增白名單
+    Given 呼叫者為管理者，且 c@example.com 不在白名單
+    When 呼叫 POST /api/admin/allowed-users，body 為 {"email": "  C@Example.com "}
+    Then 回應 201，內容 {"email": "c@example.com", "last_login": null}
+    And 之後 GET 含 c@example.com（已轉小寫並去除空白）
+
+  Scenario: 新增重複 email 為冪等
+    Given c@example.com 已在白名單且已有 last_login
+    When 管理者再次 POST 同一 email
+    Then 回應 200 且該筆 last_login 不被清除
+
+  Scenario: 新增格式不合法的 email
+    When 管理者 POST {"email": "not-an-email"}
+    Then 回應 4xx（FastAPI 驗證預設 422）且資料表不新增任何項目
+
+  Scenario: 管理者移除白名單
+    Given c@example.com 在白名單
+    When 管理者呼叫 DELETE /api/admin/allowed-users/c@example.com
+    Then 回應 204
+    And 之後 GET 不再包含 c@example.com
+
+  Scenario: 移除不存在的 email
+    When 管理者 DELETE 不在白名單的 email
+    Then 回應 404
+
+  Scenario: 非管理者存取三個端點
+    Given 呼叫者為非 ADMIN_EMAILS 的一般使用者
+    When 分別呼叫 GET、POST、DELETE /api/admin/allowed-users
+    Then 三者皆回應 403 且資料表未被修改
+
+  Scenario: 未帶 token
+    When 未帶 Authorization 呼叫任一端點
+    Then 回應 401
+
+  Scenario: Terraform 部署包含資料表與權限
+    Given infra/dynamodb.tf、infra/iam.tf、infra/lambda.tf
+    Then dynamodb.tf 定義 aws_dynamodb_table（名稱 "${local.name_prefix}-allowed-users"，PK=email（S），PAY_PER_REQUEST）
+    And iam.tf 的 DynamoDBAccess 資源清單包含該表 ARN
+    And lambda.tf 環境變數含 DYNAMODB_ALLOWED_USERS_TABLE 指向該表名稱
+    And src/config.py 提供 DYNAMODB_ALLOWED_USERS_TABLE（預設 "aimom-allowed-users"）
+
+  Scenario: DynamoDB 錯誤時管理 API 不洩漏成功
+    Given DynamoDB 呼叫拋出例外
+    When 管理者呼叫任一管理端點
+    Then 回應 5xx 且不回傳成功
+
+  Scenario: 現有登入檢查行為不變
+    Given 本票已部署
+    When 任何使用者登入
+    Then 登入檢查仍依既有 ALLOWED_EMAILS 環境變數邏輯，不讀取新資料表
+```
+
+### 範圍外
+
+* 登入檢查改讀 DynamoDB / /api/me 更新 last_login / 移除 ALLOWED_EMAILS（皆屬 SDLCAIP2-67）
+* 前端 UI（SDLCAIP2-64）
+* 異動稽核、多環境、記錄管理者自身登入時間
+* 白名單快取本身（SDLCAIP2-67）
+
+### 依賴
+
+* 無前置票
+* **排序：SDLCAIP2-66 需完成並部署後，SDLCAIP2-67 方可進行；SDLCAIP2-67 部署時需白名單已透過 66 的 API 預先填入，否則一般使用者將全數收 403（管理者不受影響）。**
+* SDLCAIP2-67 與 SDLCAIP2-64 依賴本票
+* 父單 SDLCAIP2-63（追蹤用）
+
+### 狀態
+
+G1 已核准（2026-10-07），進入 Designing
+
+---
+
+## SDLCAIP2-67：登入白名單改讀 DynamoDB、/api/me 更新 last_login、移除 ALLOWED_EMAILS
+
+### 使用者故事
+
+As a 系統維運者, I want 登入白名單檢查改為查詢 DynamoDB（含短 TTL 快取、失敗即拒絕）並記錄最後登入時間, so that 白名單由資料庫動態管理，且舊的環境變數機制被完整移除。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 資料庫白名單強制檢查
+
+  Scenario: 白名單內的使用者可登入（新增後生效）
+    Given 管理者已將 u@example.com 加入白名單
+    When u@example.com 持有效 token 呼叫 GET /api/me
+    Then 回應 200
+
+  Scenario: 被移除的使用者被拒絕
+    Given u@example.com 已被從白名單移除（處理該移除請求的容器快取已失效，或快取已過 TTL）
+    When u@example.com 呼叫任一需登入的 API
+    Then 回應 403
+
+  Scenario: 白名單為空時一般使用者一律 403
+    Given 白名單資料表為空
+    When 非管理者持有效 token 呼叫 GET /api/me
+    Then 回應 403
+
+  Scenario: 管理者不受白名單影響
+    Given 白名單為空，且 admin@example.com 在 ADMIN_EMAILS
+    When admin@example.com 呼叫 GET /api/me
+    Then 回應 200 且 role 為 admin
+    And 不會因其不在資料表而被拒絕
+
+  Scenario: DynamoDB 失敗時 fail closed
+    Given 對白名單資料表的查詢拋出例外（且無未過期快取）
+    When 非管理者呼叫 GET /api/me
+    Then 回應 403（拒絕）而非放行
+    And ADMIN_EMAILS 使用者仍可通過
+
+  Scenario: 快取（TTL 60 秒）
+    Given 白名單查詢結果已快取且未超過 60 秒（以常數定義）
+    When 同一容器連續多次請求
+    Then 期間不重複查詢 DynamoDB
+    And 超過 TTL 後重新查詢
+
+  Scenario: 管理 API 新增/移除使處理該請求的容器快取失效
+    Given 容器已快取白名單
+    When 該容器處理 POST 或 DELETE /api/admin/allowed-users
+    Then 該容器的白名單快取立即失效，下一次檢查重新查詢（其他容器依 TTL 過期，需於程式註解/文件說明）
+
+  Scenario: /api/me 更新 last_login
+    Given u@example.com 在白名單
+    When u@example.com 呼叫 GET /api/me
+    Then 該筆 last_login 更新為目前 UTC 時間（ISO-8601）
+
+  Scenario: 其他端點不更新 last_login
+    When u@example.com 呼叫 GET /api/meetings
+    Then 該筆 last_login 不變
+
+  Scenario: 管理者呼叫 /api/me 不寫入 last_login
+    Given admin@example.com 不在白名單資料表
+    When 其呼叫 GET /api/me
+    Then 資料表不新增該 email 的項目
+
+  Scenario: last_login 寫入失敗不影響登入
+    Given 白名單檢查通過，但更新 last_login 的寫入拋出例外
+    When 該使用者呼叫 GET /api/me
+    Then 回應仍為 200
+    And 錯誤被記錄於 log
+
+  Scenario: ALLOWED_EMAILS 已完整移除
+    Then src/config.py、src/auth.py 不再含 ALLOWED_EMAILS 或 _get_allowed_emails
+    And infra/variables.tf 無 variable "allowed_emails"
+    And infra/lambda.tf 環境變數無 ALLOWED_EMAILS
+    And infra/terraform.tfvars.example 與 .github/workflows/ci.yml 無 allowed_emails / TF_VAR_allowed_emails
+    And 舊的 src/tests/test_infra_allowed_emails.py 與依賴 ALLOWED_EMAILS 的既有測試已改寫或移除
+```
+
+### 範圍外
+
+* 白名單管理 API 與資料表建立（SDLCAIP2-66）
+* 前端 UI（SDLCAIP2-64）
+* 管理者登入時間追蹤、異動稽核、多環境
+* 在 GitHub 移除 secret TF_VAR_allowed_emails（人工作業）
+* 變更 ADMIN_EMAILS 機制
+
+### 依賴
+
+* **排序：必須在 SDLCAIP2-66 完成並部署後進行；部署時需白名單已透過 66 的 API 預先填入，否則一般使用者將全數收 403（管理者不受影響）。**
+* 父單 SDLCAIP2-63（追蹤用）
+
+### 狀態
+
+G1 已核准（2026-10-07），進入 Designing
