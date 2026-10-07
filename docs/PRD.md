@@ -1744,3 +1744,114 @@ Feature: 資料庫白名單強制檢查
 ### 狀態
 
 G1 已核准（2026-10-07），進入 Designing
+
+---
+
+## SDLCAIP2-64：管理者儀表板新增使用者白名單管理 UI
+
+### 使用者故事
+
+As a 管理者, I want 在儀表板（view-admin）查看、新增、移除允許登入的 email 清單, so that 我無需透過 API 就能便利地管理白名單。
+
+### 驗收條件（Gherkin）
+
+```gherkin
+Feature: 管理者儀表板白名單管理 UI
+
+  Scenario: 白名單清單顯示 email 與最後登入時間
+    Given 管理者已進入 view-admin 儀表板
+    When 查看白名單管理區塊
+    Then 清單顯示每筆記錄的 email 與最後登入時間（本地時區）
+    And last_login 為 null 時顯示「—」
+    And 白名單為空時顯示「清單為空」
+
+  Scenario: 新增 email 成功立即生效
+    Given 管理者在白名單新增區塊輸入有效 email
+    When 點擊「新增」按鈕
+    Then POST 請求成功（201）
+    And 新 email 立即出現在清單中
+    And 輸入框清空
+
+  Scenario: 重複新增 email 顯示提示
+    Given 某個 email 已在白名單中
+    When 管理者再次新增該 email
+    Then POST 回應 200（冪等）
+    And 頁面以資訊樣式提示「已存在」
+    And 清單不出現重複項目
+
+  Scenario: 新增無效 email 格式顯示錯誤
+    Given 管理者輸入格式錯誤的 email（例如「not-an-email」）
+    When 點擊「新增」按鈕
+    Then 後端回應 422
+    And 頁面顯示固定中文訊息（不輸出 pydantic detail）
+
+  Scenario: 空輸入不送請求
+    Given 管理者未輸入任何內容
+    When 點擊「新增」按鈕
+    Then 不發送 POST 請求
+    And 頁面顯示「請輸入 email」提示
+
+  Scenario: 移除採二段式確認
+    Given 管理者在清單中看到某個 email
+    When 點擊該 email 旁的移除按鈕
+    Then 出現移除確認提示（頁內二段式：移除→確認移除/取消）
+    And 確認移除時，DELETE 路徑使用 encodeURIComponent 編碼 email
+
+  Scenario: 移除不存在的 email 顯示錯誤
+    Given 管理者點擊移除某個 email
+    When 後端回應 404
+    Then 頁面顯示「找不到此 email」
+    And 自動重新載入清單
+
+  Scenario: 新增與移除失敗錯誤處理
+    Given 新增或移除操作失敗
+    When 後端回應錯誤
+    Then 錯誤訊息明確顯示在操作區塊內（不只是 toast 提示）
+
+  Scenario: 清單載入失敗顯示重試
+    Given 清單載入失敗
+    When GET 請求拋出例外
+    Then 頁面顯示錯誤訊息與「重試」按鈕
+    And 用量彙總區塊不受影響（仍可使用）
+
+  Scenario: XSS 安全渲染
+    Given 清單中包含特殊字元的 email（例如帶有 HTML/JavaScript 字元的異常情況）
+    When 頁面渲染
+    Then 特殊字元安全轉義（使用 textContent 或 addEventListener，不拼接 onclick）
+
+  Scenario: 非管理者看不到入口
+    Given 非管理者登入系統
+    When 嘗試存取白名單管理功能
+    Then 看不到入口；後端回應 403 時不顯示資料
+
+  Scenario: 操作進行中按鈕被禁用
+    Given 管理者在進行新增或移除操作
+    When 操作正在進行中
+    Then 按鈕被 disabled，防止重複送出
+
+  Scenario: 管理者移除自己的 email 無特殊處理
+    Given 管理者 email 也在白名單中
+    When 管理者移除自己的 email
+    Then 移除正常進行，無額外確認或限制
+```
+
+### 範圍外
+
+* 後端 API 變更（SDLCAIP2-66 已完成）
+* 批次匯入匯出
+* 搜尋、分頁、排序
+* 編輯 email
+* 顯示/管理 ADMIN_EMAILS
+* 角色管理、稽核紀錄
+* 前端 email 格式驗證（僅依賴後端 422）
+* 修復 openAdminDashboard 既有未轉義 innerHTML（另案）
+
+### 依賴
+
+* SDLCAIP2-66（Done，管理 API）
+* SDLCAIP2-67（Done，DB-backed 登入檢查）
+* SDLCAIP2-45（Done，view-admin 設計系統）
+
+### 狀態
+
+G1 已核准（2026-10-07），進入 Designing
