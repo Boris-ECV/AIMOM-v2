@@ -76,3 +76,20 @@ resource "aws_dynamodb_table" "jobs" {
     ManagedBy   = "terraform"
   }
 }
+
+resource "aws_dynamodb_table" "allowed_users" {
+  name         = "${local.name_prefix}-allowed-users"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "email"
+
+  attribute {
+    name = "email"
+    type = "S"
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
